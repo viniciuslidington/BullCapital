@@ -7,7 +7,18 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 def download_ticker(ticker, start_date, end_date, period, interval='1d'):
-    # Extract historical stock data from Yahoo Finance
+    """Funçao para extrair dados de ação no Yahoo Finance
+
+    Args:
+        ticker (str): explica o que é ticker
+        start_date (str): Data inicial para a consulta
+        end_date (str): Data final para a consulta
+        period (str): Periodo que seja que seja agrupado as informacoes
+        interval (str, optional): Intervalo para consulta. Defaults to '1d'.
+
+    Returns:
+        DataFrame: DataFrame com os dados consultados
+    """
     
     if not period:
 
