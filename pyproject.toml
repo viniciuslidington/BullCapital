@@ -16,3 +16,8 @@ dependencies = [
 dev = [
     "ruff>=0.12.2",
 ]
+
+[tool.uv.workspace]
+members = [
+    "bullcapital-backend",
+]
