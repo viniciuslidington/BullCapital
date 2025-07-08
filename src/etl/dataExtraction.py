@@ -61,5 +61,5 @@ def download_ticker(ticker, start_date, end_date, period, interval='1d'):
     else:
         return df
 
-df = download_ticker('aapl', None, None, '1y', '1d')
+df = download_ticker('vale', None, None, '1y', '1d')
 print(df.head())  # Display the first rows of the DataFrame
