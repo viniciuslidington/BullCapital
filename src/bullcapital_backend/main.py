@@ -6,5 +6,5 @@ from .orchestrator.tickerOrchestrator import pipeline
 
 if __name__ == "__main__":
    df =  pipeline()
-   print(df.head())
+   print(df)
     
