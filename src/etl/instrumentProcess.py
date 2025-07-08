@@ -3,9 +3,12 @@ import os
 from dotenv import load_dotenv
 import pandas as pd
 import re
+import logging
 
 load_dotenv()
 csv_path = os.getenv("B3_CADASTRO_PATH")
+
+logging.basicConfig(level=logging.INFO)
 
 def standardize_b3_ticker(ticker_symbol):
     """
@@ -87,6 +90,7 @@ def process_instrument_data(csv_file) -> pd.DataFrame:
 
         
     except Exception as e:
-        print(f"Erro ao processar o arquivo {csv_file}: {e}")
+        logging.error(f"Erro ao processar os dados do instrumento: {e}")
+        return pd.DataFrame()
 
 
