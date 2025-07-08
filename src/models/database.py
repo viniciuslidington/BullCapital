@@ -1,7 +1,15 @@
+import psycopg2
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
-DATABASE_URL = "postgresql+asyncpg://usuario:senha@localhost:5432/nome_do_banco"
+# Dados de conexão
+host = "34.95.137.113"  # IP público da instância
+port = "5432"
+database = "bullcapital"
+user = "bullcapital"
+password = "bullcapital"
+
+DATABASE_URL = "postgresql+asyncpg://bullcapital:bullcapital@34.95.137.113:5432/bullcapital"
 
 # Configurar o engine assíncrono
 engine = create_async_engine(DATABASE_URL, echo=True)
@@ -13,3 +21,18 @@ SessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=F
 async def get_db():
     async with SessionLocal() as session:
         yield session
+
+def get_db_sync():
+    try:
+        # Conecta ao banco
+        conn = psycopg2.connect(
+            host=host,
+            port=port,
+            database=database,
+            user=user,
+            password=password
+        )
+        return conn
+    except Exception as e:
+        print("Erro na conexão com o banco de dados:", e)
+        return None
