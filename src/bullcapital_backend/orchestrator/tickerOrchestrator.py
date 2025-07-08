@@ -36,15 +36,19 @@ def pipeline(start_date=None, end_date=None, period=None, interval='1d'):
         period=period,
         interval=interval
     )
-    
+
 
     if valid_tickers is None or valid_tickers.empty:
         logging.warning("Nenhum ticker válido encontrado ou erro na extração de dados.")
         return None
     
-    long_df = valid_tickers.stack(level=1).reset_index()
+    long_df = valid_tickers.stack(level='Ticker').reset_index()
 
-    # Ajusta os nomes das colunas para ficar legível
-    long_df.columns = ['Date', 'Attribute', 'Ticker'] + list(long_df.columns[3:])
+    # Transpõe os níveis de coluna para "empilhar" o nível 'Ticker'
+    long_df = valid_tickers.stack(level='Ticker').reset_index()
+ 
+    melted = long_df.melt(id_vars=['Date', 'Ticker'], var_name='PriceType', value_name='Value')
+    final_df = melted.pivot_table(index=['Date', 'Ticker'], columns='PriceType', values='Value').reset_index()
+    final_df.columns.name = None
 
-    return long_df
+    return final_df
