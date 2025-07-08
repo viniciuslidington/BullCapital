@@ -10,9 +10,20 @@ dependencies = [
     "pandas>=2.3.0",
     "uvicorn>=0.35.0",
     "yfinance>=0.2.65",
+    "requests==2.32.4",
+    "beautifulsoup4==4.13.4",
+    "html5lib>=1.1",
+    "selenium>=4.34.1",
+    "lxml>=6.0.0",
+    "dotenv>=0.9.9",
 ]
 
 [dependency-groups]
 dev = [
     "ruff>=0.12.2",
+]
+
+[tool.uv.workspace]
+members = [
+    "bullcapital-backend",
 ]
