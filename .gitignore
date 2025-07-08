@@ -106,3 +106,5 @@ Dockerfile.bak
 # uv and ruff
 .uv/
 .ruff_cache/
+
+tempcoderunner/
