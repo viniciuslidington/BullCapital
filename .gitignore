@@ -102,3 +102,9 @@ Dockerfile.bak
 # Notebooks Jupyter/IPython
 .ipynb_checkpoints/
 *.ipynb
+
+# uv and ruff
+.uv/
+.ruff_cache/
+
+tempcoderunner/
