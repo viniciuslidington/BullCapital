@@ -6,7 +6,7 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 
-def download_ticker(ticker, start_date, end_date, period, interval='1d'):
+def download_tickers(tickers: list[str], start_date, end_date, period, interval='1d') -> pd.DataFrame:
     """Funçao para extrair dados de ação no Yahoo Finance
 
     Args:
@@ -22,7 +22,7 @@ def download_ticker(ticker, start_date, end_date, period, interval='1d'):
     
     if not period:
 
-        logging.info(f"Using start date: {start_date}, end date: {end_date}, and interval: {interval} for ticker {ticker}")
+        logging.info(f"Using start date: {start_date}, end date: {end_date}, and interval: {interval}")
 
         if not start_date:
             start_date = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d') # Default to 3 months ago if no start date is provided
@@ -31,24 +31,27 @@ def download_ticker(ticker, start_date, end_date, period, interval='1d'):
     else:
         start_date = None
         end_date = None
-        logging.info(f"Using period: {period} and interval: {interval} for ticker {ticker}")
+        logging.info(f"Using period: {period} and interval: {interval}")
 
 
-    try:
-        yf.Ticker(ticker)
-    except Exception as e:
-        logging.error(f"Failed to initialize yfinance Ticker for {ticker}: {e}")
-        return None
+    
+    for ticker in tickers: 
+        if yf.Ticker(ticker):
+            pass
+        else:
+            logging.error(f"Ticker {ticker} is not valid or does not exist in Yahoo Finance.")
+            tickers.remove(ticker)  # Remove invalid tickers from the list
     
     try:
         data = yf.download(         # Download historical data for the ticker
-            ticker,
+            tickers,
             start=start_date,
             end=end_date,
             period=period,
             interval=interval,
             auto_adjust=True,
         )
+       
     except Exception as e:
         logging.error(f"Failed to download data for {ticker} from Yahoo Finance: {e}")
         return None
