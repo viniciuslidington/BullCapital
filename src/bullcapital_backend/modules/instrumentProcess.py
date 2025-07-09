@@ -1,12 +1,7 @@
 import pandas as pd
-import os
-from dotenv import load_dotenv
-import pandas as pd
 import re
 import logging
 
-load_dotenv()
-csv_path = os.getenv("B3_CADASTRO_PATH")
 
 logging.basicConfig(level=logging.INFO)
 
