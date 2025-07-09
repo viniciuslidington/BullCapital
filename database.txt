@@ -1,3 +1,0 @@
-bullcapital-465222:southamerica-east1:bullcapital
-
-./cloud-sql-proxy bullcapital-465222:southamerica-east1:bullcapital
