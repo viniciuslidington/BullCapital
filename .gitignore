@@ -7,6 +7,8 @@ ehthumbs.db
 
 ---
 
+/data
+
 # Ambientes Virtuais Python
 .venv/
 venv/
