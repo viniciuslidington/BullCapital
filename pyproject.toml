@@ -23,6 +23,9 @@ dependencies = [
     "pydantic[email]>=2.11.7",
     "python-multipart>=0.0.20",
     "pyjwt>=2.10.1",
+    "python-dotenv>=1.1.1",
+    "psycopg2>=2.9.10",
+    "sqlalchemy>=2.0.41",
 ]
 
 [dependency-groups]
