@@ -60,21 +60,27 @@ def download_and_normalize_ticker_data(
             logger.warning(f"Nenhuma coluna de preço válida encontrada para {ticker_symbol}. Colunas: {data_df.columns.tolist()}")
             return None
 
-        melted_df = data_df.melt(
-            id_vars=['Date'],             # 'Date' é o identificador
-            value_vars=existing_price_columns, # Colunas que serão "derretidas"
-            var_name='PriceType',         # Novo nome da coluna para os tipos de preço (ex: 'Open', 'Close')
-            value_name='Value'            # Novo nome da coluna para os valores dos preços
-        )
-        
-        # Adiciona o Ticker de volta (foi um input único)
-        melted_df['Ticker'] = ticker_symbol
+        # O yfinance.download já retorna as colunas Open, High, Low, Close, Adj Close, Volume
+        # Vamos apenas selecionar e renomear para o formato do banco de dados do Stage 3
+        final_df = data_df[['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']].copy()
+        final_df['Ticker'] = ticker_symbol # Adiciona o Ticker de volta como coluna
 
-        # Reordena e renomeia se necessário para clareza
-        final_df = melted_df[['Date', 'Ticker', 'PriceType', 'Value']]
-        final_df.columns = ['Data', 'Ticker', 'TipoPreco', 'Valor'] # Renomeando para português se desejar
+        # Reordena as colunas e renomeia
+        final_df = final_df[['Date', 'Ticker', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']]
+        final_df.columns = [
+            'data',           # Para corresponder ao nome da coluna no modelo DB
+            'ticker',         # Para corresponder ao nome da coluna no modelo DB
+            'open_price',
+            'high_price',
+            'low_price',
+            'close_price',
+            'adj_close_price',
+            'volume'
+        ]
+        # Converte a coluna 'data' para o tipo datetime, se ainda não for
+        final_df['data'] = pd.to_datetime(final_df['data'])
 
-        logger.info(f"Dados para {ticker_symbol} normalizados. Total de {len(final_df)} registros.")
+        logger.info(f"Dados para {ticker_symbol} formatados para armazenamento. Total de {len(final_df)} registros.")
         return final_df
 
     except Exception as e:
