@@ -1,10 +1,17 @@
-import sys
+from fastapi import FastAPI, Query
+from orchestrator.tickerOrchestrator import pipeline
 import pandas as pd
-print("[DEBUG] sys.path:", sys.path)
 
-from .orchestrator.tickerOrchestrator import pipeline
+app = FastAPI()
 
-if __name__ == "__main__":
-   df =  pipeline()
-   print(df)
-    
+@app.get("/api/pipeline")
+def run_pipeline(
+    start_date: str = Query(None),
+    end_date: str = Query(None),
+    period: str = Query(None),
+    interval: str = Query("1d")
+):
+    df = pipeline(start_date, end_date, period, interval)
+    if df is None or df.empty:
+        return {"error": "No data found"}
+    return df.to_dict(orient="records")
