@@ -18,7 +18,8 @@ DBNAME = os.getenv("dbname")
 DATABASE_URL = f"postgresql+psycopg2://{USER}:{PASSWORD}@{HOST}:{PORT}/{DBNAME}?sslmode=require"
 
 # Create the SQLAlchemy engine
-engine = create_engine(DATABASE_URL, echo=True)
+DEBUG_SQL = os.getenv("DEBUG_SQL", "false").lower() == "true"
+engine = create_engine(DATABASE_URL, echo=DEBUG_SQL)
 
 # Create SessionLocal class
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -34,15 +35,10 @@ def get_db():
     finally:
         db.close()
 
-def create_tables():
-    """Create all tables in the database"""
-    from models.user import User  # Import models here to avoid circular imports
-    Base.metadata.create_all(bind=engine)
-    print("Tabelas criadas com sucesso!")
-
-# Test the connection
-try:
-    with engine.connect() as connection:
-        print("Connection successful!")
-except Exception as e:
-    print(f"Failed to connect: {e}")
+# Test the connection (only in debug mode)
+if DEBUG_SQL:
+    try:
+        with engine.connect() as connection:
+            print("Connection successful!")
+    except Exception as e:
+        print(f"Failed to connect: {e}")

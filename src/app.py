@@ -21,7 +21,7 @@ app.add_middleware(
 )
 
 # Include da API versionada
-app.include_router(v1_router, tags=["API V1"])
+app.include_router(v1_router)
 
 @app.get("/", tags=["Root"])
 def read_root():
