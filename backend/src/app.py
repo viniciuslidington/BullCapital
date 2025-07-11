@@ -1,11 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes import b3_data # Import the new router
+from routes.v1 import v1_router
 
 app = FastAPI(
     title="BullCapital API",
-    description="API para obter dados financeiros processados da B3.",
+    description="API para obter dados financeiros processados da B3",
     version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json"
 )
 
 # Habilita CORS para o frontend acessar a API

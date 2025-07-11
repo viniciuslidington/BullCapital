@@ -1,16 +1,19 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
+from sqlalchemy.orm import Session
 from models.user import User
 from models.schemas import UserCreateRequest, UserLoginRequest
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 import jwt
 from typing import Optional
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 pwd_contexto = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Configurações JWT
-SECRET_KEY = "seu_secret_key_aqui"  # Mude para uma chave segura
+SECRET_KEY = os.getenv("SECRET_KEY", "seu_secret_key_aqui_muito_seguro_e_unico")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -30,10 +33,9 @@ def criar_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-async def criar_usuario(db: AsyncSession, user_data: UserCreateRequest) -> User:
+def criar_usuario(db: Session, user_data: UserCreateRequest) -> User:
     # Verificar se o email já existe
-    result = await db.execute(select(User).where(User.email == user_data.email))
-    existing_user = result.scalars().first()
+    existing_user = db.query(User).filter(User.email == user_data.email).first()
     if existing_user:
         raise ValueError("Email já cadastrado")
     
@@ -45,17 +47,18 @@ async def criar_usuario(db: AsyncSession, user_data: UserCreateRequest) -> User:
         senha=senha_hashed
     )
     db.add(novo_usuario)
-    await db.commit()
-    await db.refresh(novo_usuario)
+    db.commit()
+    db.refresh(novo_usuario)
     return novo_usuario
 
-async def autenticar_usuario(db: AsyncSession, login_data: UserLoginRequest) -> Optional[User]:
-    result = await db.execute(select(User).where(User.email == login_data.email))
-    usuario = result.scalars().first()
+def autenticar_usuario(db: Session, login_data: UserLoginRequest) -> Optional[User]:
+    usuario = db.query(User).filter(User.email == login_data.email).first()
     if usuario and verificar_senha(login_data.senha, usuario.senha):
         return usuario
     return None
 
-async def obter_usuario_por_email(db: AsyncSession, email: str) -> Optional[User]:
-    result = await db.execute(select(User).where(User.email == email))
-    return result.scalars().first()
+def obter_usuario_por_email(db: Session, email: str) -> Optional[User]:
+    return db.query(User).filter(User.email == email).first()
+
+def listar_usuarios(db: Session) -> list[User]:
+    return db.query(User).all()
