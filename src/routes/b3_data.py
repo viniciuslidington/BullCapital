@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
-from ..bullcapital_backend.orchestrator.tickerOrchestrator import pipeline
+from bullcapital_backend.orchestrator.tickerOrchestrator import pipeline
 
 
 router = APIRouter(
