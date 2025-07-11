@@ -20,28 +20,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include da API versionada
-app.include_router(v1_router)
+# Include the router from our routes file
+app.include_router(b3_data.router)
 
 @app.get("/", tags=["Root"])
 def read_root():
     """
     Endpoint raiz para verificar se a API está funcionando.
     """
-    return {
-        "message": "Bem-vindo à API BullCapital!",
-        "version": "1.0.0",
-        "docs": "/docs",
-        "api_v1": "/api/v1"
-    }
-
-@app.get("/health", tags=["System"])
-def health_check():
-    """
-    Health check endpoint para monitoramento da aplicação.
-    """
-    return {
-        "status": "healthy",
-        "service": "bullcapital-api",
-        "version": "1.0.0"
-    }
+    return {"message": "Bem-vindo à API BullCapital!"}
