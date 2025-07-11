@@ -1,38 +1,30 @@
-import psycopg2
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine
+# from sqlalchemy.pool import NullPool
+from dotenv import load_dotenv
+import os
 
-# Dados de conexão
-host = "127.0.0.1"  # Proxy local
-port = "5432"
-database = "postgres"
-user = "bullcapital"
-password = "bullcapital"
+# Load environment variables from .env
+load_dotenv()
 
-DATABASE_URL = f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{database}"
+# Fetch variables
+USER = os.getenv("user")
+PASSWORD = os.getenv("password")
+HOST = os.getenv("host")
+PORT = os.getenv("port")
+DBNAME = os.getenv("dbname")
 
-# Configurar o engine assíncrono
-engine = create_async_engine(DATABASE_URL, echo=True)
+# Construct the SQLAlchemy connection string
+DATABASE_URL = f"postgresql+psycopg2://{USER}:{PASSWORD}@{HOST}:{PORT}/{DBNAME}?sslmode=require"
 
-# Criar uma fábrica de sessões
-SessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+# Create the SQLAlchemy engine
+engine = create_engine(DATABASE_URL)
+# If using Transaction Pooler or Session Pooler, we want to ensure we disable SQLAlchemy client side pooling -
+# https://docs.sqlalchemy.org/en/20/core/pooling.html#switching-pool-implementations
+# engine = create_engine(DATABASE_URL, poolclass=NullPool)
 
-# Função para obter uma sessão de banco de dados
-async def get_db():
-    async with SessionLocal() as session:
-        yield session
-
-def get_db_sync():
-    try:
-        # Conecta ao banco
-        conn = psycopg2.connect(
-            host=host,
-            port=port,
-            database=database,
-            user=user,
-            password=password
-        )
-        return conn
-    except Exception as e:
-        print("Erro na conexão com o banco de dados:", e)
-        return None
+# Test the connection
+try:
+    with engine.connect() as connection:
+        print("Connection successful!")
+except Exception as e:
+    print(f"Failed to connect: {e}")
