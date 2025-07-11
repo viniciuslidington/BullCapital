@@ -23,6 +23,8 @@ dependencies = [
     "pydantic[email]>=2.11.7",
     "python-multipart>=0.0.20",
     "pyjwt>=2.10.1",
+    "pyyaml>=6.0.2",
+    "docker>=7.1.0",
 ]
 
 [dependency-groups]
