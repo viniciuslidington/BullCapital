@@ -6,7 +6,7 @@ import json
 import io
 from kafka import KafkaProducer
 
-from utils import standardize_b3_ticker
+from utils.utils import standardize_b3_ticker
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
