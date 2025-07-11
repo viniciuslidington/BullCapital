@@ -1,11 +1,30 @@
 from fastapi import APIRouter, HTTPException, Query, status
 from typing import Optional
+from pydantic import BaseModel
 from orchestrator.tickerOrchestrator import pipeline
+from services.ticker_service import TickerService
 import yfinance as yf
 import pandas as pd
 from datetime import datetime, timedelta
 
 router = APIRouter()
+
+# Instanciar o serviço de tickers
+ticker_service = TickerService()
+
+# Modelos Pydantic para requests POST
+class TickerSearchRequest(BaseModel):
+    query: str
+    limit: int = 10
+    filters: Optional[dict] = None
+
+class MarketDataRequest(BaseModel):
+    tickers: list[str]
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    period: Optional[str] = None
+    interval: str = "1d"
+    include_fundamentals: bool = False
 
 @router.get("/b3/data", summary="Obter dados de ações da B3")
 def get_b3_market_data(
@@ -359,4 +378,345 @@ def get_trending_stocks():
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao obter ações em tendência: {str(e)}"
+        )
+
+
+
+# Novos endpoints para descoberta de tickers
+
+@router.get("/tickers", summary="Listar todos os tickers disponíveis")
+def get_tickers(
+    market: Optional[str] = Query(None, description="Filtrar por mercado (B3, NASDAQ, NYSE)"),
+    sector: Optional[str] = Query(None, description="Filtrar por setor")
+):
+    """
+    Lista todos os tickers disponíveis no sistema.
+    
+    **Parâmetros:**
+    - **market**: Filtrar por mercado específico (B3, NASDAQ, NYSE)
+    - **sector**: Filtrar por setor específico
+    
+    **Retorna:**
+    - Lista completa de tickers com informações básicas
+    """
+    try:
+        if sector:
+            tickers = ticker_service.get_tickers_by_sector(sector, market)
+        else:
+            tickers = ticker_service.get_all_tickers(market)
+        
+        return {
+            "total_tickers": len(tickers),
+            "filters": {
+                "market": market,
+                "sector": sector
+            },
+            "tickers": tickers
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao obter tickers: {str(e)}"
+        )
+
+@router.get("/tickers/search", summary="Buscar tickers por nome ou símbolo")
+def search_tickers_endpoint(
+    query: str = Query(..., description="Termo de busca (nome ou símbolo)"),
+    limit: int = Query(10, description="Número máximo de resultados", ge=1, le=50)
+):
+    """
+    Busca tickers por nome da empresa ou símbolo.
+    
+    **Parâmetros:**
+    - **query**: Termo de busca
+    - **limit**: Número máximo de resultados (1-50)
+    
+    **Exemplo:**
+    - /tickers/search?query=Petrobras
+    - /tickers/search?query=PETR4
+    """
+    try:
+        results = ticker_service.search_tickers(query, limit)
+        
+        return {
+            "query": query,
+            "results_found": len(results),
+            "tickers": results
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro na busca de tickers: {str(e)}"
+        )
+
+@router.get("/tickers/validate/{symbol}", summary="Validar um ticker específico")
+def validate_ticker_endpoint(symbol: str):
+    """
+    Valida se um ticker existe e retorna informações básicas.
+    
+    **Parâmetros:**
+    - **symbol**: Símbolo do ticker para validar
+    
+    **Retorna:**
+    - Informações de validação e dados básicos do ticker
+    """
+    try:
+        validation_result = ticker_service.validate_ticker(symbol)
+        
+        if not validation_result.get("valid", False):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=validation_result.get("error", "Ticker não encontrado")
+            )
+        
+        return validation_result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao validar ticker: {str(e)}"
+        )
+
+@router.get("/tickers/sectors", summary="Listar setores disponíveis")
+def get_sectors(
+    market: Optional[str] = Query(None, description="Filtrar por mercado (B3, NASDAQ, NYSE)")
+):
+    """
+    Lista todos os setores disponíveis.
+    
+    **Parâmetros:**
+    - **market**: Filtrar por mercado específico
+    
+    **Retorna:**
+    - Lista de setores únicos disponíveis
+    """
+    try:
+        sectors = ticker_service.get_available_sectors(market)
+        
+        return {
+            "market_filter": market,
+            "total_sectors": len(sectors),
+            "sectors": sectors
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao obter setores: {str(e)}"
+        )
+
+@router.get("/tickers/markets", summary="Listar mercados disponíveis")
+def get_markets():
+    """
+    Lista todos os mercados disponíveis.
+    
+    **Retorna:**
+    - Lista de mercados únicos disponíveis
+    """
+    try:
+        markets = ticker_service.get_available_markets()
+        
+        return {
+            "total_markets": len(markets),
+            "markets": markets
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao obter mercados: {str(e)}"
+        )
+
+@router.get("/tickers/{symbol}/live", summary="Obter dados em tempo real de um ticker")
+def get_ticker_live_data(symbol: str):
+    """
+    Obtém informações completas de um ticker com dados em tempo real.
+    
+    **Parâmetros:**
+    - **symbol**: Símbolo do ticker
+    
+    **Retorna:**
+    - Informações completas com preços atuais e dados de mercado
+    """
+    try:
+        live_data = ticker_service.get_ticker_with_live_data(symbol)
+        
+        if "error" in live_data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=live_data["error"]
+            )
+        
+        return live_data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao obter dados em tempo real: {str(e)}"
+        )
+
+# Endpoints POST para operações mais complexas
+
+@router.post("/tickers/search-advanced", summary="Busca avançada de tickers")
+def advanced_ticker_search(request: TickerSearchRequest):
+    """
+    Busca avançada de tickers com filtros complexos via POST.
+    
+    **Body da requisição:**
+    ```json
+    {
+        "query": "banco",
+        "limit": 20,
+        "filters": {
+            "market": "B3",
+            "sector": "Financial Services",
+            "min_market_cap": 1000000000
+        }
+    }
+    ```
+    
+    **Retorna:**
+    - Lista de tickers com filtros aplicados
+    """
+    try:
+        # Busca básica
+        results = ticker_service.search_tickers(request.query, request.limit)
+        
+        # Aplicar filtros adicionais se fornecidos
+        if request.filters:
+            filtered_results = []
+            for ticker in results:
+                include = True
+                
+                # Filtrar por mercado
+                if request.filters.get("market") and ticker.get("market") != request.filters["market"]:
+                    include = False
+                
+                # Filtrar por setor
+                if request.filters.get("sector") and request.filters["sector"].lower() not in ticker.get("sector", "").lower():
+                    include = False
+                
+                if include:
+                    # Adicionar dados em tempo real se solicitado
+                    if request.filters.get("include_live_data"):
+                        live_data = ticker_service.get_ticker_with_live_data(ticker["symbol"])
+                        if "error" not in live_data:
+                            ticker.update(live_data)
+                    
+                    filtered_results.append(ticker)
+            
+            results = filtered_results
+        
+        return {
+            "query": request.query,
+            "filters_applied": request.filters,
+            "results_found": len(results),
+            "tickers": results
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro na busca avançada: {str(e)}"
+        )
+
+@router.post("/market-data/bulk", summary="Obter dados de múltiplos tickers")
+def get_bulk_market_data(request: MarketDataRequest):
+    """
+    Obtém dados de mercado para múltiplos tickers via POST.
+    
+    **Body da requisição:**
+    ```json
+    {
+        "tickers": ["PETR4.SA", "VALE3.SA", "ITUB4.SA"],
+        "start_date": "2025-01-01",
+        "end_date": "2025-07-10",
+        "interval": "1d",
+        "include_fundamentals": true
+    }
+    ```
+    
+    **Retorna:**
+    - Dados de mercado para todos os tickers solicitados
+    """
+    try:
+        results = {}
+        
+        for symbol in request.tickers:
+            try:
+                ticker = yf.Ticker(symbol)
+                
+                # Dados básicos
+                ticker_data = {
+                    "symbol": symbol,
+                    "last_updated": datetime.now().isoformat()
+                }
+                
+                # Dados históricos
+                if request.start_date and request.end_date:
+                    hist = ticker.history(start=request.start_date, end=request.end_date, interval=request.interval)
+                elif request.period:
+                    hist = ticker.history(period=request.period, interval=request.interval)
+                else:
+                    hist = ticker.history(period="1mo", interval=request.interval)
+                
+                if not hist.empty:
+                    hist = hist.reset_index()
+                    hist_data = []
+                    for _, row in hist.iterrows():
+                        hist_data.append({
+                            "date": row['Date'].strftime('%Y-%m-%d') if hasattr(row['Date'], 'strftime') else str(row['Date']),
+                            "open": round(float(row['Open']), 2),
+                            "high": round(float(row['High']), 2),
+                            "low": round(float(row['Low']), 2),
+                            "close": round(float(row['Close']), 2),
+                            "volume": int(row['Volume']) if pd.notna(row['Volume']) else 0
+                        })
+                    ticker_data["historical_data"] = hist_data
+                
+                # Dados fundamentais se solicitado
+                if request.include_fundamentals:
+                    info = ticker.info
+                    ticker_data["fundamentals"] = {
+                        "market_cap": info.get('marketCap'),
+                        "pe_ratio": info.get('trailingPE'),
+                        "dividend_yield": info.get('dividendYield'),
+                        "52_week_high": info.get('fiftyTwoWeekHigh'),
+                        "52_week_low": info.get('fiftyTwoWeekLow'),
+                        "sector": info.get('sector'),
+                        "industry": info.get('industry')
+                    }
+                
+                results[symbol] = ticker_data
+                
+            except Exception as e:
+                results[symbol] = {
+                    "symbol": symbol,
+                    "error": str(e)
+                }
+        
+        return {
+            "request_parameters": {
+                "tickers": request.tickers,
+                "start_date": request.start_date,
+                "end_date": request.end_date,
+                "period": request.period,
+                "interval": request.interval,
+                "include_fundamentals": request.include_fundamentals
+            },
+            "total_tickers": len(request.tickers),
+            "successful_requests": len([r for r in results.values() if "error" not in r]),
+            "data": results
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao obter dados em bulk: {str(e)}"
         )
