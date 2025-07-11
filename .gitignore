@@ -72,7 +72,7 @@ var/
 
 # Arquivos de Configuração Sensíveis (variáveis de ambiente, credenciais)
 .env
-.env.*
+.env
 config.ini
 config.yaml
 *.key
