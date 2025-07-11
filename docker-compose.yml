@@ -39,3 +39,17 @@ services: # Aqui você define todos os serviços (contêineres) da sua aplicaç�
     # Você pode descomentar o comando abaixo se o seu serviço estiver iniciando muito rápido
     # e o Kafka não estiver totalmente pronto. É um "sleep" para dar tempo.
     # command: sh -c "sleep 15 && uvicorn main:app --host 0.0.0.0 --port 8000"
+
+  market_data_service: # NOVO SERVIÇO
+    build: ./src/services/market_data_service # Caminho para o Dockerfile do serviço de download de dados de mercado
+    container_name: market_data_service
+    environment:
+      KAFKA_BROKER: kafka:9092
+      # Definir as datas e períodos de download aqui!
+      DOWNLOAD_START_DATE: 'None' # Ou None se usar 'PERIOD'
+      DOWNLOAD_END_DATE: 'None'   # Ou None se usar 'PERIOD'
+      DOWNLOAD_PERIOD: '1y'            # Exemplo: '1y', '6mo', 'max' (use um ou outro, START_DATE/END_DATE ou PERIOD)
+      DOWNLOAD_INTERVAL: '1d'          # Exemplo: '1d', '1wk', '1mo', '1h'
+    depends_on:
+      - kafka # Depende do Kafka para consumir e produzir
+      - instrument_service # Depende do primeiro serviço para garantir que o tópico já tenha sido criado pelo producer, se não houver mensagens
