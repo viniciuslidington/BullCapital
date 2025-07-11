@@ -1,5 +1,5 @@
-from bullcapital_backend.modules.dataExtraction import download_tickers
-from bullcapital_backend.modules.instrumentProcess import process_instrument_data
+from modules.dataExtraction import download_tickers
+from modules.instrumentProcess import process_instrument_data
 import logging
 import os
 from dotenv import load_dotenv
