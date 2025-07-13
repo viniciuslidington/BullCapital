@@ -1,7 +1,9 @@
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, status, Depends
 from typing import Optional
 from pydantic import BaseModel
 from services.ticker_service import TickerService
+from middlewares.auth_middleware import require_auth
+from models.user import User
 import yfinance as yf
 import pandas as pd
 from datetime import datetime, timedelta
@@ -31,7 +33,8 @@ def get_acoes_data(
     ticker: str,
     start_date: Optional[str] = Query(None, description="Data de início (YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="Data de fim (YYYY-MM-DD)"),
-    interval: Optional[str] = Query('1d', description="Intervalo (ex: '1d', '1wk')")
+    interval: Optional[str] = Query('1d', description="Intervalo (ex: '1d', '1wk')"),
+    current_user: User = Depends(require_auth)
 ):
     """
     Endpoint para obter dados de uma ação específica da B3.
@@ -88,7 +91,8 @@ def get_stock_info(
     symbol: str,
     include_history: bool = Query(False, description="Incluir histórico de preços"),
     period: str = Query("1mo", description="Período do histórico (1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, ytd, max)"),
-    interval: str = Query("1d", description="Intervalo (1m, 2m, 5m, 15m, 30m, 60m, 90m, 1h, 1d, 5d, 1wk, 1mo, 3mo)")
+    interval: str = Query("1d", description="Intervalo (1m, 2m, 5m, 15m, 30m, 60m, 90m, 1h, 1d, 5d, 1wk, 1mo, 3mo)"),
+    current_user: User = Depends(require_auth)
 ):
     """
     Obtém informações detalhadas de uma ação específica.
@@ -179,7 +183,8 @@ def get_stock_info(
 @router.get("/stocks/search", summary="Buscar ações por nome ou símbolo")
 def search_stocks(
     query: str = Query(..., description="Nome da empresa ou símbolo da ação"),
-    limit: int = Query(10, description="Número máximo de resultados", ge=1, le=50)
+    limit: int = Query(10, description="Número máximo de resultados", ge=1, le=50),
+    current_user: User = Depends(require_auth)
 ):
     """
     Busca ações por nome da empresa ou símbolo.
@@ -260,7 +265,7 @@ def search_stocks(
         )
 
 @router.get("/stocks/trending", summary="Ações em tendência do mercado brasileiro")
-def get_trending_stocks():
+def get_trending_stocks(current_user: User = Depends(require_auth)):
     """
     Retorna as principais ações do mercado brasileiro com suas cotações atuais.
     
@@ -326,7 +331,8 @@ def get_trending_stocks():
 @router.get("/tickers", summary="Listar todos os tickers disponíveis")
 def get_tickers(
     market: Optional[str] = Query(None, description="Filtrar por mercado (B3, NASDAQ, NYSE)"),
-    sector: Optional[str] = Query(None, description="Filtrar por setor")
+    sector: Optional[str] = Query(None, description="Filtrar por setor"),
+    current_user: User = Depends(require_auth)
 ):
     """
     Lista todos os tickers disponíveis no sistema.
@@ -362,7 +368,8 @@ def get_tickers(
 @router.get("/tickers/search", summary="Buscar tickers por nome ou símbolo")
 def search_tickers_endpoint(
     query: str = Query(..., description="Termo de busca (nome ou símbolo)"),
-    limit: int = Query(10, description="Número máximo de resultados", ge=1, le=50)
+    limit: int = Query(10, description="Número máximo de resultados", ge=1, le=50),
+    current_user: User = Depends(require_auth)
 ):
     """
     Busca tickers por nome da empresa ou símbolo.
@@ -391,7 +398,7 @@ def search_tickers_endpoint(
         )
 
 @router.get("/tickers/validate/{symbol}", summary="Validar um ticker específico")
-def validate_ticker_endpoint(symbol: str):
+def validate_ticker_endpoint(symbol: str, current_user: User = Depends(require_auth)):
     """
     Valida se um ticker existe e retorna informações básicas.
     
@@ -422,7 +429,8 @@ def validate_ticker_endpoint(symbol: str):
 
 @router.get("/tickers/sectors", summary="Listar setores disponíveis")
 def get_sectors(
-    market: Optional[str] = Query(None, description="Filtrar por mercado (B3, NASDAQ, NYSE)")
+    market: Optional[str] = Query(None, description="Filtrar por mercado (B3, NASDAQ, NYSE)"),
+    current_user: User = Depends(require_auth)
 ):
     """
     Lista todos os setores disponíveis.
@@ -449,7 +457,7 @@ def get_sectors(
         )
 
 @router.get("/tickers/markets", summary="Listar mercados disponíveis")
-def get_markets():
+def get_markets(current_user: User = Depends(require_auth)):
     """
     Lista todos os mercados disponíveis.
     
@@ -471,7 +479,7 @@ def get_markets():
         )
 
 @router.get("/tickers/{symbol}/live", summary="Obter dados em tempo real de um ticker")
-def get_ticker_live_data(symbol: str):
+def get_ticker_live_data(symbol: str, current_user: User = Depends(require_auth)):
     """
     Obtém informações completas de um ticker com dados em tempo real.
     
@@ -503,7 +511,7 @@ def get_ticker_live_data(symbol: str):
 # Endpoints POST para operações mais complexas
 
 @router.post("/tickers/search-advanced", summary="Busca avançada de tickers")
-def advanced_ticker_search(request: TickerSearchRequest):
+def advanced_ticker_search(request: TickerSearchRequest, current_user: User = Depends(require_auth)):
     """
     Busca avançada de tickers com filtros complexos via POST.
     
@@ -566,7 +574,7 @@ def advanced_ticker_search(request: TickerSearchRequest):
         )
 
 @router.post("/market-data/bulk", summary="Obter dados de múltiplos tickers")
-def get_bulk_market_data(request: MarketDataRequest):
+def get_bulk_market_data(request: MarketDataRequest, current_user: User = Depends(require_auth)):
     """
     Obtém dados de mercado para múltiplos tickers via POST.
     
