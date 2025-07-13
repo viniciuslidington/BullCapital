@@ -1,7 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query, status
 from typing import Optional
 from pydantic import BaseModel
-from orchestrator.tickerOrchestrator import pipeline
 from services.ticker_service import TickerService
 import yfinance as yf
 import pandas as pd
