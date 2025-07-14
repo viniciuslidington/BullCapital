@@ -16,6 +16,19 @@ def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
     """
     return db.query(User).filter(User.id == user_id).first()
 
+def get_user_by_cpf(db: Session, cpf: str) -> Optional[User]:
+    """
+    Busca um usuário específico pelo seu CPF.
+    
+    Args:
+        db: Sessão do banco de dados
+        cpf: CPF do usuário (apenas números)
+        
+    Returns:
+        User ou None: Objeto do usuário se encontrado, None caso contrário
+    """
+    return db.query(User).filter(User.cpf == cpf).first()
+
 def get_user_by_email(db: Session, email: str) -> Optional[User]:
     """
     Busca um usuário específico pelo seu email.
@@ -60,6 +73,7 @@ def create_user(db: Session, user: UserCreate, hashed_password: str) -> User:
     """
     db_user = User(
         nome_completo=user.nome_completo,
+        cpf=user.cpf,
         data_nascimento=user.data_nascimento,
         email=user.email,
         senha=hashed_password

@@ -12,6 +12,7 @@ class User(Base):
     Attributes:
         id (int): Identificador único do usuário (chave primária)
         nome_completo (str): Nome completo do usuário
+        cpf (str): CPF único do usuário (apenas números)
         data_nascimento (date): Data de nascimento do usuário
         email (str): Email único do usuário (usado para login)
         senha (str): Senha hasheada do usuário
@@ -22,6 +23,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     nome_completo = Column(String, nullable=False)
+    cpf = Column(String(11), unique=True, index=True, nullable=False)
     data_nascimento = Column(Date, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
     senha = Column(String, nullable=False)

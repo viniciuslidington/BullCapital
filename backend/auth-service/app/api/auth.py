@@ -18,6 +18,7 @@ def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
     Registra um novo usuário no sistema.
     
     - **nome_completo**: Nome completo do usuário
+    - **cpf**: CPF do usuário (será validado)
     - **data_nascimento**: Data de nascimento (YYYY-MM-DD)
     - **email**: Email único do usuário
     - **senha**: Senha que será hasheada antes de salvar
@@ -27,6 +28,7 @@ def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
         return UserResponse(
             id=user.id,
             nome_completo=user.nome_completo,
+            cpf=user.cpf,
             data_nascimento=user.data_nascimento,
             email=user.email,
             created_at=user.created_at,
