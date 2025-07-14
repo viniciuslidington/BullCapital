@@ -1,6 +1,7 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from datetime import date, datetime
 from typing import Optional
+from utils.validators import validate_cpf, clean_cpf
 
 class UserBase(BaseModel):
     """
@@ -11,12 +12,33 @@ class UserBase(BaseModel):
     
     Attributes:
         nome_completo (str): Nome completo do usuário
+        cpf (str): CPF do usuário (será validado)
         data_nascimento (date): Data de nascimento no formato YYYY-MM-DD
         email (EmailStr): Email válido do usuário
     """
     nome_completo: str
+    cpf: str
     data_nascimento: date
     email: EmailStr
+    
+    @field_validator('cpf')
+    @classmethod
+    def validate_cpf_field(cls, v: str) -> str:
+        """
+        Valida o campo CPF usando o algoritmo oficial brasileiro.
+        
+        Args:
+            v (str): CPF a ser validado
+            
+        Returns:
+            str: CPF limpo (apenas números) se válido
+            
+        Raises:
+            ValueError: Se o CPF for inválido
+        """
+        if not validate_cpf(v):
+            raise ValueError('CPF inválido')
+        return clean_cpf(v)
 
 class UserCreate(UserBase):
     """
@@ -73,12 +95,35 @@ class UserUpdate(BaseModel):
     
     Attributes:
         nome_completo (str, optional): Novo nome completo
+        cpf (str, optional): Novo CPF
         data_nascimento (date, optional): Nova data de nascimento
         email (EmailStr, optional): Novo email
     """
     nome_completo: Optional[str] = None
+    cpf: Optional[str] = None
     data_nascimento: Optional[date] = None
     email: Optional[EmailStr] = None
+    
+    @field_validator('cpf')
+    @classmethod
+    def validate_cpf_field(cls, v: Optional[str]) -> Optional[str]:
+        """
+        Valida o campo CPF quando fornecido.
+        
+        Args:
+            v (Optional[str]): CPF a ser validado ou None
+            
+        Returns:
+            Optional[str]: CPF limpo se válido ou None
+            
+        Raises:
+            ValueError: Se o CPF for fornecido mas inválido
+        """
+        if v is None:
+            return v
+        if not validate_cpf(v):
+            raise ValueError('CPF inválido')
+        return clean_cpf(v)
 
 class TokenResponse(BaseModel):
     """

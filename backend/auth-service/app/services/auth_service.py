@@ -7,7 +7,7 @@ import jwt
 from core.config import settings
 from core.models import User
 from schemas.user import UserCreate, UserLogin
-from crud.user import get_user_by_email, create_user
+from crud.user import get_user_by_email, get_user_by_cpf, create_user
 
 # Contexto para hash de senhas usando bcrypt
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -95,7 +95,7 @@ class AuthService:
         """
         Registra um novo usuário no sistema.
         
-        Verifica se o email já está em uso, cria o hash da senha
+        Verifica se o email e CPF já estão em uso, cria o hash da senha
         e salva o novo usuário no banco de dados.
         
         Args:
@@ -106,12 +106,17 @@ class AuthService:
             User: Objeto do usuário criado
             
         Raises:
-            ValueError: Se o email já estiver cadastrado
+            ValueError: Se o email ou CPF já estiverem cadastrados
         """
         # Verificar se email já existe
-        existing_user = get_user_by_email(db, user_data.email)
-        if existing_user:
+        existing_user_email = get_user_by_email(db, user_data.email)
+        if existing_user_email:
             raise ValueError("Email já cadastrado")
+        
+        # Verificar se CPF já existe
+        existing_user_cpf = get_user_by_cpf(db, user_data.cpf)
+        if existing_user_cpf:
+            raise ValueError("CPF já cadastrado")
         
         # Hash da senha
         hashed_password = AuthService.hash_password(user_data.senha)
