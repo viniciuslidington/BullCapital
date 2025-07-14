@@ -32,6 +32,7 @@ dependencies = [
     "sqlalchemy>=2.0.41",
     "passlib[bcrypt]>=1.7.4",
     "bcrypt>=4.0.0",
+    "httpx>=0.28.1",
 ]
 
 [dependency-groups]
@@ -44,4 +45,5 @@ dev = [
 members = [
     "bullcapital-backend",
     "src/services/market_data_service",
+    "src/services/data_storage_service",
 ]

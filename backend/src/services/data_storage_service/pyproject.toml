@@ -1,0 +1,13 @@
+[project]
+name = "data-storage-service"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "sqlalchemy",
+    "psycopg2-binary", # Certifique-se que este também está presente
+    "pandas",
+]

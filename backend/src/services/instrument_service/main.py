@@ -1,10 +1,11 @@
-# main.py do Instrument Ingestion & Standardization Service
 from fastapi import FastAPI, UploadFile, File, HTTPException
 import pandas as pd
 import logging
 import json
 import io
-from kafka import KafkaProducer
+import yfinance as yf
+import time
+from confluent_kafka import Producer
 
 from utils.utils import standardize_b3_ticker
 
@@ -13,25 +14,30 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-# Configuração do Kafka Producer (ajuste 'kafka:9092' para o seu broker Kafka)
-# O tópico 'standardized_instruments_topic' será o output para o próximo serviço
-try:
-    producer = KafkaProducer(
-        bootstrap_servers='kafka:9092',
-        value_serializer=lambda v: json.dumps(v).encode('utf-8'),
-        api_version=(0, 10, 1)
-    )
-    logger.info("Kafka Producer inicializado com sucesso.")
-except Exception as e:
-    logger.error(f"Falha ao inicializar Kafka Producer: {e}. Verifique se o Kafka está rodando.")
-    # Dependendo da estratégia de erro, pode ser um erro fatal ou tentar reconectar
+
+def get_kafka_producer_with_retry(retries=5, delay=3):
+    for attempt in range(retries):
+        try:
+            conf = {
+                'bootstrap.servers': 'kafka:9092'
+            }
+            producer = Producer(conf)
+            logger.info("Kafka Producer (confluent_kafka) inicializado com sucesso.")
+            return producer
+        except Exception as e:
+            logger.warning(f"Tentativa {attempt + 1}: Kafka indisponível. Erro: {e}")
+            time.sleep(delay)
+    raise RuntimeError("Kafka Producer não pôde ser inicializado.")
+
 
 @app.post("/process-instruments/")
-async def process_instruments_endpoint(csv_file: UploadFile = File(...)): # <--- Mudança aqui: File(...) agora é obrigatório
+async def process_instruments_endpoint(csv_file: UploadFile = File(...)):
     """
     Endpoint para processar um arquivo CSV de instrumentos da B3.
-    Recebe o arquivo CSV diretamente via upload.
+    Realiza padronização de tickers e envia apenas os válidos para Kafka.
     """
+    producer = get_kafka_producer_with_retry()
+
     if not csv_file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="O arquivo deve ser um CSV.")
 
@@ -43,7 +49,6 @@ async def process_instruments_endpoint(csv_file: UploadFile = File(...)): # <---
         logger.error(f"Erro ao ler o arquivo CSV de upload: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail=f"Erro ao ler o arquivo CSV: {e}")
 
-    # --- Lógica de Processamento do seu código original ---
     try:
         acoes_b3 = df[
             (df["SctyCtgyNm"] == "SHARES") &
@@ -56,30 +61,43 @@ async def process_instruments_endpoint(csv_file: UploadFile = File(...)): # <---
 
         temp_df = resultado.copy()
         valid_indices = []
+
         for index, row in temp_df.iterrows():
             ticker_padronizado = standardize_b3_ticker(row["Ticker"])
-            if ticker_padronizado:
-                resultado.at[index, "Ticker"] = ticker_padronizado
-                valid_indices.append(index)
-        
-        resultado = resultado.loc[valid_indices]
-        
-        logger.info(f"Processamento concluído. {len(resultado)} instrumentos padronizados encontrados.")
+            if not ticker_padronizado:
+                continue
 
-        if producer.bootstrap_connected(): # Verifica se o produtor está conectado antes de enviar
-            for _, row in resultado.iterrows():
-                message = row.to_dict()
-                producer.send('standardized_instruments_topic', message)
-                logger.debug(f"Enviado para Kafka: {message['Ticker']}")
-            
-            producer.flush()
-            logger.info("Todos os instrumentos padronizados foram enviados para o Kafka.")
-        else:
-            logger.error("Kafka Producer não conectado. Mensagens não enviadas.")
-            raise HTTPException(status_code=500, detail="Serviço Kafka indisponível para enviar dados processados.")
-        
-        return {"message": "Processamento concluído e dados enviados para o pipeline.", "count": len(resultado)}
+            try:
+                # Validação via Yahoo Finance
+                ticker_obj = yf.Ticker(ticker_padronizado)
+                info = ticker_obj.info
+                if info and info.get("regularMarketPrice") is not None:
+                    resultado.at[index, "Ticker"] = ticker_padronizado
+                    valid_indices.append(index)
+                else:
+                    logger.warning(f"[Filtro] Ticker sem info válida no Yahoo Finance: {ticker_padronizado}")
+            except Exception as e:
+                logger.warning(f"[Filtro] Erro ao validar ticker {ticker_padronizado} via Ticker.info: {e}")
+
+        resultado = resultado.loc[valid_indices]
+        logger.info(f"Total de tickers válidos com info no Yahoo Finance: {len(resultado)}")
+
+        if len(resultado) == 0:
+            raise HTTPException(status_code=400, detail="Nenhum ticker válido foi encontrado.")
+
+        for _, row in resultado.iterrows():
+            message = row.to_dict()
+            producer.produce('standardized_instruments_topic', value=json.dumps(message).encode('utf-8'))
+            logger.debug(f"Enviado para Kafka: {message['Ticker']}")
+
+        producer.flush()
+        logger.info("Todos os instrumentos padronizados válidos foram enviados para o Kafka.")
+
+        return {
+            "message": "Processamento concluído com sucesso.",
+            "valid_tickers": len(resultado)
+        }
 
     except Exception as e:
-        logger.error(f"Erro no processamento principal do instrumento: {e}", exc_info=True)
+        logger.error(f"Erro durante o processamento dos instrumentos: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Erro interno no processamento: {e}")
