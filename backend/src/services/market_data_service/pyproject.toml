@@ -11,4 +11,8 @@ dependencies = [
     "python-json-logger>=3.3.0",
     "python-multipart>=0.0.20",
     "yfinance>=0.2.65",
+    "requests>=2.32.4",
+    "uvicorn>=0.35.0",
+    "fastapi>=0.116.1",
+    "httpx>=0.28.1",
 ]
