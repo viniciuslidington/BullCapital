@@ -1,81 +1,48 @@
-import asyncio
-import json
-import logging
-import os
-from fastapi import FastAPI
-from confluent_kafka import Consumer, KafkaException, KafkaError
-import httpx  # Para fazer HTTP async POST
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from typing import List
 from services.market_download import download_and_normalize_ticker_data
-from contextlib import asynccontextmanager
+import logging
+import requests
+import os
+import json
+import pandas as pd
 
-logger = logging.getLogger("market_data_service")
+app = FastAPI()
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-KAFKA_BROKER = os.getenv('KAFKA_BROKER', 'kafka:9092')
-INPUT_TOPIC = 'standardized_instruments_topic'
-STORAGE_SERVICE_URL = os.getenv('STORAGE_SERVICE_URL', 'http://market_data_storage_api_service:8000/data/bulk')
+DATA_STORAGE_URL = os.getenv("STORAGE_SERVICE_URL", "http://data_storage_service:8000/data/bulk")
 
+class TickerInput(BaseModel):
+    tickers: List[str]
 
-consumer = Consumer({
-    'bootstrap.servers': KAFKA_BROKER,
-    'group.id': 'market-data-downloader-group',
-    'auto.offset.reset': 'earliest'
-})
-consumer.subscribe([INPUT_TOPIC])
+@app.post("/download-tickers/")
+async def download_tickers(payload: TickerInput):
+    resultados = []
 
-async def consume_and_process():
-    logger.info(f"Consumidor Kafka ativo no tópico '{INPUT_TOPIC}'")
-    async with httpx.AsyncClient() as client:
-        while True:
-            msg = consumer.poll(1.0)
-            if msg is None:
-                await asyncio.sleep(1)
-                continue
-            if msg.error():
-                if msg.error().code() == KafkaError._PARTITION_EOF:
-                    logger.info(f"Fim da partição alcançado {msg.topic()} [{msg.partition()}] offset {msg.offset()}")
-                else:
-                    logger.error(f"Erro do consumidor Kafka: {msg.error()}")
-                continue
+    # Chama a função passando a lista de tickers de uma vez
+    ticker_data_dict = download_and_normalize_ticker_data(payload.tickers)
+    for df in ticker_data_dict.values():
+        if df is not None:
+            # Sanitização de valores inválidos
+            df.replace([float("inf"), float("-inf")], None, inplace=True)
+            df = df.fillna(0)
+            registros = df.to_dict(orient="records")
+            resultados.extend(registros)
+        else:
+            logger.warning(f"Um dos tickers não retornou dados válidos.")
 
-            try:
-                instrument_data = json.loads(msg.value())
-                ticker = instrument_data.get('Ticker')
-                if not ticker:
-                    logger.warning(f"Mensagem sem ticker: {instrument_data}")
-                    continue
+    if not resultados:
+        raise HTTPException(status_code=404, detail="Nenhum dado foi retornado para os tickers informados.")
 
-                logger.info(f"Processando ticker: {ticker}")
-                df = download_and_normalize_ticker_data(ticker)
-                if df is None or df.empty:
-                    logger.warning(f"Sem dados para ticker {ticker}")
-                    continue
-
-                data_json = df.to_dict(orient='records')
-                response = await client.post(STORAGE_SERVICE_URL, json=data_json, timeout=300)
-                response.raise_for_status()
-                logger.info(f"Dados enviados para Storage Service para ticker {ticker} (status {response.status_code})")
-
-            except Exception as e:
-                logger.error(f"Erro ao processar ticker ou enviar dados: {e}", exc_info=True)
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    task = asyncio.create_task(consume_and_process())
-    logger.info("Task do consumidor Kafka iniciada com lifespan.")
     try:
-        yield
-    finally:
-        task.cancel()
-        try:
-            await task
-        except asyncio.CancelledError:
-            logger.info("Task do consumidor Kafka cancelada.")
-        consumer.close()
-        logger.info("Kafka Consumer fechado.")
+        # Envia os dados via POST para o serviço de armazenamento
+        response = requests.post(DATA_STORAGE_URL, json=resultados)
+        response.raise_for_status()
+        logger.info(f"Dados enviados com sucesso para o serviço de armazenamento. Total: {len(resultados)} registros.")
+    except Exception as e:
+        logger.error(f"Erro inesperado ao enviar dados para data_storage_service: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao enviar dados para o serviço de armazenamento.")
 
-app = FastAPI(lifespan=lifespan)
-
-@app.get("/")
-async def root():
-    return {"message": "Market Data Downloader Service está rodando."}
+    return {"result": resultados, "total": len(resultados)}
