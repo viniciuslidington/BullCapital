@@ -119,15 +119,13 @@ class YahooFinanceProvider(IMarketDataProvider, LoggerMixin):
                     (response.change / response.previous_close) * 100, 2
                 )
             
-            # Adicionar dados fundamentais se solicitado
-            if request.include_fundamentals:
-                response.fundamentals = self._extract_fundamental_data(info)
+            # Sempre incluir dados fundamentais e históricos para API simplificada
+            response.fundamentals = self._extract_fundamental_data(info)
             
-            # Adicionar dados históricos se solicitado
-            if request.include_history:
-                response.historical_data = self._get_historical_data(
-                    ticker, request, normalized_symbol
-                )
+            # Sempre incluir dados históricos
+            response.historical_data = self._get_historical_data(
+                ticker, request, normalized_symbol
+            )
             
             # Adicionar metadados
             response.metadata = {
@@ -136,9 +134,9 @@ class YahooFinanceProvider(IMarketDataProvider, LoggerMixin):
                 "market_state": info.get('marketState', 'unknown'),
                 "request_params": {
                     "period": request.period,
-                    "interval": request.interval,
-                    "start_date": request.start_date,
-                    "end_date": request.end_date
+                    "interval": "1d",  # Padrão simplificado
+                    "start_date": None,  # Sempre usar período em vez de datas
+                    "end_date": None
                 }
             }
             
@@ -446,18 +444,11 @@ class YahooFinanceProvider(IMarketDataProvider, LoggerMixin):
     ) -> List[HistoricalDataPoint]:
         """Obtém dados históricos formatados."""
         try:
-            # Determinar parâmetros para history()
-            if request.start_date and request.end_date:
-                hist = ticker.history(
-                    start=request.start_date,
-                    end=request.end_date,
-                    interval=request.interval
-                )
-            else:
-                hist = ticker.history(
-                    period=request.period,
-                    interval=request.interval
-                )
+            # Usar sempre o período especificado com intervalo padrão
+            hist = ticker.history(
+                period=request.period,
+                interval="1d"  # Sempre usar intervalo diário para simplificar
+            )
             
             if hist.empty:
                 return []

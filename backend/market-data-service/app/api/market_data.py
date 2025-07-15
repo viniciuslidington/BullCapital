@@ -1,401 +1,327 @@
 """
-Endpoints principais do Market Data Service.
+Endpoints ULTRA-SIMPLIFICADOS do Market Data Service.
 
-Este módulo implementa todos os endpoints da API REST para obtenção
-de dados de mercado, seguindo as melhores práticas de design de APIs.
-
-Example:
-    from api.market_data import router
-    
-    app.include_router(router, prefix="/api/v1/market-data")
+Removidos args, kwargs, validações complexas e middleware desnecessário.
+Foco na simplicidade e facilidade de uso.
 """
 
-from typing import Optional
-
-from fastapi import APIRouter, HTTPException, Query, Request, status
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter
 
 from core.config import settings
 from core.logging import get_logger
 from models.requests import BulkDataRequest, SearchRequest, StockDataRequest
 from models.responses import (
     BulkDataResponse,
-    ErrorResponse,
     HealthResponse,
     SearchResponse,
     StockDataResponse,
     ValidationResponse,
 )
-from services.interfaces import ProviderException, RateLimitException
 from services.market_data_service import MarketDataService
 
-# Configurar logger e router
+# Logger e router
 logger = get_logger(__name__)
 router = APIRouter()
 
-# Instância global do serviço (em produção, usar dependency injection)
+# Serviço
 market_data_service = MarketDataService()
-
-
-def get_client_identifier(request: Request) -> str:
-    """
-    Extrai identificador único do cliente para rate limiting.
-    
-    Args:
-        request: Request HTTP
-        
-    Returns:
-        Identificador único (IP address ou header personalizado)
-    """
-    # Tentar obter de header personalizado primeiro
-    client_id = request.headers.get("X-Client-ID")
-    if client_id:
-        return client_id
-    
-    # Usar IP address como fallback
-    forwarded_ip = request.headers.get("X-Forwarded-For")
-    if forwarded_ip:
-        return forwarded_ip.split(",")[0].strip()
-    
-    return request.client.host if request.client else "unknown"
-
-
-def handle_service_exceptions(func):
-    """
-    Decorator para tratamento centralizado de exceções dos serviços.
-    
-    Args:
-        func: Função do endpoint a ser decorada
-        
-    Returns:
-        Função decorada com tratamento de exceções
-    """
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except RateLimitException as e:
-            logger.warning(f"Rate limit excedido: {e}")
-            error_response = ErrorResponse(
-                error="RATE_LIMIT_EXCEEDED",
-                message="Taxa de requisições excedida. Tente novamente mais tarde.",
-                details={
-                    "remaining_requests": e.remaining,
-                    "reset_time": e.reset_time
-                },
-                timestamp=str(HTTPException)
-            )
-            return JSONResponse(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                content=error_response.dict()
-            )
-        except ProviderException as e:
-            logger.error(f"Erro do provedor: {e}")
-            error_response = ErrorResponse(
-                error=e.error_code or "PROVIDER_ERROR",
-                message=e.message,
-                details=e.details,
-                timestamp=str(HTTPException)
-            )
-            return JSONResponse(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                content=error_response.dict()
-            )
-        except ValueError as e:
-            logger.warning(f"Erro de validação: {e}")
-            error_response = ErrorResponse(
-                error="VALIDATION_ERROR",
-                message=str(e),
-                timestamp=str(HTTPException)
-            )
-            return JSONResponse(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                content=error_response.dict()
-            )
-        except Exception as e:
-            logger.error(f"Erro interno: {e}")
-            error_response = ErrorResponse(
-                error="INTERNAL_SERVER_ERROR",
-                message="Erro interno do servidor",
-                details={"original_error": str(e)} if settings.DEBUG else None,
-                timestamp=str(HTTPException)
-            )
-            return JSONResponse(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                content=error_response.dict()
-            )
-    
-    return wrapper
 
 
 @router.get(
     "/stocks/{symbol}",
     response_model=StockDataResponse,
-    summary="Obter dados de uma ação específica",
+    summary="Obter dados de uma ação",
     description="""
-    Obtém dados completos de uma ação específica, incluindo preço atual,
-    dados fundamentais opcionais e histórico de preços.
+    Obtém dados de uma ação específica. Muito simples de usar!
     
-    **Parâmetros de Path:**
-    - **symbol**: Símbolo da ação (ex: PETR4.SA, AAPL, MSFT)
+    **Parâmetros:**
+    - **symbol**: Símbolo da ação (obrigatório)
+    - **period**: Período dos dados (opcional, padrão: 1mo)
     
-    **Parâmetros de Query:**
-    - **period**: Período do histórico (1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, ytd, max)
-    - **interval**: Intervalo dos dados (1m, 2m, 5m, 15m, 30m, 60m, 90m, 1h, 1d, 5d, 1wk, 1mo, 3mo)
-    - **start_date**: Data de início para histórico (YYYY-MM-DD)
-    - **end_date**: Data de fim para histórico (YYYY-MM-DD)
-    - **include_fundamentals**: Incluir dados fundamentais
-    - **include_history**: Incluir histórico de preços
+    **Símbolos para testar:**
+    - 🇧🇷 Brasil: PETR4.SA, VALE3.SA, ITUB4.SA, BBDC4.SA, ABEV3.SA
+    - 🇺🇸 EUA: AAPL, MSFT, GOOGL, AMZN, TSLA, NVDA, META
+    - 📈 ETFs: SPY, QQQ, IVV, VTI
     
-    **Exemplos:**
-    - `/stocks/PETR4.SA` - Dados básicos da Petrobras
-    - `/stocks/PETR4.SA?period=1y&include_fundamentals=true` - Dados de 1 ano com fundamentals
-    - `/stocks/AAPL?start_date=2024-01-01&end_date=2024-12-31` - Apple com período específico
+    **Períodos disponíveis:**
+    - 1d = 1 dia (dados intraday)
+    - 5d = 5 dias (útil para análise semanal)
+    - 1mo = 1 mês (padrão, boa para análise mensal)
+    - 3mo = 3 meses (tendência trimestral)
+    - 6mo = 6 meses (análise semestral)
+    - 1y = 1 ano (tendência anual, recomendado)
+    
+    **Exemplos de teste:**
+    ```
+    /stocks/PETR4.SA                    # Petrobras, último mês
+    /stocks/AAPL?period=1y             # Apple, último ano
+    /stocks/VALE3.SA?period=6mo        # Vale, 6 meses
+    /stocks/MSFT?period=3mo            # Microsoft, 3 meses
+    /stocks/SPY?period=1d              # S&P 500 ETF, 1 dia
+    ```
+    
+    **Dicas:**
+    - Para análise rápida: use period=1mo
+    - Para tendências: use period=1y
+    - Para day trading: use period=1d ou 5d
     """
 )
-@handle_service_exceptions
 def get_stock_data(
     symbol: str,
-    request: Request,
-    period: Optional[str] = Query(
-        default="1mo",
-        description="Período do histórico",
-        regex=r"^(1d|5d|1mo|3mo|6mo|1y|2y|5y|10y|ytd|max)$"
-    ),
-    interval: str = Query(
-        default="1d",
-        description="Intervalo dos dados",
-        regex=r"^(1m|2m|5m|15m|30m|60m|90m|1h|1d|5d|1wk|1mo|3mo)$"
-    ),
-    start_date: Optional[str] = Query(
-        default=None,
-        description="Data de início (YYYY-MM-DD)"
-    ),
-    end_date: Optional[str] = Query(
-        default=None,
-        description="Data de fim (YYYY-MM-DD)"
-    ),
-    include_fundamentals: bool = Query(
-        default=False,
-        description="Incluir dados fundamentais"
-    ),
-    include_history: bool = Query(
-        default=True,
-        description="Incluir histórico de preços"
-    )
+    period: str = "1mo"
 ) -> StockDataResponse:
-    """Endpoint para obter dados de uma ação específica."""
-    logger.info(f"Requisição de dados para {symbol}")
+    """Endpoint ultra-simplificado para dados de ação."""
+    logger.info(f"Dados para {symbol}, período {period}")
     
-    # Criar objeto de requisição
-    stock_request = StockDataRequest(
-        symbol=symbol,
-        period=period,
-        interval=interval,
-        start_date=start_date,
-        end_date=end_date,
-        include_fundamentals=include_fundamentals,
-        include_history=include_history
-    )
-    
-    # Obter identificador do cliente
-    client_id = get_client_identifier(request)
+    # Criar request simples
+    stock_request = StockDataRequest(symbol=symbol, period=period)
     
     # Chamar serviço
-    return market_data_service.get_stock_data(symbol, stock_request, client_id)
+    return market_data_service.get_stock_data(symbol, stock_request, "simple-client")
 
 
 @router.get(
-    "/stocks/search",
+    "/search",
     response_model=SearchResponse,
-    summary="Buscar ações por nome ou símbolo",
+    summary="Buscar ações",
     description="""
-    Busca ações por nome da empresa ou símbolo do ticker.
-    Suporta busca parcial e fuzzy matching.
+    Busca ações por nome ou símbolo. Muito simples!
     
     **Parâmetros:**
-    - **query**: Termo de busca (nome da empresa ou símbolo)
-    - **limit**: Número máximo de resultados (1-100)
+    - **q**: Termo de busca (obrigatório)
+    - **limit**: Máximo de resultados (opcional, padrão: 10, máx: 50)
     
-    **Exemplos:**
-    - `/stocks/search?query=Petrobras` - Buscar por nome da empresa
-    - `/stocks/search?query=PETR` - Buscar por símbolo parcial
-    - `/stocks/search?query=banco&limit=20` - Buscar bancos com limite de 20 resultados
+    **Termos para testar:**
+    - 🏢 Por empresa: "petrobras", "vale", "apple", "microsoft", "google"
+    - 🏦 Por setor: "banco", "energia", "tecnologia", "mineração"
+    - 📊 Por símbolo: "PETR", "VALE", "AAPL", "MSFT", "GOOGL"
+    - 🌎 Por país: "brazil", "usa", "american"
+    
+    **Limites recomendados:**
+    - limit=5: Busca rápida, resultados principais
+    - limit=10: Padrão, bom equilíbrio
+    - limit=20: Busca ampla
+    - limit=50: Máximo permitido
+    
+    **Exemplos de teste:**
+    ```
+    /search?q=petrobras                 # Busca por Petrobras
+    /search?q=banco&limit=15           # Top 15 bancos
+    /search?q=AAPL                     # Apple por símbolo
+    /search?q=tecnologia&limit=20      # 20 empresas de tech
+    /search?q=energia&limit=10         # Setor energético
+    /search?q=PETR&limit=5             # Símbolos começando com PETR
+    ```
+    
+    **Dicas:**
+    - Use nomes em português para empresas BR
+    - Use nomes em inglês para empresas US
+    - Símbolos parciais também funcionam
+    - Quanto menor o limit, mais rápida a resposta
     """
 )
-@handle_service_exceptions
 def search_stocks(
-    request: Request,
-    query: str = Query(..., min_length=1, description="Termo de busca"),
-    limit: int = Query(
-        default=10,
-        ge=1,
-        le=100,
-        description="Número máximo de resultados"
-    )
+    q: str,
+    limit: int = 10
 ) -> SearchResponse:
-    """Endpoint para buscar ações por nome ou símbolo."""
-    logger.info(f"Busca por: {query}")
+    """Endpoint ultra-simplificado para busca."""
+    logger.info(f"Busca por: {q}")
     
-    # Criar objeto de requisição
-    search_request = SearchRequest(
-        query=query,
-        limit=limit
-    )
-    
-    # Obter identificador do cliente
-    client_id = get_client_identifier(request)
+    # Criar request simples
+    search_request = SearchRequest(query=q, limit=limit)
     
     # Chamar serviço
-    return market_data_service.search_stocks(search_request, client_id)
+    return market_data_service.search_stocks(search_request, "simple-client")
 
 
 @router.get(
-    "/stocks/trending",
-    summary="Obter ações em tendência",
+    "/trending",
+    summary="Ações em tendência",
     description="""
-    Retorna as principais ações em tendência para um mercado específico.
+    Retorna ações em tendência. Super simples!
     
     **Parâmetros:**
-    - **market**: Código do mercado (BR para Brasil, US para Estados Unidos)
-    - **limit**: Número máximo de ações retornadas
+    - **market**: Mercado (opcional, padrão: BR)
+    - **limit**: Número de ações (opcional, padrão: 10, máx: 30)
     
-    **Exemplos:**
-    - `/stocks/trending` - Top ações brasileiras
-    - `/stocks/trending?market=US&limit=20` - Top 20 ações americanas
+    **Mercados disponíveis:**
+    - "BR" = Brasil 🇧🇷 (Bovespa - ações .SA)
+    - "US" = Estados Unidos 🇺🇸 (NYSE, NASDAQ)
+    
+    **Limites recomendados:**
+    - limit=5: Top 5 ações mais quentes
+    - limit=10: Padrão, bom overview
+    - limit=15: Análise ampla
+    - limit=30: Máximo, visão completa do mercado
+    
+    **Exemplos de teste:**
+    ```
+    /trending                          # Top 10 Brasil
+    /trending?market=BR               # Top 10 Brasil (explícito)
+    /trending?market=US               # Top 10 EUA
+    /trending?market=BR&limit=20      # Top 20 Brasil
+    /trending?market=US&limit=5       # Top 5 EUA
+    /trending?limit=30                # Top 30 Brasil
+    ```
+    
+    **Quando usar:**
+    - 🌅 Manhã: Ver abertura do mercado
+    - 🌆 Tarde: Acompanhar movimentações
+    - 📊 Análise: Identificar oportunidades
+    - 🔥 Day trading: Ações com volume alto
+    
+    **Dica:** Combine com /stocks/{symbol} para detalhes das trending!
     """
 )
-@handle_service_exceptions
 def get_trending_stocks(
-    request: Request,
-    market: str = Query(default="BR", description="Código do mercado"),
-    limit: int = Query(default=10, ge=1, le=50, description="Número de resultados")
+    market: str = "BR",
+    limit: int = 10
 ):
-    """Endpoint para obter ações em tendência."""
-    logger.info(f"Trending stocks para mercado {market}")
+    """Endpoint ultra-simplificado para trending."""
+    logger.info(f"Trending para {market}")
     
-    # Obter identificador do cliente
-    client_id = get_client_identifier(request)
-    
-    # Chamar serviço
-    trending_data = market_data_service.get_trending_stocks(market, client_id)
-    
-    # Limitar resultados
-    limited_data = trending_data[:limit]
+    # Chamar serviço diretamente
+    trending_data = market_data_service.get_trending_stocks(market, "simple-client")
     
     return {
         "market": market,
-        "timestamp": str(HTTPException),
-        "total_stocks": len(limited_data),
-        "trending_stocks": limited_data
+        "trending_stocks": trending_data[:limit]
     }
 
 
 @router.get(
-    "/tickers/{symbol}/validate",
+    "/validate/{symbol}",
     response_model=ValidationResponse,
-    summary="Validar um ticker específico",
+    summary="Validar símbolo",
     description="""
-    Valida se um ticker existe e é válido para negociação.
-    Retorna informações detalhadas sobre o status do ticker.
+    Valida se um símbolo de ação é válido e negociável.
     
-    **Parâmetros:**
-    - **symbol**: Símbolo do ticker para validar
+    **Parâmetro:**
+    - **symbol**: Símbolo da ação para validar
     
-    **Exemplos:**
-    - `/tickers/PETR4.SA/validate` - Validar ticker da Petrobras
-    - `/tickers/INVALID/validate` - Testar ticker inválido
+    **Símbolos para testar (válidos):**
+    - 🇧🇷 Brasil: PETR4.SA, VALE3.SA, ITUB4.SA, BBDC4.SA, ABEV3.SA
+    - 🇺🇸 EUA: AAPL, MSFT, GOOGL, AMZN, TSLA, NVDA, META, SPY
+    - 📈 Criptos: BTC-USD, ETH-USD (se suportado)
+    
+    **Símbolos para testar (inválidos):**
+    - INVALID, FAKE123, NOTREAL, TESTE.SA, XXXX
+    
+    **Exemplos de teste:**
+    ```
+    /validate/PETR4.SA                 # ✅ Petrobras (válida)
+    /validate/AAPL                     # ✅ Apple (válida)
+    /validate/INVALID                  # ❌ Símbolo inválido
+    /validate/FAKE123                  # ❌ Não existe
+    /validate/VALE3.SA                 # ✅ Vale (válida)
+    /validate/SPY                      # ✅ S&P 500 ETF (válida)
+    ```
+    
+    **Formato esperado:**
+    - 🇧🇷 Brasil: CODIGO4.SA (ex: PETR4.SA, VALE3.SA)
+    - 🇺🇸 EUA: CODIGO (ex: AAPL, MSFT)
+    - 💱 Forex: XXX=X (ex: EURUSD=X)
+    - 🪙 Crypto: XXX-USD (ex: BTC-USD)
+    
+    **Retorna:**
+    - is_valid: true/false
+    - symbol: símbolo validado
+    - market: mercado (BR/US/etc)
+    - exchange: bolsa (BOVESPA/NYSE/etc)
+    
+    **Dica:** Use antes de chamar /stocks/{symbol} para evitar erros!
     """
 )
-@handle_service_exceptions
-def validate_ticker(
-    symbol: str,
-    request: Request
-) -> ValidationResponse:
-    """Endpoint para validar um ticker específico."""
-    logger.info(f"Validando ticker {symbol}")
+def validate_ticker(symbol: str) -> ValidationResponse:
+    """Endpoint ultra-simplificado para validação."""
+    logger.info(f"Validando {symbol}")
     
-    # Obter identificador do cliente
-    client_id = get_client_identifier(request)
-    
-    # Chamar serviço
-    return market_data_service.validate_ticker(symbol, client_id)
+    # Chamar serviço diretamente
+    return market_data_service.validate_ticker(symbol, "simple-client")
 
 
 @router.post(
     "/bulk",
     response_model=BulkDataResponse,
-    summary="Obter dados em lote para múltiplos tickers",
+    summary="Dados de múltiplas ações",
     description="""
-    Obtém dados de mercado para múltiplos tickers em uma única requisição.
-    Otimizado para processamento eficiente de grandes volumes de dados.
+    Obtém dados de várias ações de uma vez. JSON super simples!
     
-    **Body da requisição:**
+    **JSON de entrada:**
     ```json
     {
-        "tickers": ["PETR4.SA", "VALE3.SA", "ITUB4.SA"],
-        "period": "1mo",
-        "interval": "1d",
-        "start_date": "2024-01-01",
-        "end_date": "2024-12-31",
-        "include_fundamentals": true
+        "symbols": ["PETR4.SA", "VALE3.SA"],
+        "period": "1mo"
     }
     ```
+    
+    **Campos:**
+    - **symbols**: Lista de símbolos (obrigatório, máx: 20 ações)
+    - **period**: Período dos dados (opcional, padrão: 1mo)
+    
+    **Portfolios para testar:**
+    
+    🇧🇷 **Top Brasil:**
+    ```json
+    {
+        "symbols": ["PETR4.SA", "VALE3.SA", "ITUB4.SA", "BBDC4.SA", "ABEV3.SA"],
+        "period": "1mo"
+    }
+    ```
+    
+    🇺🇸 **Big Tech:**
+    ```json
+    {
+        "symbols": ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"],
+        "period": "1y"
+    }
+    ```
+    
+    📊 **ETFs Diversificados:**
+    ```json
+    {
+        "symbols": ["SPY", "QQQ", "IVV", "VTI"],
+        "period": "6mo"
+    }
+    ```
+    
+    🏦 **Bancos Brasil:**
+    ```json
+    {
+        "symbols": ["ITUB4.SA", "BBDC4.SA", "SANB11.SA", "BBAS3.SA"],
+        "period": "3mo"
+    }
+    ```
+    
+    ⚡ **Energia:**
+    ```json
+    {
+        "symbols": ["PETR4.SA", "PETR3.SA", "EGIE3.SA", "ENGI11.SA"],
+        "period": "1y"
+    }
+    ```
+    
+    **Períodos recomendados por caso:**
+    - Análise rápida: "1mo"
+    - Tendência: "1y" 
+    - Comparativo: "6mo"
+    - Performance: "3mo"
     
     **Limites:**
-    - Máximo de 50 tickers por requisição
-    - Rate limiting mais restritivo aplicado
+    - Máximo: 20 símbolos por requisição
+    - Para mais ações: faça múltiplas requisições
+    
+    **Dica:** Use periods iguais para comparar performance entre ações!
     """
 )
-@handle_service_exceptions
-def get_bulk_data(
-    bulk_request: BulkDataRequest,
-    request: Request
-) -> BulkDataResponse:
-    """Endpoint para obter dados em lote."""
-    logger.info(f"Requisição em lote para {len(bulk_request.tickers)} tickers")
+def get_bulk_data(bulk_request: BulkDataRequest) -> BulkDataResponse:
+    """Endpoint ultra-simplificado para dados em lote."""
+    logger.info(f"Bulk para {len(bulk_request.symbols)} ações")
     
-    # Obter identificador do cliente
-    client_id = get_client_identifier(request)
-    
-    # Chamar serviço
-    return market_data_service.get_bulk_data(bulk_request, client_id)
+    # Chamar serviço diretamente
+    return market_data_service.get_bulk_data(bulk_request, "simple-client")
 
 
-@router.post(
-    "/search/advanced",
-    response_model=SearchResponse,
-    summary="Busca avançada de tickers",
-    description="""
-    Busca avançada com filtros complexos e opções de ordenação.
-    
-    **Body da requisição:**
-    ```json
-    {
-        "query": "banco",
-        "limit": 20,
-        "filters": {
-            "market": "BR",
-            "sector": "Financial Services",
-            "min_market_cap": 1000000000
-        },
-        "include_live_data": true
-    }
-    ```
-    """
-)
-@handle_service_exceptions
-def advanced_search(
-    search_request: SearchRequest,
-    request: Request
-) -> SearchResponse:
-    """Endpoint para busca avançada de tickers."""
-    logger.info(f"Busca avançada: {search_request.query}")
-    
-    # Obter identificador do cliente
-    client_id = get_client_identifier(request)
-    
-    # Chamar serviço (implementação básica, pode ser expandida)
-    return market_data_service.search_stocks(search_request, client_id)
 
 
 @router.get(
@@ -403,14 +329,44 @@ def advanced_search(
     response_model=HealthResponse,
     summary="Verificar saúde do serviço",
     description="""
-    Endpoint de health check que verifica o status do serviço
-    e suas dependências (cache, provedores externos, etc.).
+    Endpoint de health check - verifica se tudo está funcionando.
     
-    **Retorna:**
-    - Status geral do serviço
-    - Status de cada componente
-    - Métricas de performance
-    - Informações de versão
+    **Para que serve:**
+    - ✅ Verificar se a API está online
+    - 📊 Status dos provedores de dados (Yahoo Finance)
+    - 💾 Status do cache
+    - ⏱️ Tempo de resposta do serviço
+    
+    **Quando usar:**
+    - 🚀 Antes de usar a API (health check)
+    - 🔧 Debug de problemas
+    - 📈 Monitoramento de infraestrutura
+    - 🔄 Deploy/CI pipelines
+    
+    **Exemplo de teste:**
+    ```
+    /health
+    ```
+    
+    **Resposta esperada:**
+    ```json
+    {
+        "status": "healthy",
+        "timestamp": "2025-01-15T10:30:00",
+        "version": "1.0.0",
+        "external_services": {
+            "yahoo_finance": "healthy",
+            "cache": "healthy"
+        }
+    }
+    ```
+    
+    **Status possíveis:**
+    - "healthy" = Tudo funcionando ✅
+    - "degraded" = Funcionando com problemas ⚠️
+    - "unhealthy" = Com falhas ❌
+    
+    **Dica:** Chame este endpoint primeiro se algo não estiver funcionando!
     """
 )
 def health_check() -> HealthResponse:
@@ -431,48 +387,108 @@ def health_check() -> HealthResponse:
 
 @router.get(
     "/",
-    summary="Informações do serviço",
-    description="Retorna informações básicas sobre o Market Data Service."
+    summary="Informações da API",
+    description="""
+    Informações básicas sobre a API ultra-simplificada.
+    
+    **Para que serve:**
+    - 📋 Ver todos os endpoints disponíveis
+    - 🔍 Exemplos de como usar cada endpoint
+    - 📖 Links para documentação
+    - ℹ️ Versão da API
+    
+    **Exemplo de teste:**
+    ```
+    /
+    ```
+    
+    **Endpoints disponíveis:**
+    1. **GET /stocks/{symbol}** - Dados de uma ação
+    2. **GET /search** - Buscar ações  
+    3. **GET /trending** - Ações em tendência
+    4. **GET /validate/{symbol}** - Validar símbolo
+    5. **POST /bulk** - Múltiplas ações
+    6. **GET /health** - Health check
+    7. **DELETE /cache** - Limpar cache
+    
+    **Fluxo recomendado:**
+    1. 🔍 /health (verificar se está funcionando)
+    2. 📊 /trending (ver ações em alta)
+    3. ✅ /validate/{symbol} (validar antes de usar)
+    4. 📈 /stocks/{symbol} (obter dados detalhados)
+    
+    **Dica:** Este endpoint é seu ponto de partida na API!
+    """
 )
 def service_info():
-    """Endpoint de informações do serviço."""
+    """Informações da API ultra-simplificada."""
     return {
-        "service": "Market Data Service",
+        "service": "Market Data API - Versão SUPER SIMPLES",
         "version": settings.API_VERSION,
-        "description": settings.API_DESCRIPTION,
-        "status": "running",
+        "description": "API ultra-simplificada para dados de ações",
         "endpoints": {
-            "stocks": "/api/v1/market-data/stocks/{symbol}",
-            "search": "/api/v1/market-data/stocks/search",
-            "trending": "/api/v1/market-data/stocks/trending",
-            "validate": "/api/v1/market-data/tickers/{symbol}/validate",
-            "bulk": "/api/v1/market-data/bulk",
-            "health": "/api/v1/market-data/health"
+            "stock": "GET /stocks/{symbol}?period=1mo",
+            "search": "GET /search?q=termo&limit=10",
+            "trending": "GET /trending?market=BR&limit=10",
+            "validate": "GET /validate/{symbol}",
+            "bulk": "POST /bulk (JSON: {symbols: [...], period: '1mo'})"
         },
-        "documentation": "/docs"
+        "examples": {
+            "get_stock": "/stocks/PETR4.SA?period=1y",
+            "search": "/search?q=petrobras&limit=5",
+            "trending": "/trending?market=US&limit=15",
+            "validate": "/validate/AAPL",
+            "bulk": 'POST /bulk {"symbols": ["PETR4.SA", "VALE3.SA"], "period": "1mo"}'
+        }
     }
 
 
 @router.delete(
     "/cache",
-    summary="Limpar cache do serviço",
+    summary="Limpar cache",
     description="""
-    Endpoint administrativo para limpar todo o cache do serviço.
-    Útil para forçar atualização de dados ou resolver problemas de cache.
+    Limpa o cache do serviço para forçar atualização dos dados.
     
-    **Nota:** Este endpoint deve ser protegido em produção.
+    **Para que serve:**
+    - 🔄 Forçar atualização de dados "velhos"
+    - 🐛 Resolver problemas de cache corrompido
+    - 🧹 Limpeza manual do sistema
+    - 🔧 Manutenção administrativa
+    
+    **Quando usar:**
+    - Dados parecem desatualizados
+    - Após mudanças no sistema
+    - Debug de problemas
+    - Manutenção programada
+    
+    **Exemplo de teste:**
+    ```
+    DELETE /cache
+    ```
+    
+    **Resposta esperada:**
+    ```json
+    {
+        "message": "Cache limpo!",
+        "success": true
+    }
+    ```
+    
+    **⚠️ Atenção:**
+    - Próximas requisições serão mais lentas (sem cache)
+    - Cache será reconstruído automaticamente
+    - Use apenas quando necessário
+    
+    **Dica:** Combine com /health para verificar se limpeza foi bem-sucedida!
     """
 )
 def clear_cache():
-    """Endpoint para limpar cache (administrativo)."""
-    logger.info("Limpeza de cache solicitada")
+    """Endpoint simples para limpar cache."""
+    logger.info("Limpando cache")
     
     success = market_data_service.clear_cache()
     
-    if success:
-        return {"message": "Cache limpo com sucesso", "status": "success"}
-    else:
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"message": "Erro ao limpar cache", "status": "error"}
-        )
+    return {
+        "message": "Cache limpo!" if success else "Erro ao limpar cache",
+        "success": success
+    }
