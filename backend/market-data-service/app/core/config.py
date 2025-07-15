@@ -15,6 +15,10 @@ Example:
 
 from typing import List
 from pydantic_settings import BaseSettings
+from dotenv import load_dotenv
+
+# Load environment variables with override=True to ensure .env changes are reflected
+load_dotenv(override=True)
 
 
 class Settings(BaseSettings):
