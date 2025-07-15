@@ -350,17 +350,12 @@ class MarketDataService(LoggerMixin):
         errors = {}
         
         # Processar cada ticker
-        for symbol in request.tickers:
+        for symbol in request.symbols:  # Corrigido: usar 'symbols' em vez de 'tickers'
             try:
-                # Criar requisição individual
+                # Criar requisição individual simplificada
                 stock_request = StockDataRequest(
                     symbol=symbol,
-                    period=request.period,
-                    interval=request.interval,
-                    start_date=request.start_date,
-                    end_date=request.end_date,
-                    include_fundamentals=request.include_fundamentals,
-                    include_history=True
+                    period=request.period
                 )
                 
                 # Obter dados (sem verificar rate limit novamente)
@@ -564,14 +559,19 @@ class MarketDataService(LoggerMixin):
         request: StockDataRequest
     ) -> str:
         """Gera chave única para cache baseada nos parâmetros."""
+        # Para modelos simplificados, usar apenas os campos disponíveis
         key_parts = [
             operation,
             symbol,
-            request.period or "default",
-            request.interval,
-            request.start_date or "none",
-            request.end_date or "none",
-            str(request.include_fundamentals),
-            str(request.include_history)
+            getattr(request, 'period', 'default'),
         ]
+        
+        # Adicionar campos opcionais se existirem
+        if hasattr(request, 'interval'):
+            key_parts.append(getattr(request, 'interval', 'none'))
+        if hasattr(request, 'query'):
+            key_parts.append(getattr(request, 'query', 'none'))
+        if hasattr(request, 'limit'):
+            key_parts.append(str(getattr(request, 'limit', 10)))
+            
         return ":".join(key_parts)
