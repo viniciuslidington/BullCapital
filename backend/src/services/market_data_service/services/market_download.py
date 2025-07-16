@@ -1,82 +1,100 @@
-# market_data_downloader_service/services/yfinance_downloader.py
 import yfinance as yf
 import pandas as pd
 import logging
 from typing import Union
+import os
 
 logger = logging.getLogger(__name__)
 
-def download_and_normalize_ticker_data(
-    ticker_symbol: str,
-    start_date: str = None, # Ex: '2023-01-01'
-    end_date: str = None,   # Ex: '2023-12-31'
-    period: str = None,     # Ex: '1y', 'max'
-    interval: str = '1d'    # Ex: '1d', '1wk', '1mo'
-) -> Union[pd.DataFrame, None]: # Retorna DataFrame ou None: # Retorna DataFrame ou None
+# Configurações de download via env vars
+DOWNLOAD_START_DATE = os.getenv('DOWNLOAD_START_DATE') or None
+DOWNLOAD_END_DATE = os.getenv('DOWNLOAD_END_DATE') or None
+DOWNLOAD_PERIOD = os.getenv('DOWNLOAD_PERIOD', '1y')
+DOWNLOAD_INTERVAL = os.getenv('DOWNLOAD_INTERVAL', '1d')
 
+
+def download_and_normalize_ticker_data(
+    ticker_symbols: list[str],
+    start_date=DOWNLOAD_START_DATE,
+    end_date=DOWNLOAD_END_DATE,
+    period=DOWNLOAD_PERIOD,
+    interval=DOWNLOAD_INTERVAL
+) -> dict:
     """
-    Baixa dados históricos para um ticker e os normaliza.
+    Baixa e formata os dados históricos de uma lista de tickers usando yfinance,
+    retornando um dicionário {ticker: DataFrame} pronto para serialização e armazenamento.
     """
-    logger.info(f"Baixando dados para {ticker_symbol} (period={period}, interval={interval}, start={start_date}, end={end_date})...")
+    if period:
+        start_date = None
+        end_date = None
+
+    logger.info(f"Baixando dados para {ticker_symbols} (period={period}, interval={interval}, start={start_date}, end={end_date})...")
 
     try:
-        # yfinance.download aceita diferentes combinações de data/periodo
-        # Preferimos start/end se fornecidos, senão usa period
+        # Download em lote
         if start_date and end_date:
-            data_df = yf.download(ticker_symbol, start=start_date, end=end_date, interval=interval, progress=False)
+            data_df = yf.download(ticker_symbols, start=start_date, end=end_date, interval=interval, progress=False, group_by='ticker')
         elif period:
-            data_df = yf.download(ticker_symbol, period=period, interval=interval, progress=False)
+            data_df = yf.download(ticker_symbols, period=period, interval=interval, progress=False, group_by='ticker')
         else:
-            logger.warning(f"Nenhuma data de início/fim ou período fornecido para {ticker_symbol}.")
-            return None
+            logger.warning(f"Nenhuma data ou período fornecido para {ticker_symbols}.")
+            return {}
 
         if data_df.empty:
-            logger.warning(f"Nenhum dado retornado para o ticker {ticker_symbol}.")
-            return None
+            logger.warning(f"Nenhum dado retornado para os tickers {ticker_symbols}.")
+            return {}
 
-        # Reindexa para garantir que 'Date' seja um índice
-        data_df.index = pd.to_datetime(data_df.index)
-        data_df = data_df.reset_index() # Transforma o índice Date em coluna
+        # Se apenas um ticker, o yfinance não cria multi-index, então padronize para dict
+        if isinstance(ticker_symbols, str) or len(ticker_symbols) == 1:
+            ticker = ticker_symbols[0] if isinstance(ticker_symbols, list) else ticker_symbols
+            data_dict = {ticker: data_df}
+        else:
+            data_dict = {ticker: data_df[ticker] for ticker in ticker_symbols if ticker in data_df.columns.get_level_values(0)}
 
-        # A lógica de "stack", "melt", "pivot_table" foi adaptada.
-        # yfinance já retorna um DataFrame com colunas como 'Open', 'High', 'Low', 'Close', 'Volume', 'Adj Close'
-        # Seu código original parece estar transpondo um DataFrame multi-indexado de download_tickers().
-        # yfinance.download para um único ticker já retorna um DataFrame simples.
-
-        # A sua lógica de pivot_table se aplica mais quando se baixa VÁRIOS tickers de uma vez
-        # e o yfinance retorna um MultiIndex nas colunas.
-        # Para um único ticker, as colunas já são 'Open', 'High', etc.
-
-        # Se a intenção é ter 'PriceType' (Open, High, Close, etc.) como uma coluna,
-        # e os valores correspondentes em outra coluna 'Value', o melt é apropriado.
-        
-        # Filtra colunas de preço relevantes para o melt
-        price_columns = ['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']
-        
-        # Garante que apenas as colunas existentes sejam consideradas
-        existing_price_columns = [col for col in price_columns if col in data_df.columns]
-
-        if not existing_price_columns:
-            logger.warning(f"Nenhuma coluna de preço válida encontrada para {ticker_symbol}. Colunas: {data_df.columns.tolist()}")
-            return None
-
-        melted_df = data_df.melt(
-            id_vars=['Date'],             # 'Date' é o identificador
-            value_vars=existing_price_columns, # Colunas que serão "derretidas"
-            var_name='PriceType',         # Novo nome da coluna para os tipos de preço (ex: 'Open', 'Close')
-            value_name='Value'            # Novo nome da coluna para os valores dos preços
-        )
-        
-        # Adiciona o Ticker de volta (foi um input único)
-        melted_df['Ticker'] = ticker_symbol
-
-        # Reordena e renomeia se necessário para clareza
-        final_df = melted_df[['Date', 'Ticker', 'PriceType', 'Value']]
-        final_df.columns = ['Data', 'Ticker', 'TipoPreco', 'Valor'] # Renomeando para português se desejar
-
-        logger.info(f"Dados para {ticker_symbol} normalizados. Total de {len(final_df)} registros.")
-        return final_df
-
+        result = {}
+        for ticker, df in data_dict.items():
+            if df.empty:
+                logger.warning(f"Nenhum dado retornado para o ticker {ticker}.")
+                continue
+            df = df.copy()
+            # Garantir que o índice seja datetime
+            df.index = pd.to_datetime(df.index)
+            df = df.reset_index()
+            # Colunas esperadas
+            price_columns = ['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']
+            existing_price_columns = [col for col in price_columns if col in df.columns]
+            if not existing_price_columns:
+                logger.warning(f"Nenhuma coluna de preço válida encontrada para {ticker}. Colunas: {df.columns.tolist()}")
+                continue
+            expected_columns = ['Date'] + existing_price_columns
+            cols_to_select = [col for col in expected_columns if col in df.columns]
+            if 'Date' not in cols_to_select:
+                logger.error(f"Coluna 'Date' não encontrada no DataFrame para {ticker}. Colunas disponíveis: {df.columns.tolist()}")
+                continue
+            final_df = df[cols_to_select].copy()
+            final_df['Ticker'] = ticker
+            # Renomear colunas para o padrão esperado
+            rename_map = {
+                'Date': 'data',
+                'Open': 'open_price',
+                'High': 'high_price',
+                'Low': 'low_price',
+                'Close': 'close_price',
+                'Adj Close': 'adj_close_price',
+                'Volume': 'volume'
+            }
+            final_df.rename(columns=rename_map, inplace=True)
+            final_df.insert(1, 'ticker', final_df.pop('Ticker'))
+            final_df['data'] = final_df['data'].dt.strftime('%Y-%m-%d')
+            final_df = final_df.reset_index(drop=True)
+            # Se as colunas forem MultiIndex, transforme em colunas simples
+            if isinstance(final_df.columns, pd.MultiIndex):
+                final_df.columns = [col[-1] if isinstance(col, tuple) else col for col in final_df.columns]
+            else:
+                final_df.columns = [str(col) for col in final_df.columns]
+            logger.info(f"Dados para {ticker} formatados para armazenamento. Total de {len(final_df)} registros.")
+            result[ticker] = final_df
+        return result
     except Exception as e:
-        logger.error(f"Erro ao baixar ou normalizar dados para {ticker_symbol}: {e}", exc_info=True)
-        return None
+        logger.error(f"Erro ao baixar ou processar dados para {ticker_symbols}: {e}", exc_info=True)
+        return {}
