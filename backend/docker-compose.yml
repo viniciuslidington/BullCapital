@@ -1,34 +1,33 @@
-version: "3.8"
 
 services:
 
   instrument_service:
-    build: ./instrument_service
-    container_name: instrument_service
+    build: ./instrument-service
+    container_name: instrument-service
     ports:
       - "8000:8000"
     depends_on:
-      - market_data_service
+      - market-download-service
     environment:
-      DOWNLOAD_SERVICE: http://market_data_service:8000/download-tickers/
+      DOWNLOAD_SERVICE: http://market-download-service:8000/download-tickers/
     command: uvicorn main:app --host 0.0.0.0 --port 8000
 
-  market_data_service:
-    build: ./market_download_service
-    container_name: market_data_service
+  market_download_service:
+    build: ./market-download-service
+    container_name: market-download-service
     depends_on:
-      - data_storage_service
+      - data-storage-service
     environment:
       DOWNLOAD_START_DATE: None
       DOWNLOAD_END_DATE: None
       DOWNLOAD_PERIOD: '5y'
       DOWNLOAD_INTERVAL: '1d'
-      STORAGE_SERVICE_URL: http://data_storage_service:8000/data/bulk
+      STORAGE_SERVICE_URL: http://data-storage-service:8000/data/bulk
     command: uvicorn main:app --host 0.0.0.0 --port 8000
 
   data_storage_service:
-    build: ./data_storage_service
-    container_name: data_storage_service
+    build: ./data-storage-service
+    container_name: data-storage-service
     depends_on:
       - db
     ports:
