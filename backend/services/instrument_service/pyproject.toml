@@ -9,8 +9,9 @@ dependencies = [
     "pandas",
     "fastapi",
     "uvicorn[standard]", # [standard] inclui dependências como httptools, que é bom para FastAPI
-    "kafka-python",
     "python-multipart>=0.0.20",
+    "yfinance>=0.2.65",
+    "confluent-kafka>=2.11.0",
 ]
 
 [build-system]
