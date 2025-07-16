@@ -1,7 +1,7 @@
 
 services:
 
-  instrument_service:
+  instrument-service:
     build: ./instrument-service
     container_name: instrument-service
     ports:
@@ -12,7 +12,7 @@ services:
       DOWNLOAD_SERVICE: http://market-download-service:8000/download-tickers/
     command: uvicorn main:app --host 0.0.0.0 --port 8000
 
-  market_download_service:
+  market-download-service:
     build: ./market-download-service
     container_name: market-download-service
     depends_on:
@@ -25,7 +25,7 @@ services:
       STORAGE_SERVICE_URL: http://data-storage-service:8000/data/bulk
     command: uvicorn main:app --host 0.0.0.0 --port 8000
 
-  data_storage_service:
+  data-storage-service:
     build: ./data-storage-service
     container_name: data-storage-service
     depends_on:
