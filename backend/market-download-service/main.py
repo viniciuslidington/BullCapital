@@ -59,8 +59,12 @@ async def download_tickers(payload: TickerInput):
             df = df.fillna(0)
             registros = df.to_dict(orient="records")
             info_fields = info_dict.get(ticker, {'symbol': ticker})
+            cleaned_info_fields = {
+                k: (v if v is not None else "N/A")
+                for k, v in info_fields.items()
+            }
             for r in registros:
-                r.update(info_fields)
+                r.update(cleaned_info_fields)
             resultados.extend(registros)
         else:
             logger.warning(f"Um dos tickers não retornou dados válidos.")
@@ -69,7 +73,9 @@ async def download_tickers(payload: TickerInput):
         raise HTTPException(status_code=404, detail="Nenhum dado foi retornado para os tickers informados.")
 
     try:
-        response = requests.post(DATA_STORAGE_URL, json=resultados)
+        payload_json = json.dumps(resultados, default=str)
+        response = requests.post(DATA_STORAGE_URL, data=payload_json, headers={"Content-Type": "application/json"})
+        logger.info(f"Resposta do storage: {response.status_code} - {response.content}")
         response.raise_for_status()
         logger.info(f"Dados enviados com sucesso para o serviço de armazenamento. Total: {len(resultados)} registros.")
     except Exception as e:
