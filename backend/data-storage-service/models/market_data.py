@@ -5,10 +5,8 @@ class MarketData(Base):
     __tablename__ = "market_data"
 
     id = Column(Integer, primary_key=True, index=True)
-    nome = Column(String)
+    data = Column(Date, nullable=False)
     ticker = Column(String, index=True)
-    data_inicio = Column(Date)
-    data_fim = Column(Date)
     open_price = Column(Float)
     high_price = Column(Float)
     low_price = Column(Float)

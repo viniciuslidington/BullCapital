@@ -6,6 +6,7 @@ from models.database import get_db
 from models.schemas import MarketData as MarketDataSchema  # Exemplo de modelo
 from models.market_data import MarketData as MarketDataORM
 from models.database import Base, engine
+from fastapi.responses import JSONResponse
 
 app = FastAPI()
 logging.basicConfig(level=logging.INFO)
@@ -13,12 +14,16 @@ logger = logging.getLogger(__name__)
 
 @app.post("/data/bulk", status_code=status.HTTP_201_CREATED)
 async def receive_bulk_market_data(market_data_list: List[MarketDataSchema], db: Session = Depends(get_db)):
-    logger.info(f"Payload recebido: {market_data_list}")
     for entry in market_data_list:
-        db_entry = MarketDataORM(**entry.dict())
+        entry_dict = entry.dict()
+        entry_dict.pop("id", None)
+        db_entry = MarketDataORM(**entry_dict)
         db.add(db_entry)
     db.commit()
-    return {"message": "Dados recebidos com sucesso.", "received": len(market_data_list)}
+    return JSONResponse(
+        content={"message": "Dados recebidos e armazenados com sucesso."},
+        status_code=status.HTTP_201_CREATED
+    )
 
 @app.get("/api/data/{ticker}")
 async def get_market_data(ticker: str, db: Session = Depends(get_db)):
@@ -29,6 +34,5 @@ async def get_market_data(ticker: str, db: Session = Depends(get_db)):
     return [d.as_dict() for d in data]  # Implemente as_dict() no modelo
 
 
-# Cria todas as tabelas definidas nos modelos ORM
-Base.metadata.create_all(bind=engine)
+
 

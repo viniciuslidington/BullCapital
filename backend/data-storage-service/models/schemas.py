@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from datetime import date
+from typing import Optional
 
 class UserCreateRequest(BaseModel):
     nome_completo: str
@@ -21,11 +22,9 @@ class UserResponse(BaseModel):
         from_attributes = True
 
 class MarketData (BaseModel):
-    id: int | None = None  # Torna opcional
-    nome: str
+    id: Optional[int] = None
+    data: date
     ticker: str
-    data_inicio: date
-    data_fim: date
     open_price: float
     high_price: float
     low_price: float
@@ -34,9 +33,9 @@ class MarketData (BaseModel):
     symbol: str
     shortName: str
     longName: str
-    sector: str
-    industry: str
-    exchange: str
+    sector: Optional[str] = None
+    industry: Optional[str] = None
+    exchange: Optional[str] = None
 
     class Config:
         from_attributes = True
