@@ -54,6 +54,10 @@
 
 
 services:
+
+  instrument-service:
+    build: ./instrument-service
+    container_name: instrument-service
   # Serviço de Autenticação
   auth-service:
     build:
@@ -62,6 +66,43 @@ services:
     ports:
       - "8000:8000"
     environment:
+      DOWNLOAD_SERVICE: http://market-download-service:8000/download-tickers/
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+
+  market-download-service:
+    build: ./market-download-service
+    container_name: market-download-service
+    depends_on:
+      - data-storage-service
+    environment:
+      DOWNLOAD_START_DATE: None
+      DOWNLOAD_END_DATE: None
+      DOWNLOAD_PERIOD: '5y'
+      DOWNLOAD_INTERVAL: '1d'
+      STORAGE_SERVICE_URL: http://data-storage-service:8000/data/bulk
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+
+  data-storage-service:
+    build: ./data-storage-service
+    container_name: data-storage-service
+    depends_on:
+      - db
+    ports:
+      - "8001:8000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/postgres
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+
+  db:
+    image: postgres:14
+    container_name: db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
       # Database Configuration (Supabase)
       - user=postgres.qijzmfwejylkxhflkssd
       - password=bullcapital2025!
