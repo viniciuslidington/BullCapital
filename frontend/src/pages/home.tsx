@@ -4,7 +4,7 @@ import { SearchBar } from "@/components/ui/search-bar";
 
 export function Home() {
   return (
-    <div className="flex h-[1200px] w-full max-w-[1180px] flex-col gap-8 p-8">
+    <div className="flex h-auto w-full max-w-[1180px] flex-col gap-8 p-8">
       <MarketOverview />
       <SearchBar />
       <HighlightsOverview />
