@@ -1,3 +1,4 @@
+
 """
 Endpoints ULTRA-SIMPLIFICADOS do Market Data Service.
 
@@ -6,8 +7,15 @@ Foco na simplicidade e facilidade de uso.
 """
 
 from fastapi import APIRouter
+from fastapi import Depends
 
+
+from typing import List
 from core.config import settings
+from sqlalchemy.orm import Session
+from models.database import get_db
+from models.schemas import MarketData as MarketDataSchema
+from models.market_data import MarketData as MarketDataORM
 from core.logging import get_logger
 from models.requests import BulkDataRequest, SearchRequest, StockDataRequest
 from models.responses import (
@@ -25,6 +33,7 @@ router = APIRouter()
 
 # Serviço
 market_data_service = MarketDataService()
+
 
 
 @router.get(
@@ -68,16 +77,13 @@ market_data_service = MarketDataService()
 )
 def get_stock_data(
     symbol: str,
-    period: str = "1mo"
+    period: str = "1mo",
+    db: Session = Depends(get_db)
 ) -> StockDataResponse:
     """Endpoint ultra-simplificado para dados de ação."""
     logger.info(f"Dados para {symbol}, período {period}")
-    
-    # Criar request simples
     stock_request = StockDataRequest(symbol=symbol, period=period)
-    
-    # Chamar serviço
-    return market_data_service.get_stock_data(symbol, stock_request, "simple-client")
+    return market_data_service.get_stock_data(symbol, stock_request, "simple-client", db=db)
 
 
 @router.get(
@@ -122,16 +128,13 @@ def get_stock_data(
 )
 def search_stocks(
     q: str,
-    limit: int = 10
+    limit: int = 10,
+    db: Session = Depends(get_db)
 ) -> SearchResponse:
     """Endpoint ultra-simplificado para busca."""
     logger.info(f"Busca por: {q}")
-    
-    # Criar request simples
     search_request = SearchRequest(query=q, limit=limit)
-    
-    # Chamar serviço
-    return market_data_service.search_stocks(search_request, "simple-client")
+    return market_data_service.search_stocks(search_request, "simple-client", db=db)
 
 
 @router.get(
@@ -175,14 +178,12 @@ def search_stocks(
 )
 def get_trending_stocks(
     market: str = "BR",
-    limit: int = 10
+    limit: int = 10,
+    db: Session = Depends(get_db)
 ):
     """Endpoint ultra-simplificado para trending."""
     logger.info(f"Trending para {market}")
-    
-    # Chamar serviço diretamente
-    trending_data = market_data_service.get_trending_stocks(market, "simple-client")
-    
+    trending_data = market_data_service.get_trending_stocks(market, "simple-client", db=db)
     return {
         "market": market,
         "trending_stocks": trending_data[:limit]
@@ -232,12 +233,10 @@ def get_trending_stocks(
     **Dica:** Use antes de chamar /stocks/{symbol} para evitar erros!
     """
 )
-def validate_ticker(symbol: str) -> ValidationResponse:
+def validate_ticker(symbol: str, db: Session = Depends(get_db)) -> ValidationResponse:
     """Endpoint ultra-simplificado para validação."""
     logger.info(f"Validando {symbol}")
-    
-    # Chamar serviço diretamente
-    return market_data_service.validate_ticker(symbol, "simple-client")
+    return market_data_service.validate_ticker(symbol, "simple-client", db=db)
 
 
 @router.post(
@@ -314,12 +313,10 @@ def validate_ticker(symbol: str) -> ValidationResponse:
     **Dica:** Use periods iguais para comparar performance entre ações!
     """
 )
-def get_bulk_data(bulk_request: BulkDataRequest) -> BulkDataResponse:
+def get_bulk_data(bulk_request: BulkDataRequest, db: Session = Depends(get_db)) -> BulkDataResponse:
     """Endpoint ultra-simplificado para dados em lote."""
     logger.info(f"Bulk para {len(bulk_request.symbols)} ações")
-    
-    # Chamar serviço diretamente
-    return market_data_service.get_bulk_data(bulk_request, "simple-client")
+    return market_data_service.get_bulk_data(bulk_request, "simple-client", db=db)
 
 
 

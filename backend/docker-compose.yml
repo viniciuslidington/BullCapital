@@ -49,5 +49,15 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+
+  market-data-service:
+    build: ./market-data-service
+    container_name: market-data-service
+    depends_on:
+      - db
+    ports:
+      - "8002:8000"
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+
 volumes:
   pgdata:

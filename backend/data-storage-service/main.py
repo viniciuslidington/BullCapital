@@ -25,14 +25,6 @@ async def receive_bulk_market_data(market_data_list: List[MarketDataSchema], db:
         status_code=status.HTTP_201_CREATED
     )
 
-@app.get("/api/data/{ticker}", response_model=List[MarketDataSchema])
-async def get_market_data(ticker: str, db: Session = Depends(get_db)):
-    logger.info(f"Consulta GET para ticker: {ticker}")
-    data = db.query(MarketDataORM).filter(MarketDataORM.ticker == ticker.upper()).all()
-    if not data:
-        return []
-    return data  # o FastAPI converte para MarketDataResponse por causa do `orm_mode=True`
-
 
 
 
