@@ -45,32 +45,32 @@ const mockLosers = [
 export function HighlightsOverview() {
   return (
     <div className="flex w-full items-center gap-5">
-      <Tabs defaultValue="account" className="w-full">
+      <Tabs defaultValue="acoes" className="w-full">
         <TabsList className="gap-2">
           <p className="text-muted-foreground dark:text-foreground mr-2 font-semibold">
             DESTAQUES
           </p>
           <TabsTrigger
             value="acoes"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground cursor-pointer"
+            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground cursor-pointer"
           >
             Ações
           </TabsTrigger>
           <TabsTrigger
             value="fiis"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground cursor-pointer"
+            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground cursor-pointer"
           >
             FIIs
           </TabsTrigger>
           <TabsTrigger
             value="etfs"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground cursor-pointer"
+            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground cursor-pointer"
           >
             ETFs
           </TabsTrigger>
           <TabsTrigger
             value="bdrs"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground cursor-pointer"
+            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground cursor-pointer"
           >
             BDRs
           </TabsTrigger>
