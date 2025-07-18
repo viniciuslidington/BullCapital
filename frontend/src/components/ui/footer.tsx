@@ -7,7 +7,7 @@ export function Footer() {
         <Logo />
         <img src={cin} alt="" />
       </span>
-      <p className="max-w-[900px] text-center text-sm">
+      <p className="text-muted-foreground max-w-[900px] text-center text-sm">
         O BullCapital não tem como objetivo a recomendação e/ou sugestão de
         compra de ativos. Nosso site possui caráter meramente informativo e
         educativo, sempre trazendo informações de fontes públicas, deste modo,
