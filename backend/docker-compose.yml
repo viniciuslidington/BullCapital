@@ -1,13 +1,70 @@
 
+# services:
+
+#   instrument_service:
+#     build: ./instrument-service
+#     container_name: instrument-service
+#     ports:
+#       - "8000:8000"
+#     depends_on:
+#       - market-download-service
+#     environment:
+#       DOWNLOAD_SERVICE: http://market-download-service:8000/download-tickers/
+#     command: uvicorn main:app --host 0.0.0.0 --port 8000
+
+#   market_download_service:
+#     build: ./market-download-service
+#     container_name: market-download-service
+#     depends_on:
+#       - data-storage-service
+#     environment:
+#       DOWNLOAD_START_DATE: None
+#       DOWNLOAD_END_DATE: None
+#       DOWNLOAD_PERIOD: '5y'
+#       DOWNLOAD_INTERVAL: '1d'
+#       STORAGE_SERVICE_URL: http://data-storage-service:8000/data/bulk
+#     command: uvicorn main:app --host 0.0.0.0 --port 8000
+
+#   data_storage_service:
+#     build: ./data-storage-service
+#     container_name: data-storage-service
+#     depends_on:
+#       - db
+#     ports:
+#       - "8001:8000"
+#     environment:
+#       DATABASE_URL: postgresql://postgres:postgres@db:5432/postgres
+#     command: uvicorn main:app --host 0.0.0.0 --port 8000
+
+#   db:
+#     image: postgres:14
+#     container_name: db
+#     restart: always
+#     environment:
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: postgres
+#       POSTGRES_DB: postgres
+#     ports:
+#       - "5432:5432"
+#     volumes:
+#       - pgdata:/var/lib/postgresql/data
+
+# volumes:
+#   pgdata:
+
+
 services:
 
   instrument-service:
     build: ./instrument-service
     container_name: instrument-service
+  # Serviço de Autenticação
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
-    depends_on:
-      - market-download-service
     environment:
       DOWNLOAD_SERVICE: http://market-download-service:8000/download-tickers/
     command: uvicorn main:app --host 0.0.0.0 --port 8000
@@ -46,18 +103,57 @@ services:
       POSTGRES_DB: postgres
     ports:
       - "5432:5432"
+      # Database Configuration (Supabase)
+      - user=postgres.qijzmfwejylkxhflkssd
+      - password=bullcapital2025!
+      - host=aws-0-sa-east-1.pooler.supabase.com
+      - port=6543
+      - dbname=postgres
+      # Security Configuration
+      - SECRET_KEY=8f2a9c5e7b1d4f6a3e8c9f2b5d7a1c4e6f9b2d5a8c1e4f7a0d3c6f9e2b5a8d1c4f7
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      # Development Configuration
+      - DEBUG_SQL=true
+      - ALLOWED_ORIGINS=["http://localhost:3000","http://localhost:8000","http://localhost:8002"]
+      - PYTHONPATH=/app/app
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - ./auth-service/app:/app/app
+    command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    networks:
+      - dev-network
 
-
+  # Serviço de Dados de Mercado
   market-data-service:
-    build: ./market-data-service
-    container_name: market-data-service
-    depends_on:
-      - db
+    build:
+      context: ./market-data-service
+      dockerfile: Dockerfile
     ports:
-      - "8002:8000"
-    command: uvicorn main:app --host 0.0.0.0 --port 8000
+      - "8002:8002"
+    environment:
+      # Development Configuration
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+      - HOST=0.0.0.0
+      - PORT=8002
+      # Cache Configuration (valores menores para dev)
+      - CACHE_TTL_SECONDS=60
+      - ENABLE_CACHE=true
+      # Rate Limiting (mais permissivo para dev)
+      - RATE_LIMIT_REQUESTS=1000
+      - RATE_LIMIT_WINDOW=60
+      # External APIs
+      - YAHOO_FINANCE_TIMEOUT=30
+      - MAX_RETRIES=3
+      - PYTHONPATH=/app/app
+    volumes:
+      - ./market-data-service/app:/app/app
+    command: ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port 8002 --reload"]
+    networks:
+      - dev-network
+    depends_on:
+      - auth-service
 
-volumes:
-  pgdata:
+networks:
+  dev-network:
+    driver: bridge
