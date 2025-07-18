@@ -20,7 +20,7 @@ export function Header() {
   const { setTheme } = useTheme();
 
   return (
-    <header className="bg-background border-border flex h-20 w-full items-center justify-between border-b-2 px-5 shadow-lg">
+    <header className="bg-background border-border fixed top-0 flex h-20 w-full items-center justify-between border-b-2 px-5 shadow-lg">
       <Logo />
       <div className="flex h-full items-center gap-4">
         <DropdownMenu>
@@ -43,8 +43,7 @@ export function Header() {
               Luiz Miguel
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="py-2">Conta</DropdownMenuItem>
-            <DropdownMenuItem className="py-2">Pagamento</DropdownMenuItem>
+
             <DropdownMenuSub>
               <DropdownMenuSubTrigger icon={false} className="py-2">
                 <span className="flex items-center gap-[6px]">
@@ -67,6 +66,9 @@ export function Header() {
                 </DropdownMenuSubContent>
               </DropdownMenuPortal>
             </DropdownMenuSub>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="py-2">Conta</DropdownMenuItem>
+            <DropdownMenuItem className="py-2">Pagamento</DropdownMenuItem>
             <DropdownMenuItem variant="destructive" className="py-2">
               Sair
             </DropdownMenuItem>
