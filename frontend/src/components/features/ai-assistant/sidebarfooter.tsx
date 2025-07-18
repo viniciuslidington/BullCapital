@@ -42,6 +42,13 @@ export function SidebarFooter() {
   return (
     <div
       className={`absolute bottom-0 flex flex-col gap-3 p-4 transition-all duration-300 ease-in-out ${isFixed ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-hover:delay-200"}`}
+      onMouseLeave={() => {
+        if (document.activeElement === textareaRef.current) {
+          if (textareaRef.current) {
+            textareaRef.current.blur();
+          }
+        }
+      }}
     >
       <div
         className={`flex max-w-full flex-wrap gap-2 transition-all duration-300 ease-in-out ${messages.length === 0 && input === "" ? "opacity-100" : "pointer-events-none opacity-0"}`}
@@ -53,7 +60,7 @@ export function SidebarFooter() {
             className="bg-input cursor-pointer rounded-xl"
             onClick={() => setInput(s)}
           >
-            <p className="text-xs">{s}</p>
+            <p className="text-muted-foreground text-xs">{s}</p>
           </Button>
         ))}
       </div>
@@ -63,7 +70,7 @@ export function SidebarFooter() {
           placeholder="Digite sua pergunta sobre investimentos"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          className="min-w-[415px] resize-none overflow-y-auto text-sm focus:outline-none"
+          className="placeholder:text-muted-foreground min-w-[415px] resize-none overflow-y-auto text-sm focus:outline-none"
           style={{ lineHeight: "24px", maxHeight: `${6 * 24}px` }}
           rows={1}
           maxLength={1000}
