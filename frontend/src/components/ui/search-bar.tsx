@@ -7,7 +7,7 @@ export function SearchBar() {
       {" "}
       <input
         type="text"
-        className="bg-background dark:bg-input w-[636px] rounded-[12px] border-2 p-3 dark:border-1"
+        className="bg-background dark:bg-input w-[636px] rounded-[12px] border-1 p-3 shadow-xs"
         placeholder="Pesquisar ações (ex: PETR4, VALE3)"
       />{" "}
       <Button size="lg" className="cursor-pointer p-6">

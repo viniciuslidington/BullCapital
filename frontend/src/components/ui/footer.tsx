@@ -2,7 +2,7 @@ import { Logo } from "./logo";
 import cin from "../../assets/cin-logo.png";
 export function Footer() {
   return (
-    <footer className="bg-background border-border flex w-full flex-col items-center gap-12 border-t-2 p-16 dark:border-t-1">
+    <footer className="bg-background border-border flex w-full flex-col items-center gap-12 border-t-1 p-16">
       <span className="flex items-center gap-8">
         <Logo />
         <img src={cin} alt="" />

@@ -33,7 +33,7 @@ export function Sidebar() {
       }}
     >
       <div
-        className={`group bg-background fixed top-20 right-0 flex h-[calc(100vh-80px)] flex-col dark:border-l-1 ${isFixed ? "w-[473px]" : "w-20 hover:w-[473px]"} border-l-2 transition-all duration-400 ease-in-out`}
+        className={`group bg-background fixed top-20 right-0 flex h-[calc(100vh-80px)] flex-col ${isFixed ? "w-[473px]" : "w-20 hover:w-[473px]"} z-10 border-l-1 transition-all duration-400 ease-in-out`}
       >
         <SidebarHeader />
         <MessagesScroll />
