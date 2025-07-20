@@ -52,25 +52,25 @@ export function HighlightsOverview() {
           </p>
           <TabsTrigger
             value="acoes"
-            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground cursor-pointer"
+            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer"
           >
             Ações
           </TabsTrigger>
           <TabsTrigger
             value="fiis"
-            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground cursor-pointer"
+            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer"
           >
             FIIs
           </TabsTrigger>
           <TabsTrigger
             value="etfs"
-            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground cursor-pointer"
+            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer"
           >
             ETFs
           </TabsTrigger>
           <TabsTrigger
             value="bdrs"
-            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground cursor-pointer"
+            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer"
           >
             BDRs
           </TabsTrigger>

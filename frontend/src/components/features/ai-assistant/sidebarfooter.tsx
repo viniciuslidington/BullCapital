@@ -85,7 +85,7 @@ export function SidebarFooter() {
           <Send />
         </Button>
       </div>
-      <p className="text-muted-foreground text-[12px]">
+      <p className="text-muted-foreground w-[440px] text-[12px]">
         Esta é uma ferramenta de apoio e pode apresentar imprecisões. Avalie as
         respostas antes de decidir.
       </p>

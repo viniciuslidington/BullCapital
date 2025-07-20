@@ -7,7 +7,7 @@ export function SidebarHeader() {
   const { isFixed, toggleFixed, clearMessagesHandler } = useSidebar();
   return (
     <div
-      className={`border-border flex items-center justify-between p-4 ${isFixed ? "border-b-2 dark:border-b-1" : "group-hover:border-b-2 group-hover:delay-300 group-hover:dark:border-b-1"}`}
+      className={`border-border flex items-center justify-between p-4 ${isFixed ? "border-b-1" : "group-hover:border-b-1 group-hover:delay-300"}`}
     >
       <span className="flex gap-2">
         <img
