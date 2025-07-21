@@ -15,7 +15,6 @@ interface HighlightsCardProps {
   onSeeMore?: () => void;
 }
 
-// Helper para formatar o preço como moeda (ex: $187.45)
 const formatPrice = (price: number, currency: string) => {
   return price.toLocaleString("pt-BR", {
     style: "currency",
@@ -23,13 +22,7 @@ const formatPrice = (price: number, currency: string) => {
   });
 };
 
-// Helper para formatar a variação, adicionando o sinal de '+'
-const formatChange = (change: number) => {
-  const sign = change > 0 ? "+" : "";
-  return `${sign}${change.toFixed(2)}%`;
-};
-
-export const HighlightsCard: React.FC<HighlightsCardProps> = ({
+export const HighlightsDividendCard: React.FC<HighlightsCardProps> = ({
   title,
   items,
   onSeeMore,

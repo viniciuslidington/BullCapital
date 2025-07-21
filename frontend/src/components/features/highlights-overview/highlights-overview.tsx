@@ -1,46 +1,166 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HighlightsCard } from "./highlights-card";
 
-// Mock de dados para a lista de "Altas"
-const mockGainers = [
-  { ticker: "AAPL", name: "Apple Inc.", price: 187.45, changePercent: 1.23 },
-  {
-    ticker: "MSFT",
-    name: "Microsoft Corp.",
-    price: 329.04,
-    changePercent: 0.87,
-  },
-  { ticker: "NVDA", name: "NVIDIA Corp.", price: 485.09, changePercent: 1.78 },
-  {
-    ticker: "AMZN",
-    name: "Amazon.com Inc.",
-    price: 143.56,
-    changePercent: 0.45,
-  },
-];
-
-// Mock de dados para a lista de "Baixas"
-const mockLosers = [
-  { ticker: "TSLA", name: "Tesla Inc.", price: 211.32, changePercent: -2.14 },
-  {
-    ticker: "GOOGL",
-    name: "Alphabet Inc.",
-    price: 135.8,
-    changePercent: -0.55,
-  },
-  {
-    ticker: "META",
-    name: "Meta Platforms",
-    price: 310.45,
-    changePercent: -1.02,
-  },
-  {
-    ticker: "JNJ",
-    name: "Johnson & Johnson",
-    price: 160.15,
-    changePercent: -0.21,
-  },
-];
+const mockAcoesBR = {
+  emAlta: [
+    {
+      ticker: "PETR4",
+      nome: "Petrobras PN",
+      preco: 32.1,
+      changePercent: 4.21,
+      currency: "BRL",
+    },
+    {
+      ticker: "VALE3",
+      nome: "Vale S.A.",
+      preco: 74.8,
+      changePercent: 3.35,
+      currency: "BRL",
+    },
+    {
+      ticker: "BBAS3",
+      nome: "Banco do Brasil",
+      preco: 56.9,
+      changePercent: 2.18,
+      currency: "BRL",
+    },
+    {
+      ticker: "SUZB3",
+      nome: "Suzano S.A.",
+      preco: 53.4,
+      changePercent: 2.91,
+      currency: "BRL",
+    },
+    {
+      ticker: "JBSS3",
+      nome: "JBS S.A.",
+      preco: 23.7,
+      changePercent: 3.1,
+      currency: "BRL",
+    },
+  ],
+  emBaixa: [
+    {
+      ticker: "MGLU3",
+      nome: "Magazine Luiza",
+      preco: 2.31,
+      changePercent: -4.54,
+      currency: "BRL",
+    },
+    {
+      ticker: "LWSA3",
+      nome: "Locaweb",
+      preco: 5.22,
+      changePercent: -3.89,
+      currency: "BRL",
+    },
+    {
+      ticker: "CVCB3",
+      nome: "CVC Brasil",
+      preco: 3.4,
+      changePercent: -2.75,
+      currency: "BRL",
+    },
+    {
+      ticker: "AMER3",
+      nome: "Americanas S.A.",
+      preco: 0.95,
+      changePercent: -5.1,
+      currency: "BRL",
+    },
+    {
+      ticker: "VIIA3",
+      nome: "Via Varejo",
+      preco: 1.87,
+      changePercent: -3.12,
+      currency: "BRL",
+    },
+  ],
+  maisNegociados: [
+    {
+      ticker: "PETR4",
+      nome: "Petrobras PN",
+      preco: 32.1,
+      changePercent: 4.21,
+      currency: "BRL",
+    },
+    {
+      ticker: "VALE3",
+      nome: "Vale S.A.",
+      preco: 74.8,
+      changePercent: 3.35,
+      currency: "BRL",
+    },
+    {
+      ticker: "ITUB4",
+      nome: "Itaú Unibanco PN",
+      preco: 28.9,
+      changePercent: -1.87,
+      currency: "BRL",
+    },
+    {
+      ticker: "BBDC4",
+      nome: "Bradesco PN",
+      preco: 16.45,
+      changePercent: 0.52,
+      currency: "BRL",
+    },
+    {
+      ticker: "BBAS3",
+      nome: "Banco do Brasil",
+      preco: 56.9,
+      changePercent: 2.18,
+      currency: "BRL",
+    },
+  ],
+  maioresDividendos: [
+    {
+      ticker: "TAEE11",
+      nome: "Taesa Units",
+      dividendo: 4.58,
+      tipo: "Dividendo",
+      dataCom: "2024-12-10",
+      dataEx: "2024-12-11",
+      dataPagamento: "2024-12-15",
+    },
+    {
+      ticker: "EGIE3",
+      nome: "Engie Brasil",
+      dividendo: 3.25,
+      tipo: "JCP",
+      dataCom: "2024-11-25",
+      dataEx: "2024-11-26",
+      dataPagamento: "2024-11-30",
+    },
+    {
+      ticker: "TRPL4",
+      nome: "Transmissão Paulista PN",
+      dividendo: 2.85,
+      tipo: "Dividendo",
+      dataCom: "2024-12-05",
+      dataEx: "2024-12-06",
+      dataPagamento: "2024-12-10",
+    },
+    {
+      ticker: "CPLE6",
+      nome: "Copel PN B",
+      dividendo: 1.7,
+      tipo: "JCP",
+      dataCom: "2024-12-18",
+      dataEx: "2024-12-19",
+      dataPagamento: "2024-12-20",
+    },
+    {
+      ticker: "BBSE3",
+      nome: "BB Seguridade",
+      dividendo: 2.45,
+      tipo: "Dividendo",
+      dataCom: "2024-11-28",
+      dataEx: "2024-11-29",
+      dataPagamento: "2024-12-01",
+    },
+  ],
+};
 
 export function HighlightsOverview() {
   return (
@@ -76,28 +196,40 @@ export function HighlightsOverview() {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="acoes" className="flex gap-5">
-          <HighlightsCard title="Altas" items={mockGainers} />
-          <HighlightsCard title="Baixas" items={mockLosers} />
-          <HighlightsCard title="Mais Ativas" items={mockGainers} />
-          <HighlightsCard title="Dividendos" items={mockGainers} />
+          <HighlightsCard title="Altas" items={mockAcoesBR.emAlta} />
+          <HighlightsCard title="Baixas" items={mockAcoesBR.emBaixa} />
+          <HighlightsCard
+            title="Mais Ativas"
+            items={mockAcoesBR.maisNegociados}
+          />
+          <HighlightsCard title="Dividendos" items={mockAcoesBR.emAlta} />
         </TabsContent>
         <TabsContent value="fiis" className="flex gap-5">
-          <HighlightsCard title="Altas" items={mockGainers} />
-          <HighlightsCard title="Baixas" items={mockLosers} />
-          <HighlightsCard title="Mais Ativas" items={mockGainers} />
-          <HighlightsCard title="Dividendos" items={mockGainers} />
+          <HighlightsCard title="Altas" items={mockAcoesBR.emAlta} />
+          <HighlightsCard title="Baixas" items={mockAcoesBR.emBaixa} />
+          <HighlightsCard
+            title="Mais Ativas"
+            items={mockAcoesBR.maisNegociados}
+          />
+          <HighlightsCard title="Dividendos" items={mockAcoesBR.emAlta} />
         </TabsContent>
         <TabsContent value="etfs" className="flex gap-5">
-          <HighlightsCard title="Altas" items={mockGainers} />
-          <HighlightsCard title="Baixas" items={mockLosers} />
-          <HighlightsCard title="Mais Ativas" items={mockGainers} />
-          <HighlightsCard title="Dividendos" items={mockGainers} />
+          <HighlightsCard title="Altas" items={mockAcoesBR.emAlta} />
+          <HighlightsCard title="Baixas" items={mockAcoesBR.emBaixa} />
+          <HighlightsCard
+            title="Mais Ativas"
+            items={mockAcoesBR.maisNegociados}
+          />
+          <HighlightsCard title="Dividendos" items={mockAcoesBR.emAlta} />
         </TabsContent>
         <TabsContent value="bdrs" className="flex gap-5">
-          <HighlightsCard title="Altas" items={mockGainers} />
-          <HighlightsCard title="Baixas" items={mockLosers} />
-          <HighlightsCard title="Mais Ativas" items={mockGainers} />
-          <HighlightsCard title="Dividendos" items={mockGainers} />
+          <HighlightsCard title="Altas" items={mockAcoesBR.emAlta} />
+          <HighlightsCard title="Baixas" items={mockAcoesBR.emBaixa} />
+          <HighlightsCard
+            title="Mais Ativas"
+            items={mockAcoesBR.maisNegociados}
+          />
+          <HighlightsCard title="Dividendos" items={mockAcoesBR.emAlta} />
         </TabsContent>
       </Tabs>
     </div>
