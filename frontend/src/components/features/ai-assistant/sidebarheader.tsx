@@ -2,6 +2,11 @@ import { ChevronsLeft, ChevronsRight, History, SquarePen } from "lucide-react";
 import { useSidebar } from "./sidebar";
 import { Button } from "@/components/ui/button";
 import Logo from "@/assets/ai-logo.png";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export function SidebarHeader() {
   const { isFixed, toggleFixed, clearMessagesHandler } = useSidebar();
@@ -25,29 +30,55 @@ export function SidebarHeader() {
       <div
         className={`flex transition-all duration-200 ease-in-out ${isFixed ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-hover:delay-200"}`}
       >
-        <Button variant="ghost" size="icon" className="size-8 cursor-pointer">
-          <History className="text-muted-foreground !h-6 !w-6" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-8 cursor-pointer"
-          onClick={clearMessagesHandler}
-        >
-          <SquarePen className="text-muted-foreground !h-5 !w-5" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-8 cursor-pointer"
-          onClick={toggleFixed}
-        >
-          {isFixed ? (
-            <ChevronsRight className="text-muted-foreground !h-6 !w-6" />
-          ) : (
-            <ChevronsLeft className="text-muted-foreground !h-6 !w-6" />
-          )}
-        </Button>
+        <Tooltip disableHoverableContent>
+          <TooltipTrigger>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 cursor-pointer"
+            >
+              <History className="text-muted-foreground !h-6 !w-6" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent sideOffset={5}>
+            <p>Histórico de conversas</p>
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip disableHoverableContent>
+          <TooltipTrigger>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 cursor-pointer"
+              onClick={clearMessagesHandler}
+            >
+              <SquarePen className="text-muted-foreground !h-5 !w-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent sideOffset={5}>
+            <p>Nova conversa</p>
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip disableHoverableContent>
+          <TooltipTrigger>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 cursor-pointer"
+              onClick={toggleFixed}
+            >
+              {isFixed ? (
+                <ChevronsRight className="text-muted-foreground !h-6 !w-6" />
+              ) : (
+                <ChevronsLeft className="text-muted-foreground !h-6 !w-6" />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent sideOffset={5}>
+            <p>{isFixed ? "Desfixar chat" : "Fixar chat"}</p>
+          </TooltipContent>
+        </Tooltip>
       </div>
     </div>
   );

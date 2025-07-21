@@ -1,17 +1,21 @@
 import { Button } from "@/components/ui/button";
 import React from "react";
 
-interface StockItem {
+interface DividendItem {
   ticker: string;
   nome: string;
-  preco: number;
-  changePercent: number;
+  dividendo: number;
   currency: string;
+  dy: number;
+  tipo: string;
+  dataCom: string;
+  dataEx: string;
+  dataPagamento: string;
 }
 
 interface HighlightsCardProps {
   title: string;
-  items: StockItem[];
+  items: DividendItem[];
   onSeeMore?: () => void;
 }
 
@@ -28,7 +32,7 @@ export const HighlightsDividendCard: React.FC<HighlightsCardProps> = ({
   onSeeMore,
 }) => {
   return (
-    <div className="group bg-card text-card-foreground w-full max-w-sm rounded-xl border-1 shadow-sm transition-all duration-200 ease-in-out hover:shadow-lg">
+    <div className="group bg-card text-card-foreground w-[264px] max-w-sm flex-none rounded-xl border-1 shadow-sm transition-all duration-200 ease-in-out hover:shadow-lg">
       <div className="flex flex-row items-center justify-between border-b-1 p-4 pb-5">
         <h3 className="text-muted-foreground group-hover:text-foreground font-medium transition-all duration-200 ease-in">
           {title}
@@ -50,18 +54,16 @@ export const HighlightsDividendCard: React.FC<HighlightsCardProps> = ({
             >
               <div>
                 <p className="text-md font-semibold">{item.ticker}</p>
-                <p className="text-muted-foreground text-sm">{item.nome}</p>
+                <p className="text-muted-foreground w-[116px] truncate text-sm">
+                  {item.nome}
+                </p>
               </div>
               <div className="text-right">
                 <p className="text-md font-medium">
-                  {formatPrice(item.preco, item.currency)}
+                  {formatPrice(item.dividendo, item.currency)}
                 </p>
-                <p
-                  className={`text-sm font-medium ${
-                    item.changePercent >= 0 ? "text-green-500" : "text-red-500"
-                  }`}
-                >
-                  {formatChange(item.changePercent)}
+                <p className={`text-muted-foreground font-regular text-sm`}>
+                  {item.dataPagamento.replaceAll("-", "/")}
                 </p>
               </div>
             </div>

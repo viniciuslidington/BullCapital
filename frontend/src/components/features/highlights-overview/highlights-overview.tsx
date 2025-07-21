@@ -1,5 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HighlightsCard } from "./highlights-card";
+import { HighlightsDividendCard } from "./highlights-dividend-card";
 
 const mockAcoesBR = {
   emAlta: [
@@ -118,6 +119,8 @@ const mockAcoesBR = {
       ticker: "TAEE11",
       nome: "Taesa Units",
       dividendo: 4.58,
+      dy: 12.3,
+      currency: "BRL",
       tipo: "Dividendo",
       dataCom: "2024-12-10",
       dataEx: "2024-12-11",
@@ -127,6 +130,8 @@ const mockAcoesBR = {
       ticker: "EGIE3",
       nome: "Engie Brasil",
       dividendo: 3.25,
+      dy: 7.1,
+      currency: "BRL",
       tipo: "JCP",
       dataCom: "2024-11-25",
       dataEx: "2024-11-26",
@@ -136,6 +141,8 @@ const mockAcoesBR = {
       ticker: "TRPL4",
       nome: "Transmissão Paulista PN",
       dividendo: 2.85,
+      dy: 6.8,
+      currency: "BRL",
       tipo: "Dividendo",
       dataCom: "2024-12-05",
       dataEx: "2024-12-06",
@@ -145,6 +152,8 @@ const mockAcoesBR = {
       ticker: "CPLE6",
       nome: "Copel PN B",
       dividendo: 1.7,
+      dy: 5.2,
+      currency: "BRL",
       tipo: "JCP",
       dataCom: "2024-12-18",
       dataEx: "2024-12-19",
@@ -154,6 +163,8 @@ const mockAcoesBR = {
       ticker: "BBSE3",
       nome: "BB Seguridade",
       dividendo: 2.45,
+      dy: 6.9,
+      currency: "BRL",
       tipo: "Dividendo",
       dataCom: "2024-11-28",
       dataEx: "2024-11-29",
@@ -172,25 +183,25 @@ export function HighlightsOverview() {
           </p>
           <TabsTrigger
             value="acoes"
-            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer"
+            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
           >
             Ações
           </TabsTrigger>
           <TabsTrigger
             value="fiis"
-            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer"
+            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
           >
             FIIs
           </TabsTrigger>
           <TabsTrigger
             value="etfs"
-            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer"
+            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
           >
             ETFs
           </TabsTrigger>
           <TabsTrigger
             value="bdrs"
-            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer"
+            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
           >
             BDRs
           </TabsTrigger>
@@ -202,7 +213,10 @@ export function HighlightsOverview() {
             title="Mais Ativas"
             items={mockAcoesBR.maisNegociados}
           />
-          <HighlightsCard title="Dividendos" items={mockAcoesBR.emAlta} />
+          <HighlightsDividendCard
+            title="Dividendos"
+            items={mockAcoesBR.maioresDividendos}
+          />
         </TabsContent>
         <TabsContent value="fiis" className="flex gap-5">
           <HighlightsCard title="Altas" items={mockAcoesBR.emAlta} />
@@ -211,7 +225,10 @@ export function HighlightsOverview() {
             title="Mais Ativas"
             items={mockAcoesBR.maisNegociados}
           />
-          <HighlightsCard title="Dividendos" items={mockAcoesBR.emAlta} />
+          <HighlightsDividendCard
+            title="Dividendos"
+            items={mockAcoesBR.maioresDividendos}
+          />
         </TabsContent>
         <TabsContent value="etfs" className="flex gap-5">
           <HighlightsCard title="Altas" items={mockAcoesBR.emAlta} />
@@ -220,7 +237,10 @@ export function HighlightsOverview() {
             title="Mais Ativas"
             items={mockAcoesBR.maisNegociados}
           />
-          <HighlightsCard title="Dividendos" items={mockAcoesBR.emAlta} />
+          <HighlightsDividendCard
+            title="Dividendos"
+            items={mockAcoesBR.maioresDividendos}
+          />
         </TabsContent>
         <TabsContent value="bdrs" className="flex gap-5">
           <HighlightsCard title="Altas" items={mockAcoesBR.emAlta} />
@@ -229,7 +249,10 @@ export function HighlightsOverview() {
             title="Mais Ativas"
             items={mockAcoesBR.maisNegociados}
           />
-          <HighlightsCard title="Dividendos" items={mockAcoesBR.emAlta} />
+          <HighlightsDividendCard
+            title="Dividendos"
+            items={mockAcoesBR.maioresDividendos}
+          />
         </TabsContent>
       </Tabs>
     </div>
