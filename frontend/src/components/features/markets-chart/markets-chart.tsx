@@ -685,6 +685,12 @@ export function MarketsChart() {
       daysToSubtract = 30;
     } else if (timeRange === "7d") {
       daysToSubtract = 7;
+    } else if (timeRange === "total") {
+      daysToSubtract = chartData.length;
+    } else if (timeRange === "1y") {
+      daysToSubtract = 365;
+    } else if (timeRange === "1d") {
+      daysToSubtract = 1;
     }
 
     const startDate = new Date(referenceDate);
@@ -709,6 +715,12 @@ export function MarketsChart() {
           </SelectTrigger>
           <SelectContent className="rounded-xl">
             {/* Mantendo os valores originais para 90, 30 e 7 dias */}
+            <SelectItem value="total" className="rounded-lg">
+              Total
+            </SelectItem>
+            <SelectItem value="1y" className="rounded-lg">
+              Últimos 365 dias
+            </SelectItem>
             <SelectItem value="90d" className="rounded-lg">
               Últimos 90 dias
             </SelectItem>
@@ -717,6 +729,9 @@ export function MarketsChart() {
             </SelectItem>
             <SelectItem value="7d" className="rounded-lg">
               Últimos 7 dias
+            </SelectItem>
+            <SelectItem value="1d" className="rounded-lg">
+              Hoje
             </SelectItem>
           </SelectContent>
         </Select>
