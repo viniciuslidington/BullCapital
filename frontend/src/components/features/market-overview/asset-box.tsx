@@ -15,7 +15,7 @@ export function AssetBox({
   type,
 }: AssetProps) {
   return (
-    <div className="bg-card border-border flex h-20 flex-col justify-center gap-2 rounded-[12px] border-1 px-3 shadow-sm transition-all duration-200 ease-in-out hover:shadow-md">
+    <div className="bg-card border-border flex h-20 cursor-pointer flex-col justify-center gap-2 rounded-[12px] border-1 px-3 shadow-sm transition-all duration-200 ease-in-out hover:shadow-md">
       <div className="flex items-end justify-between gap-5">
         <p className="text-sm font-medium whitespace-nowrap">{name}</p>
         <div

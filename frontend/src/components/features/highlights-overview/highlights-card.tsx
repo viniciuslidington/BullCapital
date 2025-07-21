@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { formatChange, formatPrice } from "@/lib/utils";
 import React from "react";
 
 interface StockItem {
@@ -15,27 +16,13 @@ interface HighlightsCardProps {
   onSeeMore?: () => void;
 }
 
-// Helper para formatar o preço como moeda (ex: $187.45)
-const formatPrice = (price: number, currency: string) => {
-  return price.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: currency,
-  });
-};
-
-// Helper para formatar a variação, adicionando o sinal de '+'
-const formatChange = (change: number) => {
-  const sign = change > 0 ? "+" : "";
-  return `${sign}${change.toFixed(2)}%`;
-};
-
 export const HighlightsCard: React.FC<HighlightsCardProps> = ({
   title,
   items,
   onSeeMore,
 }) => {
   return (
-    <div className="group bg-card text-card-foreground w-full max-w-sm rounded-xl border-1 shadow-sm transition-all duration-200 ease-in-out hover:shadow-lg">
+    <div className="group bg-card text-card-foreground z-9 w-[264px] max-w-sm flex-none rounded-xl border-1 shadow-sm transition-all duration-200 ease-in-out hover:shadow-lg">
       <div className="flex flex-row items-center justify-between border-b-1 p-4 pb-5">
         <h3 className="text-muted-foreground group-hover:text-foreground font-medium transition-all duration-200 ease-in">
           {title}
@@ -57,7 +44,9 @@ export const HighlightsCard: React.FC<HighlightsCardProps> = ({
             >
               <div>
                 <p className="text-md font-semibold">{item.ticker}</p>
-                <p className="text-muted-foreground text-sm">{item.nome}</p>
+                <p className="text-muted-foreground w-[116px] truncate text-sm">
+                  {item.nome}
+                </p>
               </div>
               <div className="text-right">
                 <p className="text-md font-medium">
