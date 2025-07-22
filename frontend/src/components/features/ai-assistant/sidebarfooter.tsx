@@ -19,8 +19,9 @@ export function SidebarFooter() {
   ];
 
   function handleSubmit() {
-    setInput("");
+    if (input === "") return;
     addMessageHandler(input);
+    setInput("");
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
