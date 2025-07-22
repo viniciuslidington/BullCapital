@@ -59,6 +59,7 @@ export function SidebarFooter() {
             size="sm"
             className="bg-input cursor-pointer rounded-xl"
             onClick={() => setInput(s)}
+            key={s}
           >
             <p className="text-muted-foreground text-xs">{s}</p>
           </Button>
