@@ -17,57 +17,32 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { generateChartDataAndConfig } from "@/lib/utils";
 
 export const description = "A mixed bar chart";
 
 const rawData = [
-  { browser: "chrome", visitors: 275 },
-  { browser: "safari", visitors: 200 },
-  { browser: "firefox", visitors: 187 },
-  { browser: "edge", visitors: 173 },
-  { browser: "other", visitors: 90 },
+  { ticker: "AAPL", roe: 1.2 },
+  { ticker: "MSFT", roe: 1.1 },
+  { ticker: "TSLA", roe: 0.9 },
+  { ticker: "TSLA", roe: 0.9 },
+  { ticker: "TSLA", roe: 0.9 },
+  { ticker: "TSLA", roe: 0.9 },
 ];
 
-const chartConfig = {
-  visitors: {
-    label: "Visitors",
-    color: "var(--gray)",
-  },
-  chrome: {
-    label: "Chrome",
-    color: "var(--chart-secondary-1)",
-  },
-  safari: {
-    label: "Safari",
-    color: "var(--chart-secondary-2)",
-  },
-  firefox: {
-    label: "Firefox",
-    color: "var(--chart-secondary-3)",
-  },
-  edge: {
-    label: "Edge",
-    color: "var(--chart-secondary-4)",
-  },
-  other: {
-    label: "Other",
-    color: "var(--chart-secondary-5)",
-  },
-} satisfies ChartConfig;
+const { chartData, chartConfig } = generateChartDataAndConfig(rawData, "roe", [
+  "var(--chart-secondary-1)",
+  "var(--chart-secondary-2)",
+  "var(--chart-secondary-3)",
+  "var(--chart-secondary-4)",
+  "var(--chart-secondary-5)",
+]);
 
-const chartData = rawData
-  .slice(0, 5) // garante no máximo 5 itens
-  .map((item) => ({
-    ...item,
-    fill:
-      chartConfig[item.browser as keyof typeof chartConfig]?.color ?? "gray",
-  }));
-
+console.log(chartData, chartConfig);
 export function AssetChart() {
   return (
     <Card>
@@ -85,32 +60,30 @@ export function AssetChart() {
             data={chartData}
             layout="vertical"
             margin={{
-              right: 16,
+              right: 32,
             }}
           >
             <YAxis
-              dataKey="browser"
+              dataKey="name"
               type="category"
               tickLine={false}
               tickMargin={10}
               axisLine={false}
-              tickFormatter={(value) =>
-                chartConfig[value as keyof typeof chartConfig]?.label
-              }
             />
-            <XAxis dataKey="visitors" type="number" hide />
+            <XAxis dataKey="value" type="number" hide />
             <ChartTooltip
               cursor={false}
               content={<ChartTooltipContent indicator="line" />}
             />
             <CartesianGrid horizontal={false} />
-            <Bar dataKey="visitors" radius={5} layout="vertical">
+            <Bar dataKey="value" radius={5} layout="vertical">
               <LabelList
-                dataKey="visitors"
+                dataKey="value"
                 position="right"
                 offset={8}
                 className="fill-foreground"
                 fontSize={12}
+                fontWeight={600}
               />
             </Bar>
           </BarChart>
