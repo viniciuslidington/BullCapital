@@ -2,22 +2,21 @@ from fastapi import APIRouter, HTTPException, Query, Body
 import httpx
 from typing import List, Optional
 
-from models.responses import market_data_response
-from models.responses.market_data_response import StockDataResponse
+from models.responses.market_data_response import StockDataResponse  # Ensure this is a class, not a variable or instance
 
 router = APIRouter()
 
-MARKET_DATA_SERVICE_URL = "http://market-data-service:8000"
+MARKET_DATA_SERVICE_URL = "http://localhost:8003"  # URL do serviço de Market Data, deve ser configurado corretamente
 
-router.get(
+@router.get(
     "/stocks/{symbol}",
-    response_model=market_data_response.StockDataResponse,
+    response_model=StockDataResponse,
     summary="Obter dados de uma ação específica",
     description="Retorna os dados de mercado de uma ação específica, incluindo preço atual, volume e outras informações relevantes.",
 )
-async def get_stock_data_gateway(
-    symbol:str,
-    period: Optional[str] = Query("1mo", description="Período para o qual os dados devem ser retornados, ex: '1d', '1w', '1m'"),
+async def get_stock_data(
+    symbol: str,
+    period: Optional[str] = Query("1mo", description="Período para o qual os dados devem ser retornados, ex: '1d', '1w', '1m'")
 ) -> StockDataResponse:
     async with httpx.AsyncClient() as client:
         try:
@@ -27,7 +26,7 @@ async def get_stock_data_gateway(
                 params={"period": period}
             )
             response.raise_for_status()
-            return response.json()
+            return StockDataResponse(**response.json())
         except httpx.HTTPStatusError as e:
             raise HTTPException(
                 status_code=e.response.status_code,
