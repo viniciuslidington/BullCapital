@@ -1,5 +1,5 @@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { description, MarketChart } from "./market-chart";
+import { MarketChart } from "./market-chart";
 import { useState } from "react";
 
 type MercadoKey = "bra" | "eua" | "eur" | "asia" | "moedas";

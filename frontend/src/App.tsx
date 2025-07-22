@@ -11,7 +11,7 @@ function App() {
       <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
         <div className="min-h-screen w-full flex-col">
           <Header />
-          <span className="flex overflow-hidden">
+          <div className="flex overflow-hidden">
             <div className="flex w-full flex-col items-center pt-20 pr-20">
               <BrowserRouter>
                 <Routes>
@@ -21,7 +21,7 @@ function App() {
               <Footer />
             </div>
             <Sidebar />
-          </span>
+          </div>
         </div>
       </ThemeProvider>
     </>
