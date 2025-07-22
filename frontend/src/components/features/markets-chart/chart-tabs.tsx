@@ -1,31 +1,26 @@
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
-import { useMemo, useState } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { description, MarketChart } from "./market-chart";
+import { useState } from "react";
 
-export const description = "An interactive area chart";
+type MercadoKey = "bra" | "eua" | "eur" | "asia" | "moedas";
 
-// --- DADOS MOCKADOS PARA OS 4 ATIVOS ---
+const mercados: Record<MercadoKey, { title: string; description: string }> = {
+  bra: {
+    title: "Brasil",
+    description: "Variação de preço do mercado brasileiro",
+  },
+  eua: {
+    title: "Estados Unidos",
+    description: "Variação de preço do mercado americano",
+  },
+  eur: { title: "Europa", description: "Variação de preço do mercado europeu" },
+  asia: { title: "Ásia", description: "Variação de preço do mercado asiático" },
+  moedas: {
+    title: "Moedas",
+    description: "Variação de preço das moedas",
+  },
+};
+
 const chartData = [
   {
     date: "2024-07-01",
@@ -659,194 +654,54 @@ const chartData = [
   },
 ];
 
-// --- CONFIGURAÇÃO DO GRÁFICO PARA OS 4 ATIVOS ---
-const chartConfig = {
-  // Chave 'visitors' ou 'Preço' pode ser usada como um label genérico se necessário
-  visitors: { label: "Preço" },
-  AAPL: { label: "AAPL", color: "hsl(var(--chart-1))" },
-  TSLA: { label: "TSLA", color: "hsl(var(--chart-2))" },
-  MSFT: { label: "MSFT", color: "hsl(var(--chart-3))" },
-  AMZN: { label: "AMZN", color: "hsl(var(--chart-4))" },
-} satisfies ChartConfig;
-
-export function MarketsChart() {
-  const [timeRange, setTimeRange] = useState("30d");
-
-  // A lógica de filtragem foi corrigida aqui
-  const filteredData = useMemo(() => {
-    // Pega a última data dos seus dados como referência
-    const lastDataPoint = chartData[chartData.length - 1];
-    if (!lastDataPoint) return [];
-
-    const referenceDate = new Date(lastDataPoint.date);
-
-    let daysToSubtract = 90; // Valor padrão
-    if (timeRange === "30d") {
-      daysToSubtract = 30;
-    } else if (timeRange === "7d") {
-      daysToSubtract = 7;
-    } else if (timeRange === "total") {
-      daysToSubtract = chartData.length;
-    } else if (timeRange === "1y") {
-      daysToSubtract = 365;
-    } else if (timeRange === "1d") {
-      daysToSubtract = 1;
-    }
-
-    const startDate = new Date(referenceDate);
-    startDate.setDate(startDate.getDate() - daysToSubtract);
-
-    return chartData.filter((item) => new Date(item.date) >= startDate);
-  }, [timeRange]); // Adicionado useMemo para performance
-
+export function ChartTabs() {
+  const [tab, setTab] = useState<MercadoKey>("bra");
   return (
-    <Card className="pt-0">
-      <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
-        <div className="grid flex-1 gap-1">
-          <CardTitle>Mercado EUA</CardTitle>
-          <CardDescription>Variação de preço</CardDescription>
-        </div>
-        <Select value={timeRange} onValueChange={setTimeRange}>
-          <SelectTrigger
-            className="w-[160px] rounded-lg sm:ml-auto sm:flex"
-            aria-label="Select a value"
-          >
-            <SelectValue placeholder="Last 3 months" />
-          </SelectTrigger>
-          <SelectContent className="rounded-xl">
-            {/* Mantendo os valores originais para 90, 30 e 7 dias */}
-            <SelectItem value="total" className="rounded-lg">
-              Total
-            </SelectItem>
-            <SelectItem value="1y" className="rounded-lg">
-              Últimos 365 dias
-            </SelectItem>
-            <SelectItem value="90d" className="rounded-lg">
-              Últimos 90 dias
-            </SelectItem>
-            <SelectItem value="30d" className="rounded-lg">
-              Últimos 30 dias
-            </SelectItem>
-            <SelectItem value="7d" className="rounded-lg">
-              Últimos 7 dias
-            </SelectItem>
-            <SelectItem value="1d" className="rounded-lg">
-              Hoje
-            </SelectItem>
-          </SelectContent>
-        </Select>
-      </CardHeader>
-      <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
-        <ChartContainer
-          config={chartConfig}
-          className="aspect-auto h-[250px] w-full"
+    <Tabs
+      className="flex w-full flex-col gap-2"
+      defaultValue="bra"
+      onValueChange={(value) => setTab(value as MercadoKey)}
+    >
+      <TabsList className="gap-2">
+        <p className="text-muted-foreground dark:text-foreground mr-2 font-semibold">
+          MERCADOS
+        </p>
+        <TabsTrigger
+          value="bra"
+          className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
         >
-          <AreaChart data={filteredData}>
-            <defs>
-              <linearGradient id="fillAAPL" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="var(--chart-1)"
-                  stopOpacity={0.8}
-                />
-                <stop
-                  offset="95%"
-                  stopColor="var(--chart-1)"
-                  stopOpacity={0.1}
-                />
-              </linearGradient>
-              <linearGradient id="fillTSLA" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="var(--chart-2)"
-                  stopOpacity={0.8}
-                />
-                <stop
-                  offset="95%"
-                  stopColor="var(--chart-2)"
-                  stopOpacity={0.1}
-                />
-              </linearGradient>
-              <linearGradient id="fillMSFT" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="var(--chart-3)"
-                  stopOpacity={0.8}
-                />
-                <stop
-                  offset="95%"
-                  stopColor="var(--chart-3)"
-                  stopOpacity={0.1}
-                />
-              </linearGradient>
-              <linearGradient id="fillAMZN" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="var(--chart-4)"
-                  stopOpacity={0.8}
-                />
-                <stop
-                  offset="95%"
-                  stopColor="var(--chart-4)"
-                  stopOpacity={0.1}
-                />
-              </linearGradient>
-            </defs>
-            <CartesianGrid vertical={false} />
-            <XAxis
-              dataKey="date"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              minTickGap={32}
-              tickFormatter={(value) => {
-                const date = new Date(value);
-                return date.toLocaleDateString("pt-BR", {
-                  month: "short",
-                  day: "numeric",
-                });
-              }}
-            />
-            {/* O YAxis se ajustará automaticamente aos valores */}
-            <YAxis />
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent indicator="dot" />}
-            />
-            {/* Atenção: `stackId="a"` soma os valores, o que não é ideal para comparação.
-                Para uma comparação real, remova o stackId e considere usar <LineChart> */}
-            <Area
-              dataKey="AAPL"
-              type="natural"
-              fill="url(#fillAAPL)"
-              stroke="var(--chart-1)"
-              stackId="a"
-            />
-            <Area
-              dataKey="TSLA"
-              type="natural"
-              fill="url(#fillTSLA)"
-              stroke="var(--chart-2)"
-              stackId="a"
-            />
-            <Area
-              dataKey="MSFT"
-              type="natural"
-              fill="url(#fillMSFT)"
-              stroke="var(--chart-3)"
-              stackId="a"
-            />
-            <Area
-              dataKey="AMZN"
-              type="natural"
-              fill="url(#fillAMZN)"
-              stroke="var(--chart-4)"
-              stackId="a"
-            />
-            <ChartLegend content={<ChartLegendContent />} />
-          </AreaChart>
-        </ChartContainer>
-      </CardContent>
-    </Card>
+          Brasil
+        </TabsTrigger>
+        <TabsTrigger
+          value="eua"
+          className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
+        >
+          Estados Unidos
+        </TabsTrigger>
+        <TabsTrigger
+          value="eur"
+          className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
+        >
+          Europa
+        </TabsTrigger>
+        <TabsTrigger
+          value="asia"
+          className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
+        >
+          Asia
+        </TabsTrigger>
+        <TabsTrigger
+          value="moedas"
+          className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
+        >
+          Moedas
+        </TabsTrigger>
+      </TabsList>
+      <MarketChart
+        title={mercados[tab]?.title}
+        description={mercados[tab]?.description}
+        chartData={chartData}
+      />
+    </Tabs>
   );
 }
