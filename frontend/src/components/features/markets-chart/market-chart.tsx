@@ -147,7 +147,7 @@ export function MarketChart({
               content={<ChartTooltipContent indicator="dot" />}
               offset={24}
               labelFormatter={(value) => {
-                return new Date(value).toLocaleDateString("en-US");
+                return new Date(value).toLocaleDateString("pt-BR");
               }}
             />
             <Line
