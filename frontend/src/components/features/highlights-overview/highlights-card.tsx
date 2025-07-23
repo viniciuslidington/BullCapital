@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { formatChange, formatPrice } from "@/lib/utils";
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 interface StockItem {
   ticker: string;
@@ -21,6 +22,8 @@ export const HighlightsCard: React.FC<HighlightsCardProps> = ({
   items,
   onSeeMore,
 }) => {
+  const navigate = useNavigate();
+
   return (
     <div className="group bg-card text-card-foreground z-9 w-[264px] max-w-sm flex-none rounded-xl border-1 shadow-sm transition-all duration-200 ease-in-out hover:shadow-lg">
       <div className="flex flex-row items-center justify-between border-b-1 p-4 pb-5">
@@ -41,6 +44,7 @@ export const HighlightsCard: React.FC<HighlightsCardProps> = ({
             <div
               key={item.ticker}
               className="hover:bg-input active:bg-primary flex cursor-pointer items-center justify-between rounded-[8px] p-2 transition-all duration-200 ease-in-out"
+              onClick={() => navigate(item.ticker)}
             >
               <div>
                 <p className="text-md font-semibold">{item.ticker}</p>
