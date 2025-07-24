@@ -525,14 +525,11 @@ class YahooFinanceProvider(IMarketDataProvider, LoggerMixin):
         csv_path = os.path.abspath(csv_path)
         brazilian_stocks = []
         try:
-            df = pd.read_csv(csv_path, sep=';', dtype=str, encoding='utf-8', on_bad_lines='skip')
+            df = pd.read_csv(csv_path, sep=',', dtype=str, encoding='utf-8', on_bad_lines='skip')
             for _, row in df.iterrows():
-                symbol = row.get('TckrSymb', '').strip()
-                name = row.get('AsstDesc', '').strip() or row.get('Asst', '').strip()
-                sector = row.get('SctyCtgyNm', '').strip() or "Unknown"
-                # Adicionar sufixo .SA se não for BDR
-                if symbol and not symbol.endswith('.SA') and sector != 'BDR':
-                    symbol = f"{symbol}.SA"
+                symbol = row.get('Ticker', '').strip()
+                name = row.get('Nome', '').strip()
+                sector = "BDR" if symbol.endswith('34.SA') or symbol.endswith('35.SA') else "Unknown"
                 if symbol:
                     brazilian_stocks.append({
                         "symbol": symbol,
