@@ -14,9 +14,9 @@ Example:
 import time
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
-
 import pandas as pd
 import yfinance as yf
+import investpy as inv
 
 from core.config import settings
 from core.logging import LoggerMixin
@@ -480,16 +480,47 @@ class YahooFinanceProvider(IMarketDataProvider, LoggerMixin):
             return []
     
     def _get_brazilian_stocks(self) -> List[Dict[str, str]]:
-        """Obtém lista de ações brasileiras com cache."""
+        """Obtém lista de ações brasileiras com cache usando investpy."""
         # Verificar se o cache é válido
         if (self._brazilian_stocks_cache and 
             self._cache_timestamp and 
             datetime.now() - self._cache_timestamp < self._cache_ttl):
+            self.logger.info("Retornando ações brasileiras do cache.")
             return self._brazilian_stocks_cache
+
+        self.logger.info("Cache de ações brasileiras expirado ou vazio. Buscando com investpy.")
         
-        # Lista estática de principais ações brasileiras
-        # Em produção, isso poderia vir de uma API ou banco de dados
-        brazilian_stocks = [
+        try:
+            # Obter DataFrame de ações do Brasil
+            stocks_df = inv.get_stocks(country='brazil')
+            
+            brazilian_stocks = []
+            for _, row in stocks_df.iterrows():
+                # Adicionar sufixo .SA para compatibilidade com yfinance
+                symbol = f"{row['symbol']}.SA"
+                
+                brazilian_stocks.append({
+                    "symbol": symbol,
+                    "name": row['full_name'],
+                    "sector": "Unknown"  # investpy não fornece setor nesta chamada
+                })
+
+            # Atualizar cache
+            self._brazilian_stocks_cache = brazilian_stocks
+            self._cache_timestamp = datetime.now()
+            self.logger.info(f"Cache de ações brasileiras atualizado com {len(brazilian_stocks)} tickers.")
+            
+            return brazilian_stocks
+
+        except Exception as e:
+            self.logger.error(f"Erro ao buscar ações brasileiras com investpy: {e}")
+            # Fallback para lista estática em caso de erro
+            self.logger.warning("Usando lista estática como fallback.")
+            return self._get_static_brazilian_stocks()
+
+    def _get_static_brazilian_stocks(self) -> List[Dict[str, str]]:
+        """Retorna uma lista estática de ações brasileiras como fallback."""
+        return [
             {"symbol": "PETR4.SA", "name": "Petróleo Brasileiro S.A. - Petrobras", "sector": "Energy"},
             {"symbol": "PETR3.SA", "name": "Petróleo Brasileiro S.A. - Petrobras", "sector": "Energy"},
             {"symbol": "VALE3.SA", "name": "Vale S.A.", "sector": "Materials"},
@@ -511,61 +542,3 @@ class YahooFinanceProvider(IMarketDataProvider, LoggerMixin):
             {"symbol": "BBAS3.SA", "name": "Banco do Brasil S.A.", "sector": "Financial Services"},
             {"symbol": "SANB11.SA", "name": "Banco Santander (Brasil) S.A.", "sector": "Financial Services"},
         ]
-        
-        # Atualizar cache
-        self._brazilian_stocks_cache = brazilian_stocks
-        self._cache_timestamp = datetime.now()
-        
-        return brazilian_stocks
-    
-    def _calculate_relevance_score(
-        self, 
-        query: str, 
-        stock: Dict[str, str]
-    ) -> float:
-        """Calcula score de relevância para busca."""
-        score = 0.0
-        
-        # Score baseado em correspondência no símbolo
-        if query in stock["symbol"].lower():
-            score += 1.0
-        
-        # Score baseado em correspondência no nome
-        if query in stock["name"].lower():
-            score += 0.8
-        
-        # Score baseado em correspondência parcial
-        words = query.split()
-        for word in words:
-            if word in stock["name"].lower():
-                score += 0.3
-        
-        return score
-    
-    def _extract_market_from_symbol(self, symbol: str) -> str:
-        """Extrai mercado baseado no símbolo."""
-        if symbol.endswith('.SA'):
-            return 'B3'
-        elif '.' not in symbol:
-            return 'NYSE'  # Assumir NYSE para símbolos sem sufixo
-        else:
-            return 'Unknown'
-    
-    def _generate_ticker_suggestions(self, invalid_symbol: str) -> List[str]:
-        """Gera sugestões de tickers similares."""
-        suggestions = []
-        
-        # Se não tem .SA, sugerir versão com .SA
-        if not invalid_symbol.endswith('.SA') and '.' not in invalid_symbol:
-            suggestions.append(f"{invalid_symbol}.SA")
-        
-        # Buscar símbolos similares na lista brasileira
-        brazilian_stocks = self._get_brazilian_stocks()
-        invalid_lower = invalid_symbol.lower().replace('.sa', '')
-        
-        for stock in brazilian_stocks:
-            symbol_base = stock["symbol"].replace('.SA', '').lower()
-            if invalid_lower in symbol_base or symbol_base in invalid_lower:
-                suggestions.append(stock["symbol"])
-        
-        return suggestions[:3]  # Retornar até 3 sugestões

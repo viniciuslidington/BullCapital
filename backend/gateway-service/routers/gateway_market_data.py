@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Query, Body
 import httpx
 from typing import List, Optional
 
-from models.responses.market_data_response import StockDataResponse  # Ensure this is a class, not a variable or instance
+from models.responses.market_data_response import StockDataResponse, StockSearchResponse, SearchResult  # Ensure this is a class, not a variable or instance
 
 router = APIRouter()
 
@@ -59,3 +59,40 @@ async def gateway_info():
         ],
         "market_data_service_internal_url": MARKET_DATA_SERVICE_URL # Deixar explícito que é a interna
     }
+
+@router.get(
+    "/health",
+    summary="Verificar saúde do Gateway",
+    description="Endpoint para verificar a saúde do API Gateway."
+)
+async def health_check():
+    return {"status": "healthy"}
+
+@router.get(
+    "/search",
+    summary="Buscar ações",
+    description="Busca ações por nome ou símbolo.",
+    response_model=StockSearchResponse
+)
+async def search_stocks(
+    query: str = Query(..., description="Termo de busca para ações, pode ser nome ou símbolo"),
+    limit: int = Query(10, ge=1, le=100, description="Número máximo de resultados a serem retornados")
+) -> StockSearchResponse:
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                f"{MARKET_DATA_SERVICE_URL}/api/v1/market-data/search",
+                params={"q": query, "limit": limit}
+            )
+            response.raise_for_status()
+            return StockSearchResponse(**response.json())
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(
+                status_code=e.response.status_code,
+                detail=f"Erro no serviço de Market Data: {e.response.text}"
+            )
+        except httpx.RequestError as e:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Serviço de Market Data indisponível: {e}"
+            )
