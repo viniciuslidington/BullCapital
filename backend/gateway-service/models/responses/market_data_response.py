@@ -1,6 +1,8 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import date
+from typing import Dict, Any
+
 
 class StockDataResponse(BaseModel):
     symbol: str
@@ -31,3 +33,52 @@ class StockSearchResponse(BaseModel):
     results_found: int
     query: str
     limit: Optional[int] = None
+
+class TredingDataResponse(BaseModel):
+    symbol: str
+    company_name: str
+    current_price: float
+    previous_close: float
+    change: Optional[float] = None  # change é null no JSON, então Optional
+    change_percent: Optional[float] = None  # change_percent é null no JSON, então Optional
+    volume: int
+    avg_volume: Optional[int] = None  # avg_volume é null no JSON, então Optional
+    currency: str
+    timezone: Optional[str] = None  # timezone é null no JSON, então Optional
+    last_updated: date  # Pode ser datetime.date ou datetime.datetime se você quiser parsear datas
+
+class BulkDataResponse(BaseModel):
+    """
+    Modelo de resposta para dados em lote.
+    
+    Attributes:
+        request_id: ID único da requisição
+        total_tickers: Número total de tickers solicitados
+        successful_requests: Número de requisições bem-sucedidas
+        failed_requests: Número de requisições falhadas
+        data: Dados organizados por ticker
+        errors: Erros organizados por ticker
+        processing_time_ms: Tempo de processamento total
+        metadata: Metadados da requisição
+    """
+    
+    request_id: str = Field(..., description="ID único da requisição")
+    total_tickers: int = Field(..., description="Número total de tickers")
+    successful_requests: int = Field(..., description="Requisições bem-sucedidas")
+    failed_requests: int = Field(..., description="Requisições falhadas")
+    data: Dict[str, StockDataResponse] = Field(
+        ...,
+        description="Dados organizados por ticker. Cada valor segue o modelo StockDataResponse, incluindo os campos obrigatórios: company_name, currency, last_updated, etc."
+    )
+    errors: Optional[Dict[str, str]] = Field(
+        default=None,
+        description="Erros organizados por ticker"
+    )
+    processing_time_ms: Optional[float] = Field(
+        default=None,
+        description="Tempo de processamento"
+    )
+    metadata: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Metadados da requisição"
+    )

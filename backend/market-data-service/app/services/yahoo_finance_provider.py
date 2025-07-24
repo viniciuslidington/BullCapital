@@ -16,6 +16,8 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 import pandas as pd
 import yfinance as yf
+import yahooquery as yq
+from yahooquery import Screener
 import investpy as inv
 import os
 
@@ -312,82 +314,60 @@ class YahooFinanceProvider(IMarketDataProvider, LoggerMixin):
                 details={"query": query, "limit": limit}
             )
     
-    def get_trending_stocks(self, market: str = "BR") -> List[Dict[str, Any]]:
+    def get_trending_stocks(self, market: str = "BR", limit: int = 10) -> List[Dict[str, Any]]:
         """
-        Obtém ações em tendência para um mercado específico.
-        
-        Args:
-            market: Código do mercado (BR, US, etc.)
-            
-        Returns:
-            Lista de ações em tendência com dados atuais
+        Obtém ações em tendência para um mercado específico usando yahooquery Screener('most_active_br').
+        Se não houver trending, retorna lista vazia (200 OK).
         """
         try:
-            self.logger.info(f"Obtendo ações em tendência para mercado {market}")
-            
-            if market.upper() == "BR":
-                # Principais ações do Ibovespa
-                trending_symbols = [
-                    "PETR4.SA", "VALE3.SA", "ITUB4.SA", "BBDC4.SA", "B3SA3.SA",
-                    "ABEV3.SA", "WEGE3.SA", "MGLU3.SA", "JBSS3.SA", "RENT3.SA",
-                    "SUZB3.SA", "RAIL3.SA", "USIM5.SA", "CSNA3.SA", "GOAU4.SA"
-                ]
-            else:
-                # Para outros mercados, implementar conforme necessário
-                trending_symbols = []
-            
+            self.logger.info(f"Obtendo ações em tendência para mercado {market} via yahooquery Screener")
+            if market.upper() != "BR":
+                self.logger.info("Somente implementado para mercado BR.")
+                return []
+
+            screener = Screener()
+            data = screener.get_screeners(['most_actives_br'])
+            quotes = data.get('most_actives_br', {}).get('quotes', [])
+            if not quotes:
+                self.logger.warning("Nenhum dado retornado pelo Screener most_active_br do yahooquery.")
+                return []
+
             trending_data = []
-            
-            for symbol in trending_symbols:
+            for quote in quotes[:limit*2]:  # pega um pouco mais para garantir que terá positivos
                 try:
-                    ticker = self._create_ticker_with_retry(symbol)
-                    info = self._get_ticker_info_with_retry(ticker, symbol)
-                    
-                    current_price = self._safe_get_price(
-                        info, 'currentPrice', 'regularMarketPrice'
-                    )
-                    previous_close = info.get('previousClose')
-                    
-                    # Calcular variação percentual
-                    change_percent = None
-                    if current_price and previous_close:
-                        change_percent = round(
-                            ((current_price - previous_close) / previous_close) * 100, 2
-                        )
-                    
+                    symbol = quote.get('symbol')
+                    name = quote.get('shortName') or quote.get('longName') or quote.get('symbol')
+                    current_price = quote.get('regularMarketPrice')
+                    previous_close = quote.get('regularMarketPreviousClose')
+                    change_percent = quote.get('regularMarketChangePercent')
+                    if change_percent is None and current_price and previous_close and previous_close != 0:
+                        change_percent = round(((current_price - previous_close) / previous_close) * 100, 2)
+                    if change_percent is None or change_percent <= 0:
+                        continue
                     trending_data.append({
                         "symbol": symbol,
-                        "name": info.get('longName', info.get('shortName', symbol)),
+                        "name": name,
+                        "company_name": name,
                         "current_price": current_price,
                         "previous_close": previous_close,
-                        "change_percent": change_percent,
-                        "volume": info.get('volume'),
-                        "market_cap": info.get('marketCap'),
-                        "sector": info.get('sector', 'Unknown')
+                        "change_percent": round(change_percent, 2) if change_percent is not None else None,
+                        "volume": quote.get('regularMarketVolume'),
+                        "market_cap": quote.get('marketCap'),
+                        "sector": quote.get('sector', 'Unknown'),
+                        "currency": quote.get('currency', 'BRL'),
+                        "last_updated": datetime.now().date().isoformat()
                     })
-                    
                 except Exception as e:
-                    self.logger.warning(f"Erro ao obter dados para {symbol}: {e}")
+                    self.logger.warning(f"Erro ao processar quote do screener: {e}")
                     continue
-            
-            # Ordenar por volume ou market cap
-            trending_data.sort(
-                key=lambda x: x.get('market_cap', 0) or 0, 
-                reverse=True
-            )
-            
-            self.logger.info(f"Obtidas {len(trending_data)} ações em tendência")
+            trending_data.sort(key=lambda x: x["change_percent"], reverse=True)
+            trending_data = trending_data[:limit]
+            self.logger.info(f"Trending (yahooquery): retornados {len(trending_data)} (top {limit} por variação positiva)")
             return trending_data
-            
         except Exception as e:
-            error_msg = f"Erro ao obter ações em tendência: {str(e)}"
+            error_msg = f"Erro inesperado ao obter ações em tendência via yahooquery: {str(e)}"
             self.logger.error(error_msg)
-            raise ProviderException(
-                message=error_msg,
-                provider="yahoo_finance",
-                error_code="TRENDING_ERROR",
-                details={"market": market}
-            )
+            return []
     
     # Métodos privados auxiliares
     

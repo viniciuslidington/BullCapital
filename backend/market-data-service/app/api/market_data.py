@@ -177,15 +177,19 @@ def search_stocks(
 def get_trending_stocks(
     market: str = "BR",
     limit: int = 10,
-    db: Session = Depends(get_db)
 ):
     """Endpoint ultra-simplificado para trending."""
     logger.info(f"Trending para {market}")
-    trending_data = market_data_service.get_trending_stocks(market, "simple-client", db=db)
-    return {
-        "market": market,
-        "trending_stocks": trending_data[:limit]
-    }
+    try:
+        trending_data = market_data_service.get_trending_stocks(market, "simple-client")
+        if not trending_data:
+            logger.info(f"Nenhuma ação trending encontrada para {market}.")
+            return []
+        return trending_data[:limit]
+    except Exception as e:
+        logger.error(f"Erro inesperado no endpoint /trending: {e}")
+        # Retornar 200 com lista vazia em caso de erro inesperado
+        return []
 
 
 @router.get(
@@ -311,10 +315,10 @@ def validate_ticker(symbol: str, db: Session = Depends(get_db)) -> ValidationRes
     **Dica:** Use periods iguais para comparar performance entre ações!
     """
 )
-def get_bulk_data(bulk_request: BulkDataRequest, db: Session = Depends(get_db)) -> BulkDataResponse:
+def get_bulk_data(bulk_request: BulkDataRequest) -> BulkDataResponse:
     """Endpoint ultra-simplificado para dados em lote."""
     logger.info(f"Bulk para {len(bulk_request.symbols)} ações")
-    return market_data_service.get_bulk_data(bulk_request, "simple-client", db=db)
+    return market_data_service.get_bulk_data(bulk_request, "simple-client")
 
 
 

@@ -1,8 +1,9 @@
 from fastapi import APIRouter, HTTPException, Query, Body
+from pydantic import BaseModel
 import httpx
 from typing import List, Optional
 
-from models.responses.market_data_response import StockDataResponse, StockSearchResponse, SearchResult  # Ensure this is a class, not a variable or instance
+from models.responses.market_data_response import StockDataResponse, StockSearchResponse, SearchResult, TredingDataResponse, BulkDataResponse  # Ensure this is a class, not a variable or instance
 
 router = APIRouter()
 
@@ -86,6 +87,67 @@ async def search_stocks(
             )
             response.raise_for_status()
             return StockSearchResponse(**response.json())
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(
+                status_code=e.response.status_code,
+                detail=f"Erro no serviço de Market Data: {e.response.text}"
+            )
+        except httpx.RequestError as e:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Serviço de Market Data indisponível: {e}"
+            )
+        
+@router.get(
+    "/trending",
+    summary="Ações em alta",
+    description="Retorna uma lista de ações que estão em alta no mercado.",
+    response_model=List[TredingDataResponse]
+)
+async def get_trending_stocks() -> List[TredingDataResponse]:
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                f"{MARKET_DATA_SERVICE_URL}/api/v1/market-data/trending"
+            )
+            response.raise_for_status()
+            return [TredingDataResponse(**stock) for stock in response.json()]
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(
+                status_code=e.response.status_code,
+                detail=f"Erro no serviço de Market Data: {e.response.text}"
+            )
+        except httpx.RequestError as e:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Serviço de Market Data indisponível: {e}"
+            )
+        
+from fastapi import Body
+
+class BulkGatewayRequest(BaseModel):
+    symbols: List[str]
+    period: str = "1mo"
+
+@router.post(
+    "/bulk",
+    summary="Obter dados de múltiplas ações",
+    description="Retorna dados de múltiplas ações com base em uma lista de símbolos.",
+    response_model=List[StockDataResponse]
+)
+async def get_bulk_stock_data(
+    bulk: BulkGatewayRequest = Body(..., description="Objeto com lista de símbolos e período para as ações")
+) -> List[StockDataResponse]:
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                f"{MARKET_DATA_SERVICE_URL}/api/v1/market-data/bulk",
+                json=bulk.dict()
+            )
+            response.raise_for_status()
+            bulk_response = response.json()
+            # Extrai os dados do campo 'data' (dict de símbolos)
+            return [StockDataResponse(**stock) for stock in bulk_response.get("data", {}).values()]
         except httpx.HTTPStatusError as e:
             raise HTTPException(
                 status_code=e.response.status_code,
