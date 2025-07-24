@@ -36,8 +36,8 @@ export function QuestionMark({ index }: { index: IndexType }) {
       <TooltipTrigger>
         <CircleQuestionMark className="text-primary mt-1 h-4 w-4 cursor-pointer" />
       </TooltipTrigger>
-      <TooltipContent side="right" className="max-w-[464px]">
-        <p className="w-full p-2 text-left hyphens-auto whitespace-pre-line">
+      <TooltipContent side="right" className="max-w-full p-0 text-wrap">
+        <p className="max-w-[400px] p-3 text-justify font-medium hyphens-auto whitespace-pre-line lg:max-w-[464px]">
           {textByIndex[index]}
         </p>
       </TooltipContent>
