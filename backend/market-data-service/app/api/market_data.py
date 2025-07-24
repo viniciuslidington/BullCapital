@@ -18,12 +18,14 @@ from models.schemas import MarketData as MarketDataSchema
 from models.market_data import MarketData as MarketDataORM
 from core.logging import get_logger
 from models.requests import BulkDataRequest, SearchRequest, StockDataRequest
+
 from models.responses import (
     BulkDataResponse,
     HealthResponse,
     SearchResponse,
     StockDataResponse,
     ValidationResponse,
+    SearchResultItem
 )
 from services.market_data_service import MarketDataService
 
@@ -34,6 +36,24 @@ router = APIRouter()
 # Serviço
 market_data_service = MarketDataService()
 
+
+
+@router.get(
+    "/stocks-all",
+    response_model=List[SearchResultItem],
+    summary="Listar todos os tickers disponíveis",
+    description="Retorna todos os tickers disponíveis para o frontend."
+)
+def list_available_stocks() -> List[SearchResultItem]:
+    tickers = market_data_service.list_available_stocks("simple-client")
+    results = []
+    for t in tickers:
+        # Garante valores válidos para os campos obrigatórios
+        t = dict(t)
+        t["market"] = t.get("market") or ""
+        t["current_price"] = t.get("current_price") if t.get("current_price") is not None else 0.0
+        results.append(SearchResultItem(**t))
+    return results
 
 
 @router.get(

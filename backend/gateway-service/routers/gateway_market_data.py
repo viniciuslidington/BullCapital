@@ -158,3 +158,28 @@ async def get_bulk_stock_data(
                 status_code=503,
                 detail=f"Serviço de Market Data indisponível: {e}"
             )
+        
+@router.get(
+    "/stocks-all",
+    summary="Obter todos os tickers disponíveis",
+    description="Retorna todos os tickers disponíveis no serviço de Market Data.",
+    response_model=List[SearchResult]
+)
+async def get_all_tickers() -> List[SearchResult]:
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                f"{MARKET_DATA_SERVICE_URL}/api/v1/market-data/stocks-all"
+            )
+            response.raise_for_status()
+            return [SearchResult(**stock) for stock in response.json()]
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(
+                status_code=e.response.status_code,
+                detail=f"Erro no serviço de Market Data: {e.response.text}"
+            )
+        except httpx.RequestError as e:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Serviço de Market Data indisponível: {e}"
+            )

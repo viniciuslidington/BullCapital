@@ -34,6 +34,15 @@ from services.interfaces import IMarketDataProvider, ProviderException
 
 
 class YahooFinanceProvider(IMarketDataProvider, LoggerMixin):
+    def get_all_tickers(self, market: str = "BR") -> List[dict]:
+        """
+        Retorna todos os tickers disponíveis para o mercado especificado.
+        Por padrão, retorna todos os tickers brasileiros do cache/CSV.
+        """
+        if market.upper() == "BR":
+            return self._get_brazilian_stocks()
+        # Futuramente, pode-se adicionar suporte a outros mercados
+        return []
     """
     Provedor de dados do Yahoo Finance.
     
