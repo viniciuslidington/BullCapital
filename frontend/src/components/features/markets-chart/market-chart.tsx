@@ -79,7 +79,6 @@ export function MarketChart({
 
     const startDate = new Date(referenceDate);
     startDate.setDate(startDate.getDate() - daysToSubtract);
-    console.log("oi");
     return chartData.filter((item) => new Date(item.date) >= startDate);
   }, [timeRange, chartData]); // Adicionado useMemo para performance
 
