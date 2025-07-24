@@ -1,16 +1,4 @@
-"""
-Serviço principal de Market Data.
 
-Este módulo implementa a lógica de negócio principal do microserviço,
-coordenando diferentes provedores de dados, cache e rate limiting.
-Segue os princípios SOLID e oferece uma interface unificada.
-
-Example:
-    from services.market_data_service import MarketDataService
-    
-    service = MarketDataService()
-    data = service.get_stock_data("PETR4.SA", request)
-"""
 
 import time
 import uuid
@@ -159,6 +147,14 @@ class SimpleRateLimiter(IRateLimiter):
 
 
 class MarketDataService(LoggerMixin):
+
+    
+
+    def list_available_stocks(self, client_id: str = "default", market: str = "BR") -> list:
+        """
+        Lista todos os tickers disponíveis para o mercado especificado.
+        """
+        return self.provider.get_all_tickers(market=market)
     """
     Serviço principal de Market Data.
     
