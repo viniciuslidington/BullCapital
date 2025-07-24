@@ -78,12 +78,11 @@ market_data_service = MarketDataService()
 def get_stock_data(
     symbol: str,
     period: str = "1mo",
-    db: Session = Depends(get_db)
 ) -> StockDataResponse:
     """Endpoint ultra-simplificado para dados de ação."""
     logger.info(f"Dados para {symbol}, período {period}")
     stock_request = StockDataRequest(symbol=symbol, period=period)
-    return market_data_service.get_stock_data(symbol, stock_request, "simple-client", db=db)
+    return market_data_service.get_stock_data(symbol, stock_request, "simple-client")
 
 
 @router.get(
