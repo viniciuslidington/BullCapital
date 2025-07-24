@@ -128,13 +128,12 @@ def get_stock_data(
 )
 def search_stocks(
     q: str,
-    limit: int = 10,
-    db: Session = Depends(get_db)
+    limit: int = 10
 ) -> SearchResponse:
     """Endpoint ultra-simplificado para busca."""
     logger.info(f"Busca por: {q}")
     search_request = SearchRequest(query=q, limit=limit)
-    return market_data_service.search_stocks(search_request, "simple-client", db=db)
+    return market_data_service.search_stocks(search_request, "simple-client")
 
 
 @router.get(
