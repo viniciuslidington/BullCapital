@@ -1,5 +1,7 @@
+import { MarketChart } from "@/components/features/markets-chart/market-chart";
 import { PathLink } from "@/components/ui/path-link";
-import { useLocation } from "react-router-dom";
+import { formatChange, formatDate, formatPrice } from "@/lib/utils";
+import { ArrowDown, ArrowUp } from "lucide-react";
 
 const response = {
   symbol: "AAPL",
@@ -240,10 +242,411 @@ const response = {
   },
 };
 
+const chartData = [
+  {
+    date: "2024-07-01",
+    AAPL: 154.32,
+  },
+  {
+    date: "2024-07-02",
+    AAPL: 236.74,
+  },
+  {
+    date: "2024-07-03",
+    AAPL: 134.47,
+  },
+  {
+    date: "2024-07-04",
+    AAPL: 236.92,
+  },
+  {
+    date: "2024-07-05",
+    AAPL: 152.67,
+  },
+  {
+    date: "2024-07-06",
+    AAPL: 136.51,
+  },
+  {
+    date: "2024-07-07",
+    AAPL: 214.3,
+  },
+  {
+    date: "2024-07-08",
+    AAPL: 259.04,
+  },
+  {
+    date: "2024-07-09",
+    AAPL: 241.52,
+  },
+  {
+    date: "2024-07-10",
+    AAPL: 146.8,
+  },
+  {
+    date: "2024-07-11",
+    AAPL: 156.12,
+  },
+  {
+    date: "2024-07-12",
+    AAPL: 191.58,
+  },
+  {
+    date: "2024-07-13",
+    AAPL: 232.07,
+  },
+  {
+    date: "2024-07-14",
+    AAPL: 170.46,
+  },
+  {
+    date: "2024-07-15",
+    AAPL: 151.26,
+  },
+  {
+    date: "2024-07-16",
+    AAPL: 278.73,
+  },
+  {
+    date: "2024-07-17",
+    AAPL: 264.1,
+  },
+  {
+    date: "2024-07-18",
+    AAPL: 255.66,
+  },
+  {
+    date: "2024-07-19",
+    AAPL: 269.79,
+  },
+  {
+    date: "2024-07-20",
+    AAPL: 147.49,
+  },
+  {
+    date: "2024-07-21",
+    AAPL: 208.51,
+  },
+  {
+    date: "2024-07-22",
+    AAPL: 123.1,
+  },
+  {
+    date: "2024-07-23",
+    AAPL: 140.71,
+  },
+  {
+    date: "2024-07-24",
+    AAPL: 152.09,
+  },
+  {
+    date: "2024-07-25",
+    AAPL: 163.66,
+  },
+  {
+    date: "2024-07-26",
+    AAPL: 126.26,
+  },
+  {
+    date: "2024-07-27",
+    AAPL: 133.39,
+  },
+  {
+    date: "2024-07-28",
+    AAPL: 254.25,
+  },
+  {
+    date: "2024-07-29",
+    AAPL: 249.53,
+  },
+  {
+    date: "2024-07-30",
+    AAPL: 250.05,
+  },
+  {
+    date: "2024-07-31",
+    AAPL: 246.4,
+  },
+  {
+    date: "2024-08-01",
+    AAPL: 164.44,
+  },
+  {
+    date: "2024-08-02",
+    AAPL: 133.08,
+  },
+  {
+    date: "2024-08-03",
+    AAPL: 245.01,
+  },
+  {
+    date: "2024-08-04",
+    AAPL: 137.05,
+  },
+  {
+    date: "2024-08-05",
+    AAPL: 205.91,
+  },
+  {
+    date: "2024-08-06",
+    AAPL: 236.9,
+  },
+  {
+    date: "2024-08-07",
+    AAPL: 203.67,
+  },
+  {
+    date: "2024-08-08",
+    AAPL: 130.12,
+  },
+  {
+    date: "2024-08-09",
+    AAPL: 215.74,
+  },
+  {
+    date: "2024-08-10",
+    AAPL: 176.47,
+  },
+  {
+    date: "2024-08-11",
+    AAPL: 177.6,
+  },
+  {
+    date: "2024-08-12",
+    AAPL: 255.63,
+  },
+  {
+    date: "2024-08-13",
+    AAPL: 271.37,
+  },
+  {
+    date: "2024-08-14",
+    AAPL: 244.01,
+  },
+  {
+    date: "2024-08-15",
+    AAPL: 218.88,
+  },
+  {
+    date: "2024-08-16",
+    AAPL: 268.24,
+  },
+  {
+    date: "2024-08-17",
+    AAPL: 239.63,
+  },
+  {
+    date: "2024-08-18",
+    AAPL: 227.03,
+  },
+  {
+    date: "2024-08-19",
+    AAPL: 141.64,
+  },
+  {
+    date: "2024-08-20",
+    AAPL: 172.9,
+  },
+  {
+    date: "2024-08-21",
+    AAPL: 262.64,
+  },
+  {
+    date: "2024-08-22",
+    AAPL: 149.88,
+  },
+  {
+    date: "2024-08-23",
+    AAPL: 160.45,
+  },
+  {
+    date: "2024-08-24",
+    AAPL: 165.22,
+  },
+  {
+    date: "2024-08-25",
+    AAPL: 198.83,
+  },
+  {
+    date: "2024-08-26",
+    AAPL: 251.36,
+  },
+  {
+    date: "2024-08-27",
+    AAPL: 185.89,
+  },
+  {
+    date: "2024-08-28",
+    AAPL: 194.89,
+  },
+  {
+    date: "2024-08-29",
+    AAPL: 228.08,
+  },
+  {
+    date: "2024-08-30",
+    AAPL: 234.7,
+  },
+  {
+    date: "2024-08-31",
+    AAPL: 156.75,
+  },
+  {
+    date: "2024-09-01",
+    AAPL: 192.6,
+  },
+  {
+    date: "2024-09-02",
+    AAPL: 135.49,
+  },
+  {
+    date: "2024-09-03",
+    AAPL: 261.07,
+  },
+  {
+    date: "2024-09-04",
+    AAPL: 187.79,
+  },
+  {
+    date: "2024-09-05",
+    AAPL: 148.67,
+  },
+  {
+    date: "2024-09-06",
+    AAPL: 204.69,
+  },
+  {
+    date: "2024-09-07",
+    AAPL: 155.73,
+  },
+  {
+    date: "2024-09-08",
+    AAPL: 211.37,
+  },
+  {
+    date: "2024-09-09",
+    AAPL: 225.38,
+  },
+  {
+    date: "2024-09-10",
+    AAPL: 127.86,
+  },
+  {
+    date: "2024-09-11",
+    AAPL: 216.09,
+  },
+  {
+    date: "2024-09-12",
+    AAPL: 134.93,
+  },
+  {
+    date: "2024-09-13",
+    AAPL: 228.62,
+  },
+  {
+    date: "2024-09-14",
+    AAPL: 259.83,
+  },
+  {
+    date: "2024-09-15",
+    AAPL: 160.66,
+  },
+  {
+    date: "2024-09-16",
+    AAPL: 157.7,
+  },
+  {
+    date: "2024-09-17",
+    AAPL: 164.98,
+  },
+  {
+    date: "2024-09-18",
+    AAPL: 166.38,
+  },
+  {
+    date: "2024-09-19",
+    AAPL: 168.18,
+  },
+  {
+    date: "2024-09-20",
+    AAPL: 155.81,
+  },
+  {
+    date: "2024-09-21",
+    AAPL: 233.69,
+  },
+  {
+    date: "2024-09-22",
+    AAPL: 249.63,
+  },
+  {
+    date: "2024-09-23",
+    AAPL: 257.03,
+  },
+  {
+    date: "2024-09-24",
+    AAPL: 220.27,
+  },
+  {
+    date: "2024-09-25",
+    AAPL: 251.08,
+  },
+  {
+    date: "2024-09-26",
+    AAPL: 258.49,
+  },
+  {
+    date: "2024-09-27",
+    AAPL: 135.32,
+  },
+  {
+    date: "2024-09-28",
+    AAPL: 147.62,
+  },
+];
+
 export function Asset() {
   return (
     <div className="flex h-auto w-full max-w-[1180px] flex-col gap-8 p-8">
       <PathLink />
+      <HeaderAsset />
+      <MarketChart
+        title={response.symbol}
+        description="Variação de preço"
+        chartData={chartData}
+      />
+    </div>
+  );
+}
+
+function HeaderAsset() {
+  return (
+    <div className="flex justify-between">
+      <div className="flex flex-col gap-3">
+        <h1 className="text-foreground/80 text-3xl font-medium">{`${response.company_name} (${response.symbol})`}</h1>
+        <p className="text-muted-foreground pl-1 text-base">{`Ação - ${response.currency} - NASDAQ`}</p>
+      </div>
+      <div className="flex flex-col items-end gap-2">
+        <div className="flex gap-3">
+          <p className="text-foreground/80 text-4xl font-semibold">
+            {formatPrice(response.current_price, response.currency)}
+          </p>
+          <p
+            className={`${response.change_percent > 0 ? "bg-green-card" : "bg-red-card"} text-primary-foreground flex items-center rounded-[8px] px-2 text-lg font-medium`}
+          >
+            {response.change_percent > 0 ? <ArrowUp /> : <ArrowDown />}
+            {response.change_percent}%
+          </p>
+          <p
+            className={`${response.change_percent > 0 ? "text-green-card" : "text-red-card"} flex h-full items-center text-lg font-medium`}
+          >
+            {formatChange(response.change, false)} Hoje
+          </p>
+        </div>
+        <p className="text-muted-foreground text-base">
+          {formatDate(response.last_updated)}
+        </p>
+      </div>
     </div>
   );
 }

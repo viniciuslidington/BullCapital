@@ -12,7 +12,6 @@ import {
   ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
-  type ChartConfig,
 } from "@/components/ui/chart";
 import { useMemo, useState } from "react";
 import {
@@ -22,31 +21,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-export const description = "An interactive area chart";
-
-// --- DADOS MOCKADOS PARA OS 4 ATIVOS ---
-
-// --- CONFIGURAÇÃO DO GRÁFICO PARA OS 4 ATIVOS ---
-const chartConfig = {
-  // Chave 'visitors' ou 'Preço' pode ser usada como um label genérico se necessário
-  preco: { label: "Preço" },
-  AAPL: { label: "AAPL", color: "hsl(var(--chart-1))" },
-  TSLA: { label: "TSLA", color: "hsl(var(--chart-2))" },
-  MSFT: { label: "MSFT", color: "hsl(var(--chart-3))" },
-  AMZN: { label: "AMZN", color: "hsl(var(--chart-4))" },
-} satisfies ChartConfig;
+import { generateMarketChartConfig } from "@/lib/utils";
 
 interface MarketChartProps {
   title: string;
   description: string;
-  chartData: {
+  chartData: Array<{
     date: string;
-    AAPL: number;
-    TSLA: number;
-    MSFT: number;
-    AMZN: number;
-  }[];
+    [ticker: string]: string | number;
+  }>;
 }
 
 export function MarketChart({
@@ -55,6 +38,8 @@ export function MarketChart({
   chartData,
 }: MarketChartProps) {
   const [timeRange, setTimeRange] = useState("30d");
+
+  const chartConfig = generateMarketChartConfig(chartData);
 
   // A lógica de filtragem foi corrigida aqui
   const filteredData = useMemo(() => {
@@ -113,9 +98,6 @@ export function MarketChart({
             <SelectItem value="7d" className="rounded-lg">
               Últimos 7 dias
             </SelectItem>
-            <SelectItem value="1d" className="rounded-lg">
-              Hoje
-            </SelectItem>
           </SelectContent>
         </Select>
       </CardHeader>
@@ -124,7 +106,7 @@ export function MarketChart({
           config={chartConfig}
           className="aspect-auto h-[250px] w-full"
         >
-          <LineChart data={filteredData}>
+          <LineChart data={filteredData} margin={{ top: 12 }}>
             <CartesianGrid vertical={false} />
             <XAxis
               dataKey="date"
@@ -149,38 +131,18 @@ export function MarketChart({
                 return new Date(value).toLocaleDateString("pt-BR");
               }}
             />
-            <Line
-              dataKey="AAPL"
-              type="natural"
-              fill="url(#fillAAPL)"
-              stroke="var(--chart-1)"
-              dot={false}
-              strokeWidth={2}
-            />
-            <Line
-              dataKey="TSLA"
-              type="natural"
-              fill="url(#fillTSLA)"
-              stroke="var(--chart-2)"
-              dot={false}
-              strokeWidth={2}
-            />
-            <Line
-              dataKey="MSFT"
-              type="natural"
-              fill="url(#fillMSFT)"
-              stroke="var(--chart-3)"
-              dot={false}
-              strokeWidth={2}
-            />
-            <Line
-              dataKey="AMZN"
-              type="natural"
-              fill="url(#fillAMZN)"
-              stroke="var(--chart-4)"
-              dot={false}
-              strokeWidth={2}
-            />
+            {Object.entries(chartConfig).map(([ticker, config]) => (
+              <Line
+                key={ticker}
+                dataKey={ticker}
+                type="natural"
+                fill={`url(#fill${ticker})`}
+                stroke={config.color}
+                dot={false}
+                strokeWidth={2}
+              />
+            ))}
+
             <ChartLegend content={<ChartLegendContent />} />
           </LineChart>
         </ChartContainer>

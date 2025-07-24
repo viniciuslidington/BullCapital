@@ -13,10 +13,21 @@ export const formatPrice = (price: number, currency: string) => {
   });
 };
 
+export const formatDate = (rawDate: string) => {
+  return new Date(rawDate).toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    timeZoneName: "short",
+  });
+};
+
 // Helper para formatar a variação, adicionando o sinal de '+'
-export const formatChange = (change: number) => {
+export const formatChange = (change: number, percentage = true) => {
   const sign = change > 0 ? "+" : "";
-  return `${sign}${change.toFixed(2)}%`;
+  return `${sign}${change.toFixed(2)}${percentage ? "%" : ""}`;
 };
 
 type StockData = {
@@ -47,4 +58,36 @@ export function generateChartDataAndConfig(
   );
 
   return { chartData, chartConfig };
+}
+
+type ChartConfigEntry = {
+  label: string;
+  color?: string;
+};
+
+type ChartConfig = Record<string, ChartConfigEntry>;
+
+export function generateMarketChartConfig(
+  chartData: { [key: string]: number | string }[],
+  options?: { includePreco?: boolean },
+): ChartConfig {
+  if (!chartData || chartData.length === 0) return {};
+
+  const keys = Object.keys(chartData[0]).filter((key) => key !== "date");
+
+  const config: ChartConfig = Object.fromEntries(
+    keys.map((key, index) => [
+      key,
+      {
+        label: key,
+        color: `var(--chart-${index + 1})`,
+      },
+    ]),
+  );
+
+  if (options?.includePreco) {
+    config["preco"] = { label: "Preço" };
+  }
+
+  return config;
 }
