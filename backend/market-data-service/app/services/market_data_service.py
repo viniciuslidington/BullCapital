@@ -336,7 +336,7 @@ class MarketDataService(LoggerMixin):
         
         self.logger.info(
             f"Iniciando requisição em lote {request_id} "
-            f"para {len(request.tickers)} tickers"
+            f"para {len(request.symbols)} tickers"
         )
         
         # Verificar rate limit (usar limite maior para bulk)
@@ -372,7 +372,7 @@ class MarketDataService(LoggerMixin):
         
         return BulkDataResponse(
             request_id=request_id,
-            total_tickers=len(request.tickers),
+            total_tickers=len(request.symbols),
             successful_requests=len(successful_data),
             failed_requests=len(errors),
             data=successful_data,
