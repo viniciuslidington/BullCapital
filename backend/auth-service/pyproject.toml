@@ -8,6 +8,7 @@ dependencies = [
     "fastapi==0.104.1",
     "passlib[bcrypt]==1.7.4",
     "psycopg2-binary==2.9.9",
+    "pydantic-core>=2.14.1",
     "pydantic-settings==2.1.0",
     "pydantic[email]==2.5.0",
     "pyjwt==2.8.0",

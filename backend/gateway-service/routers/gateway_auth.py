@@ -1,62 +1,85 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
-from datetime import timedelta
-from typing import List
 
-from core.database import get_db
-from core.security import require_auth
-from core.config import settings
-from schemas.user import UserCreate, UserLogin, UserResponse, TokenResponse, UserUpdate
-from services.auth_service import auth_service
-from crud.user import get_users, get_user_by_id, update_user, delete_user
+from fastapi import APIRouter, HTTPException, status, Request, Depends
+import httpx
+from typing import List
+from models.auth_models import UserCreate, UserLogin, UserResponse, TokenResponse, UserUpdate
 
 router = APIRouter()
 
+
+AUTH_SERVICE_URL = "http://localhost:8003/api/v1/auth"
 
 @router.post(
     "/register",
     response_model=TokenResponse,
     status_code=status.HTTP_201_CREATED
 )
-def register_user(user: UserCreate, db: Session = Depends(get_db)):
-    db_user = auth_service.register_user(db, user)
-    if not db_user:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User registration failed")
-    return {"access_token": db_user.access_token, "token_type": "bearer"}
+async def register_user(user: UserCreate):
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(f"{AUTH_SERVICE_URL}/register", json=user.dict())
+            response.raise_for_status()
+            return TokenResponse(**response.json())
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+
 
 @router.post(
     "/login",
     response_model=TokenResponse,
     status_code=status.HTTP_200_OK
 )
-def login_user(user: UserLogin, db: Session = Depends(get_db)):
-    db_user = auth_service.login_user(db, user)
-    if not db_user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-    return {"access_token": db_user.access_token, "token_type": "bearer"}
+async def login_user(user: UserLogin):
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(f"{AUTH_SERVICE_URL}/login", json=user.dict())
+            response.raise_for_status()
+            return TokenResponse(**response.json())
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
 
 
-@router.put("/profile"
-            , response_model=UserResponse,
+
+@router.put(
+    "/profile",
+    response_model=UserResponse,
     summary="Atualizar perfil do usuário",
     description="Atualiza as informações do perfil do usuário autenticado."
 )
-def update_profile(user: UserUpdate, db: Session = Depends(get_db), current_user: UserResponse = Depends(require_auth)):
-    db_user = update_user(db, current_user.id, user)
-    if not db_user:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User update failed")
-    return db_user
+async def update_profile(user: UserUpdate, request: Request):
+    token = request.headers.get("Authorization")
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.put(
+                f"{AUTH_SERVICE_URL}/profile",
+                json=user.dict(),
+                headers={"Authorization": token} if token else {}
+            )
+            response.raise_for_status()
+            return UserResponse(**response.json())
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
 
-@router.get("/profile",
-            response_model=UserResponse,
+
+@router.get(
+    "/profile",
+    response_model=UserResponse,
     summary="Obter perfil do usuário",
     description="Retorna as informações do perfil do usuário autenticado."
 )
-def get_profile(db: Session = Depends(get_db), current_user: UserResponse = Depends(require_auth)):
-    db_user = get_user_by_id(db, current_user.id)
-    if not db_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    return db_user
+async def get_profile(request: Request):
+    token = request.headers.get("Authorization")
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                f"{AUTH_SERVICE_URL}/profile",
+                headers={"Authorization": token} if token else {}
+            )
+            response.raise_for_status()
+            return UserResponse(**response.json())
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+
 
 @router.get(
     "/users",
@@ -64,9 +87,19 @@ def get_profile(db: Session = Depends(get_db), current_user: UserResponse = Depe
     summary="Obter lista de usuários",
     description="Retorna uma lista de todos os usuários."
 )
-def get_users_list(db: Session = Depends(get_db), current_user: UserResponse = Depends(require_auth)):
-    db_users = get_users(db)
-    return db_users
+async def get_users_list(request: Request):
+    token = request.headers.get("Authorization")
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                f"{AUTH_SERVICE_URL}/users",
+                headers={"Authorization": token} if token else {}
+            )
+            response.raise_for_status()
+            return [UserResponse(**user) for user in response.json()]
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+
 
 @router.get(
     "/users/{user_id}",
@@ -74,19 +107,34 @@ def get_users_list(db: Session = Depends(get_db), current_user: UserResponse = D
     summary="Obter usuário por ID",
     description="Retorna as informações de um usuário específico pelo ID."
 )
-def get_user(user_id: int, db: Session = Depends(get_db), current_user: UserResponse = Depends(require_auth)):
-    db_user = get_user_by_id(db, user_id)
-    if not db_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    return db_user
+async def get_user(user_id: int, request: Request):
+    token = request.headers.get("Authorization")
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                f"{AUTH_SERVICE_URL}/users/{user_id}",
+                headers={"Authorization": token} if token else {}
+            )
+            response.raise_for_status()
+            return UserResponse(**response.json())
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+
 
 @router.delete(
     "/users/{user_id}",
     summary="Deletar usuário",
     description="Deleta um usuário específico pelo ID."
 )
-def delete_user_endpoint(user_id: int, db: Session = Depends(get_db), current_user: UserResponse = Depends(require_auth)):
-    db_user = delete_user(db, user_id)
-    if not db_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    return {"detail": "User deleted successfully"}
+async def delete_user_endpoint(user_id: int, request: Request):
+    token = request.headers.get("Authorization")
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.delete(
+                f"{AUTH_SERVICE_URL}/users/{user_id}",
+                headers={"Authorization": token} if token else {}
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
