@@ -9,8 +9,11 @@ As configurações são carregadas através de variáveis de ambiente e arquivo 
 usando Pydantic Settings para validação automática de tipos e valores.
 """
 
+from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
 from typing import List
+
+load_dotenv()
 
 class Settings(BaseSettings):
     """
