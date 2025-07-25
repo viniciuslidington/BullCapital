@@ -16,6 +16,8 @@ class StockDataResponse(BaseModel):
     currency: str
     timezone: Optional[str] = None # timezone é null no JSON, então Optional
     last_updated: str # Pode ser datetime.date ou datetime.datetime se você quiser parsear datas
+    sector: Optional[str] = None  # Setor da empresa
+    type: Optional[str] = None    # Tipo do ativo (Ação, BDR, Outro)
 
 
 class SearchResult(BaseModel):

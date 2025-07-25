@@ -124,6 +124,8 @@ class StockDataResponse(BaseModel):
     currency: Optional[str] = Field(default=None, description="Moeda de negociação")
     timezone: Optional[str] = Field(default=None, description="Fuso horário")
     last_updated: str = Field(..., description="Timestamp da última atualização")
+    sector: Optional[str] = Field(default=None, description="Setor da empresa")
+    type: Optional[str] = Field(default=None, description="Tipo do ativo (Ação, BDR, Outro)")
     fundamentals: Optional[FundamentalData] = Field(
         default=None,
         description="Dados fundamentais"

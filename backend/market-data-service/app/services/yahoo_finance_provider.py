@@ -108,6 +108,17 @@ class YahooFinanceProvider(IMarketDataProvider, LoggerMixin):
             
             # Obter informações básicas
             info = self._get_ticker_info_with_retry(ticker, normalized_symbol)
+
+            # Determinar tipo de ativo
+            if normalized_symbol.endswith('34.SA') or normalized_symbol.endswith('35.SA'):
+                tipo = "BDR"
+            elif normalized_symbol.endswith('.SA'):
+                tipo = "Ação"
+            else:
+                tipo = "Outro"
+
+            # Setor
+            sector = info.get('sector', 'Unknown') or 'Unknown'
             
             # Construir resposta base
             response = StockDataResponse(
@@ -119,7 +130,9 @@ class YahooFinanceProvider(IMarketDataProvider, LoggerMixin):
                 avg_volume=info.get('averageVolume'),
                 currency=info.get('currency', 'BRL'),
                 timezone=info.get('timeZone'),
-                last_updated=datetime.now().isoformat()
+                last_updated=datetime.now().isoformat(),
+                sector=sector,
+                type=tipo
             )
             
             # Calcular variação se possível
@@ -515,16 +528,27 @@ class YahooFinanceProvider(IMarketDataProvider, LoggerMixin):
         brazilian_stocks = []
         try:
             df = pd.read_csv(csv_path, sep=',', dtype=str, encoding='utf-8', on_bad_lines='skip')
+            # Detecta se existe coluna de setor
+            has_sector = 'Setor' in df.columns or 'Sector' in df.columns
+            sector_col = 'Setor' if 'Setor' in df.columns else ('Sector' if 'Sector' in df.columns else None)
             for _, row in df.iterrows():
                 symbol = row.get('Ticker', '').strip()
                 name = row.get('Nome', '').strip()
-                sector = "BDR" if symbol.endswith('34.SA') or symbol.endswith('35.SA') else "Unknown"
-                if symbol:
-                    brazilian_stocks.append({
-                        "symbol": symbol,
-                        "name": name,
-                        "sector": sector
-                    })
+                # Define tipo
+                if symbol.endswith('34.SA') or symbol.endswith('35.SA'):
+                    tipo = "BDR"
+                elif symbol.endswith('.SA'):
+                    tipo = "Ação"
+                else:
+                    tipo = "Outro"
+                # Setor do CSV, se existir
+                sector = row.get(sector_col, 'Unknown').strip() if sector_col and row.get(sector_col) else 'Unknown'
+                brazilian_stocks.append({
+                    "symbol": symbol,
+                    "name": name,
+                    "sector": sector,
+                    "type": tipo
+                })
             # Atualizar cache
             self._brazilian_stocks_cache = brazilian_stocks
             self._cache_timestamp = datetime.now()
