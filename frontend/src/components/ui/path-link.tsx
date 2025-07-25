@@ -38,7 +38,7 @@ export function PathLink() {
         )}
         <BreadcrumbItem>
           <BreadcrumbPage className="text-primary cursor-pointer font-medium">
-            Breadcrumb
+            {location.pathname.replace("/", "")}
           </BreadcrumbPage>
         </BreadcrumbItem>
       </BreadcrumbList>

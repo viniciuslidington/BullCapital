@@ -137,6 +137,6 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-accent text-foreground;
+    @apply bg-accent text-foreground dark:bg-[#000103];
   }
 }
