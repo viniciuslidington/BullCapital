@@ -26,6 +26,7 @@ class HistoricalDataPoint(BaseModel):
     
     Attributes:
         date: Data do ponto de dados
+        symbol: Símbolo da ação
         open: Preço de abertura
         high: Preço máximo
         low: Preço mínimo
@@ -35,6 +36,7 @@ class HistoricalDataPoint(BaseModel):
     """
     
     date: str = Field(..., description="Data no formato YYYY-MM-DD")
+    symbol: str = Field(..., description="Símbolo da ação")
     open: float = Field(..., description="Preço de abertura")
     high: float = Field(..., description="Preço máximo")
     low: float = Field(..., description="Preço mínimo")

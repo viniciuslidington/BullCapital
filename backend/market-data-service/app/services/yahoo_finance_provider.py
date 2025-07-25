@@ -492,6 +492,7 @@ class YahooFinanceProvider(IMarketDataProvider, LoggerMixin):
                 try:
                     point = HistoricalDataPoint(
                         date=row['Date'].strftime('%Y-%m-%d') if hasattr(row['Date'], 'strftime') else str(row['Date']),
+                        symbol=symbol,
                         open=round(float(row['Open']), 2),
                         high=round(float(row['High']), 2),
                         low=round(float(row['Low']), 2),

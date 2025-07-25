@@ -25,7 +25,8 @@ from models.responses import (
     SearchResponse,
     StockDataResponse,
     ValidationResponse,
-    SearchResultItem
+    SearchResultItem,
+    HistoricalDataPoint
 )
 from services.market_data_service import MarketDataService
 
@@ -54,6 +55,23 @@ def list_available_stocks() -> List[SearchResultItem]:
         t["current_price"] = t.get("current_price") if t.get("current_price") is not None else 0.0
         results.append(SearchResultItem(**t))
     return results
+
+
+@router.get(
+    "/stocks/{symbol}/history",
+    response_model=List[HistoricalDataPoint],
+    summary="Obter histórico de dados de uma ação",
+    description="Retorna a série histórica de dados de uma ação específica."
+)
+def get_stock_history(symbol: str, period: str = "1mo") -> List[HistoricalDataPoint]:
+    """
+    Endpoint para obter o histórico de dados de uma ação.
+    :param symbol: Símbolo da ação (ex: PETR4.SA, AAPL)
+    :param period: Período dos dados (ex: 1mo, 1y, etc)
+    :return: Lista de pontos históricos de dados
+    """
+    logger.info(f"Obtendo histórico para {symbol}, período {period}")
+    return market_data_service.get_stock_history(symbol, period, client_id="simple-client")
 
 
 @router.get(

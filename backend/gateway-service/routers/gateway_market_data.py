@@ -3,7 +3,7 @@ from pydantic import BaseModel
 import httpx
 from typing import List, Optional
 
-from models.responses.market_data_response import StockDataResponse, StockSearchResponse, SearchResult, TredingDataResponse, BulkDataResponse  # Ensure this is a class, not a variable or instance
+from models.responses.market_data_response import StockDataResponse, StockSearchResponse, SearchResult, TredingDataResponse, BulkDataResponse, HistoricalDataPoint  # Ensure this is a class, not a variable or instance
 
 router = APIRouter()
 
@@ -173,6 +173,35 @@ async def get_all_tickers() -> List[SearchResult]:
             )
             response.raise_for_status()
             return [SearchResult(**stock) for stock in response.json()]
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(
+                status_code=e.response.status_code,
+                detail=f"Erro no serviço de Market Data: {e.response.text}"
+            )
+        except httpx.RequestError as e:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Serviço de Market Data indisponível: {e}"
+            )
+        
+@router.get(
+    "stocks/{symbol}/history",
+    summary="Obter histórico de dados de uma ação",
+    description="Retorna a série histórica de dados de uma ação específica.",
+    response_model=List[HistoricalDataPoint]
+)
+async def get_stock_history(
+    symbol: str,
+    period: str = Query("1mo", description="Período para o qual os dados devem ser retornados, ex: '1d', '1w', '1m'")
+) -> List[HistoricalDataPoint]:
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                f"{MARKET_DATA_SERVICE_URL}/api/v1/market-data/stocks/{symbol}/history",
+                params={"period": period}
+            )
+            response.raise_for_status()
+            return [HistoricalDataPoint(**data) for data in response.json()]
         except httpx.HTTPStatusError as e:
             raise HTTPException(
                 status_code=e.response.status_code,
