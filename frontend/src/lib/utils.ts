@@ -5,6 +5,34 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function formatNumber(valor: number) {
+  const abs = Math.abs(valor);
+
+  let base;
+  let sufixo;
+
+  if (abs >= 1e12) {
+    base = valor / 1e12;
+    sufixo = " tri";
+  } else if (abs >= 1e9) {
+    base = valor / 1e9;
+    sufixo = " bi";
+  } else if (abs >= 1e6) {
+    base = valor / 1e6;
+    sufixo = " mi";
+  } else if (abs >= 1e3) {
+    base = valor / 1e3;
+    sufixo = " mil";
+  } else {
+    return valor.toLocaleString("pt-BR"); // número pequeno, sem sufixo
+  }
+
+  return `${base.toLocaleString("pt-BR", {
+    minimumFractionDigits: base >= 100 ? 0 : 2,
+    maximumFractionDigits: 2,
+  })}${sufixo}`;
+}
+
 // Helper para formatar o preço como moeda (ex: $187.45)
 export const formatPrice = (price: number, currency: string) => {
   return price.toLocaleString("pt-BR", {
