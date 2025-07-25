@@ -84,3 +84,13 @@ class BulkDataResponse(BaseModel):
         default=None,
         description="Metadados da requisição"
     )
+class HistoricalDataPoint(BaseModel):
+    date: date
+    symbol: str
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: int
+    adjusted_close: Optional[float] = None  # Preço ajustado de fechamento, pode ser null
+    currency: Optional[str] = None  # Moeda do dado, pode ser null

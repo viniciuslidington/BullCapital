@@ -14,6 +14,7 @@ from models.responses import (
     SearchResultItem,
     StockDataResponse,
     ValidationResponse,
+    HistoricalDataPoint,
 )
 from services.interfaces import (
     ICacheService,
@@ -147,6 +148,40 @@ class SimpleRateLimiter(IRateLimiter):
 
 
 class MarketDataService(LoggerMixin):
+
+    def get_stock_history(
+        self,
+        symbol: str,
+        period: str = "1mo",
+        client_id: str = "default"
+    ) -> List[HistoricalDataPoint]:
+        """
+        Obtém a série histórica de uma ação para o período especificado.
+        Args:
+            symbol: Símbolo da ação
+            period: Período (ex: '1mo', '1y', etc)
+            client_id: Identificador do cliente
+        Returns:
+            Lista de pontos históricos
+        """
+        from models.requests import StockDataRequest
+        from models.responses import HistoricalDataPoint
+        import yfinance as yf
+
+        # Rate limit opcional
+        if not self.rate_limiter.is_allowed(client_id):
+            raise RateLimitException(
+                f"Rate limit excedido para cliente {client_id}",
+                remaining=self.rate_limiter.get_remaining_requests(client_id)
+            )
+
+        try:
+            request = StockDataRequest(symbol=symbol, period=period)
+            ticker = yf.Ticker(symbol)
+            return self.provider._get_historical_data(ticker, request, symbol)
+        except Exception as e:
+            self.logger.error(f"Erro ao obter histórico para {symbol}: {e}")
+            return []
 
     
 
