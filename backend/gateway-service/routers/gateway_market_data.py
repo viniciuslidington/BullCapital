@@ -3,7 +3,7 @@ from pydantic import BaseModel
 import httpx
 from typing import List, Optional
 
-from models.responses.market_data_response import StockDataResponse, StockSearchResponse, SearchResult, TredingDataResponse, BulkDataResponse, HistoricalDataPoint  # Ensure this is a class, not a variable or instance
+from models.responses.market_data_response import StockDataResponse, StockSearchResponse, SearchResult, TredingDataResponse, BulkDataResponse, HistoricalDataPoint, ValidationResponse
 
 router = APIRouter()
 
@@ -211,4 +211,34 @@ async def get_stock_history(
             raise HTTPException(
                 status_code=503,
                 detail=f"Serviço de Market Data indisponível: {e}"
+            )
+
+@router.get(
+    "/validate/{symbol}",
+    summary="Validar símbolo de ação",
+    description="Verifica se um símbolo de ação é válido.",
+    response_model=ValidationResponse
+)
+async def validate_symbol(symbol: str) -> ValidationResponse:
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                f"{MARKET_DATA_SERVICE_URL}/api/v1/market-data/validate/{symbol}"
+            )
+            response.raise_for_status()
+            return ValidationResponse(**response.json())
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(
+                status_code=e.response.status_code,
+                detail=f"Erro no serviço de Market Data: {e.response.text}"
+            )
+        except httpx.RequestError as e:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Serviço de Market Data indisponível: {e}"
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Erro inesperado: {str(e)}"
             )

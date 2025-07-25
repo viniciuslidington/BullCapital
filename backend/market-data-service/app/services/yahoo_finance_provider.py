@@ -180,68 +180,62 @@ class YahooFinanceProvider(IMarketDataProvider, LoggerMixin):
     
     def validate_ticker(self, symbol: str) -> ValidationResponse:
         """
-        Valida se um ticker existe e é válido no Yahoo Finance.
-        
-        Args:
-            symbol: Símbolo do ticker para validar
-            
-        Returns:
-            Resultado detalhado da validação
+        Valida se um ticker existe e é válido no Yahoo Finance ou no CSV local.
         """
         try:
             self.logger.info(f"Validando ticker {symbol}")
-            
             normalized_symbol = self._normalize_symbol(symbol)
             ticker = self._create_ticker_with_retry(normalized_symbol)
-            
-            # Tentar obter informações básicas
+            info = None
+            is_valid = False
+            tradeable = False
+            last_trade_date = None
+            # Tentar obter informações básicas do yfinance
             try:
                 info = ticker.info
-                
-                # Verificar se o ticker existe e tem dados válidos
-                is_valid = bool(
-                    info and 
-                    'symbol' in info and 
-                    info.get('regularMarketPrice') is not None
-                )
-                
-                # Verificar se é negociável
-                tradeable = info.get('tradeable', False) if is_valid else False
-                
-                # Obter data da última negociação
-                last_trade_date = None
-                if is_valid and 'regularMarketTime' in info:
-                    last_trade_date = datetime.fromtimestamp(
-                        info['regularMarketTime']
-                    ).strftime('%Y-%m-%d')
-                
+                # Considera válido se info['symbol'] bate com o símbolo normalizado (case-insensitive)
+                if info and 'symbol' in info and info['symbol']:
+                    if str(info['symbol']).upper() == normalized_symbol.upper():
+                        is_valid = True
+                        tradeable = info.get('tradeable', False)
+                        if 'regularMarketTime' in info:
+                            last_trade_date = datetime.fromtimestamp(
+                                info['regularMarketTime']
+                            ).strftime('%Y-%m-%d')
+            except Exception as e:
+                self.logger.warning(f"Falha ao obter info do yfinance para {normalized_symbol}: {e}")
+            # Fallback: se não for válido, checar se está no CSV de ações brasileiras
+            if not is_valid and normalized_symbol.endswith('.SA'):
+                brazilian_stocks = self._get_brazilian_stocks()
+                for stock in brazilian_stocks:
+                    if stock['symbol'].upper() == normalized_symbol.upper():
+                        is_valid = True
+                        tradeable = True  # Assume negociável se está no CSV
+                        break
+            # Montar resposta
+            if is_valid:
                 return ValidationResponse(
                     symbol=normalized_symbol,
-                    is_valid=is_valid,
-                    exists=is_valid,
+                    is_valid=True,
+                    exists=True,
                     market=self._extract_market_from_symbol(normalized_symbol),
                     tradeable=tradeable,
                     last_trade_date=last_trade_date,
                     validation_time=datetime.now().isoformat()
                 )
-                
-            except Exception as e:
-                # Ticker não encontrado ou inválido
+            else:
                 suggestions = self._generate_ticker_suggestions(symbol)
-                
                 return ValidationResponse(
                     symbol=normalized_symbol,
                     is_valid=False,
                     exists=False,
                     validation_time=datetime.now().isoformat(),
-                    error_message=f"Ticker não encontrado: {str(e)}",
+                    error_message=f"Ticker não encontrado ou inválido.",
                     suggestions=suggestions
                 )
-                
         except Exception as e:
             error_msg = f"Erro na validação do ticker {symbol}: {str(e)}"
             self.logger.error(error_msg)
-            
             return ValidationResponse(
                 symbol=symbol,
                 is_valid=False,

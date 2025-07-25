@@ -273,10 +273,10 @@ def get_trending_stocks(
     **Dica:** Use antes de chamar /stocks/{symbol} para evitar erros!
     """
 )
-def validate_ticker(symbol: str, db: Session = Depends(get_db)) -> ValidationResponse:
+def validate_ticker(symbol: str) -> ValidationResponse:
     """Endpoint ultra-simplificado para validação."""
     logger.info(f"Validando {symbol}")
-    return market_data_service.validate_ticker(symbol, "simple-client", db=db)
+    return market_data_service.validate_ticker(symbol, "simple-client")
 
 
 @router.post(

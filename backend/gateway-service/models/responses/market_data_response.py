@@ -94,3 +94,15 @@ class HistoricalDataPoint(BaseModel):
     volume: int
     adjusted_close: Optional[float] = None  # Preço ajustado de fechamento, pode ser null
     currency: Optional[str] = None  # Moeda do dado, pode ser null
+
+
+class ValidationResponse(BaseModel):
+    symbol: str
+    is_valid: bool
+    exists: bool
+    market: Optional[str] = None
+    tradeable: Optional[bool] = None
+    last_trade_date: Optional[str] = None
+    validation_time: str
+    error_message: Optional[str] = None
+    suggestions: Optional[List[str]] = None
