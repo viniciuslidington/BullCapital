@@ -177,7 +177,7 @@ export function HighlightsOverview() {
   return (
     <div className="flex w-full items-center gap-5">
       <Tabs defaultValue="acoes" className="w-full">
-        <TabsList className="gap-2">
+        <TabsList className="gap-2 bg-transparent">
           <p className="text-muted-foreground dark:text-foreground mr-2 font-semibold">
             DESTAQUES
           </p>
