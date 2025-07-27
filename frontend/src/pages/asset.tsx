@@ -8,6 +8,8 @@ import {
 } from "@/lib/utils";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsContent } from "@radix-ui/react-tabs";
 
 const response = {
   symbol: "AAPL",
@@ -623,123 +625,10 @@ export function Asset() {
             description="Variação de preço"
             chartData={chartData}
           />
-          <div className="flex flex-col gap-4">
-            <h3 className="text-lg font-semibold">
-              Sobre {response.company_name}
-            </h3>
-            <p className="whitespace-pre-line">
-              Apple é uma empresa multinacional norte-americana que tem o
-              objetivo de projetar e comercializar produtos eletrônicos de
-              consumo, software de computador e computadores pessoais. Os
-              produtos de hardware mais conhecidos da empresa incluem a linha de
-              computadores Macintosh, iPod, iPhone, iPad, Apple TV e o Apple
-              Watch. Os softwares incluem o sistema operacional macOS, o
-              navegador de mídia iTunes, suíte de software multimídia e
-              criatividade iLife, suíte de software de produtividade iWork,
-              Aperture, um pacote de fotografia profissional, Final Cut Studio,
-              uma suíte de vídeo profissional, produtos de software, Logic
-              Studio, um conjunto de ferramentas de produção musical, navegador
-              Safari e o iOS, um sistema operacional móvel. Em agosto de 2010, a
-              empresa operava 301 lojas de varejo em dez países, e uma loja
-              online onde os produtos de hardware e software são vendidos. Para
-              além das Apple Store, a empresa possui as Apple Shops e as Apple
-              Premium Resellers. As primeiras são pequenas áreas exclusivas à
-              marca, devidamente sinalizadas e inseridas em operadores
-              multimarca.
-            </p>
-          </div>
+          <AssetTabs />
         </div>
         <div className="flex flex-col gap-4">
-          <Card className="w-[300px] flex-none gap-0 p-0">
-            <CardHeader className="border-border flex items-center border-b-1 py-5">
-              <CardTitle className="text-base">Dados de Mercado</CardTitle>
-            </CardHeader>
-            <ul className="flex flex-col p-5 text-xs">
-              <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
-                Abertura{" "}
-                <span className="text-foreground text-xs font-medium">
-                  {formatPrice(234.5, "USD")}
-                </span>
-              </li>
-              <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
-                Ultimo Fechamento
-                <span className="text-foreground text-xs font-medium">
-                  {formatPrice(response.previous_close, "USD")}
-                </span>
-              </li>
-              <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
-                {"Variação de hoje(%)"}
-                <span
-                  className={`${response.change_percent > 0 ? "text-green-card" : "text-red-card"} text-xs font-medium`}
-                >
-                  {formatChange(response.change_percent)}
-                </span>
-              </li>
-              <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
-                Variações de hoje
-                <span className="text-foreground text-xs font-medium">
-                  {`${formatPrice(231.8, "USD")} - ${formatPrice(239.5, "USD")}`}
-                </span>
-              </li>
-              <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
-                Variações do ano
-                <span className="text-foreground text-xs font-medium">
-                  {`${formatPrice(response.fundamentals.fifty_two_week_low, "USD")} - ${formatPrice(response.fundamentals.fifty_two_week_high, "USD")}`}
-                </span>
-              </li>
-              <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
-                Volume
-                <span className="text-foreground text-xs font-medium">
-                  {formatNumber(response.volume)}
-                </span>
-              </li>
-              <li className="text-muted-foreground flex items-center justify-between py-4">
-                Volume médio
-                <span className="text-foreground text-xs font-medium">
-                  {formatNumber(response.avg_volume)}
-                </span>
-              </li>
-            </ul>
-          </Card>
-          <Card className="w-[300px] flex-none gap-0 p-0">
-            <CardHeader className="border-border flex items-center border-b-1 py-5">
-              <CardTitle className="text-base">
-                Indicadores Fundamentalista
-              </CardTitle>
-            </CardHeader>
-            <ul className="flex flex-col p-5 text-xs">
-              <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
-                Valor de Mercado{" "}
-                <span className="text-foreground text-xs font-medium">
-                  {formatNumber(response.fundamentals.market_cap)}
-                </span>
-              </li>
-              <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
-                Dividend Yield
-                <span className="text-foreground text-xs font-medium">
-                  {`${response.fundamentals.dividend_yield.toLocaleString("pt-BR")}%`}
-                </span>
-              </li>
-              <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
-                Índice P/L
-                <span className="text-foreground text-xs font-medium">
-                  {`${response.fundamentals.pe_ratio.toLocaleString("pt-BR")}%`}
-                </span>
-              </li>
-              <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
-                ROE
-                <span className="text-foreground text-xs font-medium">
-                  {`${response.fundamentals.roe.toLocaleString("pt-BR")}%`}
-                </span>
-              </li>
-              <li className="text-muted-foreground flex items-center justify-between py-4">
-                Margem Líquida
-                <span className="text-foreground text-xs font-medium">
-                  {formatNumber(response.fundamentals.market_cap)}
-                </span>
-              </li>
-            </ul>
-          </Card>
+          <MarketDataCard /> <FundamentalsDataCard />
         </div>
       </div>
     </div>
@@ -775,5 +664,154 @@ function HeaderAsset() {
         </p>
       </div>
     </div>
+  );
+}
+
+function MarketDataCard() {
+  return (
+    <Card className="w-[300px] flex-none gap-0 p-0">
+      <CardHeader className="border-border flex items-center border-b-2 py-5">
+        <CardTitle className="text-base">Dados de Mercado</CardTitle>
+      </CardHeader>
+      <ul className="flex flex-col p-5 text-xs">
+        <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
+          Abertura{" "}
+          <span className="text-foreground text-xs font-medium">
+            {formatPrice(234.5, "USD")}
+          </span>
+        </li>
+        <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
+          Ultimo Fechamento
+          <span className="text-foreground text-xs font-medium">
+            {formatPrice(response.previous_close, "USD")}
+          </span>
+        </li>
+        <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
+          {"Variação de hoje(%)"}
+          <span
+            className={`${response.change_percent > 0 ? "text-green-card" : "text-red-card"} text-xs font-medium`}
+          >
+            {formatChange(response.change_percent)}
+          </span>
+        </li>
+        <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
+          Variações de hoje
+          <span className="text-foreground text-xs font-medium">
+            {`${formatPrice(231.8, "USD")} - ${formatPrice(239.5, "USD")}`}
+          </span>
+        </li>
+        <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
+          Variações do ano
+          <span className="text-foreground text-xs font-medium">
+            {`${formatPrice(response.fundamentals.fifty_two_week_low, "USD")} - ${formatPrice(response.fundamentals.fifty_two_week_high, "USD")}`}
+          </span>
+        </li>
+        <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
+          Volume
+          <span className="text-foreground text-xs font-medium">
+            {formatNumber(response.volume)}
+          </span>
+        </li>
+        <li className="text-muted-foreground flex items-center justify-between py-4">
+          Volume médio
+          <span className="text-foreground text-xs font-medium">
+            {formatNumber(response.avg_volume)}
+          </span>
+        </li>
+      </ul>
+    </Card>
+  );
+}
+
+function FundamentalsDataCard() {
+  return (
+    <Card className="w-[300px] flex-none gap-0 p-0">
+      <CardHeader className="border-border flex items-center border-b-1 py-5">
+        <CardTitle className="text-base">Indicadores Fundamentalista</CardTitle>
+      </CardHeader>
+      <ul className="flex flex-col p-5 text-xs">
+        <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
+          Valor de Mercado{" "}
+          <span className="text-foreground text-xs font-medium">
+            {formatNumber(response.fundamentals.market_cap)}
+          </span>
+        </li>
+        <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
+          Dividend Yield
+          <span className="text-foreground text-xs font-medium">
+            {`${response.fundamentals.dividend_yield.toLocaleString("pt-BR")}%`}
+          </span>
+        </li>
+        <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
+          Índice P/L
+          <span className="text-foreground text-xs font-medium">
+            {`${response.fundamentals.pe_ratio.toLocaleString("pt-BR")}%`}
+          </span>
+        </li>
+        <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
+          ROE
+          <span className="text-foreground text-xs font-medium">
+            {`${response.fundamentals.roe.toLocaleString("pt-BR")}%`}
+          </span>
+        </li>
+        <li className="text-muted-foreground flex items-center justify-between py-4">
+          Margem Líquida
+          <span className="text-foreground text-xs font-medium">
+            {formatNumber(response.fundamentals.market_cap)}
+          </span>
+        </li>
+      </ul>
+    </Card>
+  );
+}
+
+function AssetTabs() {
+  return (
+    <Tabs defaultValue="sobre" className="w-full gap-6">
+      <TabsList className="border-border flex h-auto w-full justify-start rounded-none border-b-2 bg-transparent p-0">
+        <TabsTrigger
+          value="sobre"
+          className="text-muted-foreground hover:text-primary data-[state=active]:text-primary data-[state=active]:dark:text-primary data-[state=active]:dark:border-primary border-primary hover:dark:text-primary flex-none cursor-pointer rounded-none border-0 px-5 py-3 data-[state=active]:-mb-[1px] data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:dark:bg-transparent"
+        >
+          Sobre
+        </TabsTrigger>
+        <TabsTrigger
+          value="noticias"
+          className="text-muted-foreground hover:text-primary data-[state=active]:text-primary data-[state=active]:dark:text-primary data-[state=active]:dark:border-primary border-primary hover:dark:text-primary flex-none cursor-pointer rounded-none border-0 px-6 py-3 data-[state=active]:-mb-[1px] data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:dark:bg-transparent"
+        >
+          Notícias
+        </TabsTrigger>
+        <TabsTrigger
+          value="historico-proventos"
+          className="text-muted-foreground hover:text-primary data-[state=active]:text-primary data-[state=active]:dark:text-primary data-[state=active]:dark:border-primary border-primary hover:dark:text-primary flex-none cursor-pointer rounded-none border-0 px-5 py-3 data-[state=active]:-mb-[1px] data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:dark:bg-transparent"
+        >
+          Histórico de Proventos
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="sobre" className="flex flex-col gap-2">
+        <h3 className="text-foreground/80 text-lg font-semibold">
+          Sobre {response.company_name}
+        </h3>
+        <p className="text-muted-foreground whitespace-pre-line">
+          Apple é uma empresa multinacional norte-americana que tem o objetivo
+          de projetar e comercializar produtos eletrônicos de consumo, software
+          de computador e computadores pessoais. Os produtos de hardware mais
+          conhecidos da empresa incluem a linha de computadores Macintosh, iPod,
+          iPhone, iPad, Apple TV e o Apple Watch. Os softwares incluem o sistema
+          operacional macOS, o navegador de mídia iTunes, suíte de software
+          multimídia e criatividade iLife, suíte de software de produtividade
+          iWork, Aperture, um pacote de fotografia profissional, Final Cut
+          Studio, uma suíte de vídeo profissional, produtos de software, Logic
+          Studio, um conjunto de ferramentas de produção musical, navegador
+          Safari e o iOS, um sistema operacional móvel. Em agosto de 2010, a
+          empresa operava 301 lojas de varejo em dez países, e uma loja online
+          onde os produtos de hardware e software são vendidos. Para além das
+          Apple Store, a empresa possui as Apple Shops e as Apple Premium
+          Resellers. As primeiras são pequenas áreas exclusivas à marca,
+          devidamente sinalizadas e inseridas em operadores multimarca.
+        </p>
+      </TabsContent>
+      <TabsContent value="password">Change your password here.</TabsContent>
+    </Tabs>
   );
 }

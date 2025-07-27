@@ -662,7 +662,7 @@ export function ChartTabs() {
       defaultValue="bra"
       onValueChange={(value) => setTab(value as MercadoKey)}
     >
-      <TabsList className="gap-2">
+      <TabsList className="gap-2 bg-transparent">
         <p className="text-muted-foreground dark:text-foreground mr-2 font-semibold">
           MERCADOS
         </p>
