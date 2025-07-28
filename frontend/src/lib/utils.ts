@@ -5,7 +5,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatNumber(valor: number) {
+export function formatNumber(valor: number, currency: string | null) {
   const abs = Math.abs(valor);
 
   let base;
@@ -23,8 +23,11 @@ export function formatNumber(valor: number) {
   } else if (abs >= 1e3) {
     base = valor / 1e3;
     sufixo = " mil";
-  } else {
-    return valor.toLocaleString("pt-BR"); // número pequeno, sem sufixo
+  } else if (currency) {
+    return valor.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: currency,
+    }); // número pequeno, sem sufixo
   }
 
   return `${base.toLocaleString("pt-BR", {
