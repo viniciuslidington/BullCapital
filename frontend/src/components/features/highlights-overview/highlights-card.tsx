@@ -1,20 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { formatChange, formatPrice } from "@/lib/utils";
+import type { StockItem } from "@/types/assets";
 import React from "react";
-import { useNavigate } from "react-router-dom";
-
-interface StockItem {
-  ticker: string;
-  nome: string;
-  preco: number;
-  changePercent: number;
-  currency: string;
-}
+import { useNavigate, type NavigateFunction } from "react-router-dom";
 
 interface HighlightsCardProps {
   title: string;
   items: StockItem[];
-  onSeeMore?: () => void;
+  onSeeMore?: NavigateFunction;
 }
 
 export const HighlightsCard: React.FC<HighlightsCardProps> = ({

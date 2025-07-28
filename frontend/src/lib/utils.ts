@@ -5,10 +5,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function capitalizeFirstLetter(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 export function formatNumber(valor: number, currency: string | null) {
   const abs = Math.abs(valor);
 
-  let base;
+  let base = 0;
   let sufixo;
 
   if (abs >= 1e12) {

@@ -7,6 +7,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { useLocation, useNavigate } from "react-router-dom";
+import { capitalizeFirstLetter } from "@/lib/utils";
 
 export function PathLink() {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ export function PathLink() {
                 className="cursor-pointer"
                 onClick={() => navigate(-1)}
               >
-                {location.state.from}
+                {capitalizeFirstLetter(location.state.from)}
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
@@ -38,7 +39,7 @@ export function PathLink() {
         )}
         <BreadcrumbItem>
           <BreadcrumbPage className="text-primary cursor-pointer font-medium">
-            {location.pathname.replace("/", "")}
+            {capitalizeFirstLetter(location.pathname.replace("/", ""))}
           </BreadcrumbPage>
         </BreadcrumbItem>
       </BreadcrumbList>

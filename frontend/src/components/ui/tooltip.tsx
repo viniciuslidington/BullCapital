@@ -37,9 +37,11 @@ function TooltipContent({
   sideOffset = 0,
   children,
   portal = true,
+  arrow = true,
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Content> & {
   portal?: boolean;
+  arrow?: boolean | undefined;
 }) {
   if (portal) {
     return (
@@ -54,7 +56,11 @@ function TooltipContent({
           {...props}
         >
           {children}
-          <TooltipPrimitive.Arrow className="bg-primary fill-primary z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px]" />
+          {arrow && (
+            <TooltipPrimitive.Arrow
+              className={`bg-primary fill-primary z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px]`}
+            />
+          )}
         </TooltipPrimitive.Content>
       </TooltipPrimitive.Portal>
     );

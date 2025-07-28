@@ -5,7 +5,7 @@ import { Header } from "./components/ui/header";
 import { Footer } from "./components/ui/footer";
 import { Sidebar } from "./components/features/ai-assistant/sidebar";
 import { Asset } from "./pages/asset";
-import { Highlight } from "./pages/highlight";
+import { Ranking } from "./pages/ranking";
 import { ScrollToTop } from "./components/ui/scrolltotop";
 
 function App() {
@@ -21,7 +21,7 @@ function App() {
                 <Routes>
                   <Route path="/" element={<Home />}></Route>
                   <Route path="/:ticker" element={<Asset />}></Route>
-                  <Route path="/destaque" element={<Highlight />}></Route>
+                  <Route path="/ranking" element={<Ranking />}></Route>
                 </Routes>
 
                 <Footer />

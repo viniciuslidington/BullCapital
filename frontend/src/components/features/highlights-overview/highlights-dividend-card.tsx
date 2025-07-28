@@ -1,31 +1,14 @@
 import { Button } from "@/components/ui/button";
+import { formatPrice } from "@/lib/utils";
+import type { DividendItem } from "@/types/assets";
 import React from "react";
-import { useNavigate } from "react-router-dom";
-
-interface DividendItem {
-  ticker: string;
-  nome: string;
-  dividendo: number;
-  currency: string;
-  dy: number;
-  tipo: string;
-  dataCom: string;
-  dataEx: string;
-  dataPagamento: string;
-}
+import { useNavigate, type NavigateFunction } from "react-router-dom";
 
 interface HighlightsCardProps {
   title: string;
   items: DividendItem[];
-  onSeeMore?: () => void;
+  onSeeMore?: NavigateFunction;
 }
-
-const formatPrice = (price: number, currency: string) => {
-  return price.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: currency,
-  });
-};
 
 export const HighlightsDividendCard: React.FC<HighlightsCardProps> = ({
   title,
