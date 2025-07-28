@@ -6,11 +6,13 @@ import { Footer } from "./components/ui/footer";
 import { Sidebar } from "./components/features/ai-assistant/sidebar";
 import { Asset } from "./pages/asset";
 import { Highlight } from "./pages/highlight";
+import { ScrollToTop } from "./components/ui/scrolltotop";
 
 function App() {
   return (
     <>
       <BrowserRouter>
+        <ScrollToTop />
         <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
           <div className="min-h-screen w-full flex-col">
             <Header />
