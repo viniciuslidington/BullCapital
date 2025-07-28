@@ -31,18 +31,8 @@ import {
 import { useState } from "react";
 
 import { QuestionMark } from "@/components/ui/question-mark";
-
-type IndexType =
-  | "price"
-  | "priceChangePercent"
-  | "roe"
-  | "dy"
-  | "yearHigh"
-  | "marketCap"
-  | "peRatio"
-  | "netMargin"
-  | "pFfo"
-  | "pVp";
+import type { IndexesType } from "@/types/assets";
+import { indexesData } from "@/data/indexes-data";
 
 const rawData = [
   {
@@ -76,21 +66,8 @@ const { chartData, chartConfig } = generateChartDataAndConfig(rawData, "roe", [
   "var(--chart-secondary-5)",
 ]);
 
-const indexData = {
-  price: "Preço",
-  priceChangePercent: "Variação",
-  roe: "Roe - Return on Equity",
-  dy: "Dividend Yield",
-  yearHigh: "Max 52s",
-  marketCap: "Valor de mercado",
-  peRatio: "Índice P/L (Ações/ETFs/BDRs)",
-  netMargin: "Margem Líquida (Ações/BDRs)",
-  pFfo: "P/FFO (FIIs)",
-  pVp: "Preço / Valor Patrimonial (FIIs)",
-};
-
 export function AssetChart() {
-  const [indexType, setIndexType] = useState<IndexType>("roe");
+  const [dataIndex, setDataIndex] = useState<IndexesType>("roe");
 
   return (
     <div className="flex flex-col gap-2">
@@ -100,13 +77,16 @@ export function AssetChart() {
       <Card className="pt-0">
         <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
           <div className="grid flex-1 gap-1">
-            <IndexTitle title={indexData[indexType]} index={indexType} />
+            <IndexTitle
+              title={indexesData[dataIndex].title}
+              dataIndex={dataIndex}
+            />
             <CardDescription>Julho 2025</CardDescription>
           </div>
           <Button variant="link" className="text-primary cursor-pointer">
             Editar Ativos
           </Button>
-          <SelectIndex indexType={indexType} setIndexType={setIndexType} />
+          <SelectIndex dataIndex={dataIndex} setDataIndex={setDataIndex} />
         </CardHeader>
         <CardContent>
           <ChartContainer
@@ -153,16 +133,16 @@ export function AssetChart() {
 }
 
 function SelectIndex({
-  indexType,
-  setIndexType,
+  dataIndex,
+  setDataIndex,
 }: {
-  indexType: string;
-  setIndexType: React.Dispatch<React.SetStateAction<IndexType>>;
+  dataIndex: string;
+  setDataIndex: React.Dispatch<React.SetStateAction<IndexesType>>;
 }) {
   return (
     <Select
-      value={indexType}
-      onValueChange={(value) => setIndexType(value as IndexType)}
+      value={dataIndex}
+      onValueChange={(value) => setDataIndex(value as IndexesType)}
     >
       <SelectTrigger
         className="w-[160px] rounded-lg sm:ml-auto sm:flex"
@@ -178,7 +158,7 @@ function SelectIndex({
           Variação
         </SelectItem>
         <SelectItem value="roe" className="rounded-lg">
-          Roe
+          ROE
         </SelectItem>
         <SelectItem value="dy" className="rounded-lg">
           Dividend Yield
@@ -199,18 +179,24 @@ function SelectIndex({
           {"P/FFO / (FIIs)"}
         </SelectItem>
         <SelectItem value="pVp" className="rounded-lg">
-          {"Preço / Valor Patrimonial (FIIs)"}
+          {"P/VP (FIIs)"}
         </SelectItem>
       </SelectContent>
     </Select>
   );
 }
 
-function IndexTitle({ title, index }: { title?: string; index: IndexType }) {
+function IndexTitle({
+  title,
+  dataIndex,
+}: {
+  title?: string;
+  dataIndex: IndexesType;
+}) {
   return (
     <CardTitle className="flex items-center gap-1.5">
       {title}
-      <QuestionMark index={index} />
+      <QuestionMark dataType="indexes" dataIndex={dataIndex} delay={300} />
     </CardTitle>
   );
 }
