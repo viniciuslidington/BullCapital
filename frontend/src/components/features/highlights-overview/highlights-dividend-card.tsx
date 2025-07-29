@@ -1,36 +1,21 @@
 import { Button } from "@/components/ui/button";
-import React from "react";
-
-interface DividendItem {
-  ticker: string;
-  nome: string;
-  dividendo: number;
-  currency: string;
-  dy: number;
-  tipo: string;
-  dataCom: string;
-  dataEx: string;
-  dataPagamento: string;
-}
+import { formatPrice } from "@/lib/utils";
+import type { DividendItem } from "@/types/assets";
+import React, { type MouseEventHandler } from "react";
+import { useNavigate, type NavigateFunction } from "react-router-dom";
 
 interface HighlightsCardProps {
   title: string;
   items: DividendItem[];
-  onSeeMore?: () => void;
+  onSeeMore?: NavigateFunction;
 }
-
-const formatPrice = (price: number, currency: string) => {
-  return price.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: currency,
-  });
-};
 
 export const HighlightsDividendCard: React.FC<HighlightsCardProps> = ({
   title,
   items,
   onSeeMore,
 }) => {
+  const navigate = useNavigate();
   return (
     <div className="group bg-card text-card-foreground w-[264px] max-w-sm flex-none rounded-xl border-1 shadow-sm transition-all duration-200 ease-in-out hover:shadow-lg">
       <div className="flex flex-row items-center justify-between border-b-1 p-4 pb-5">
@@ -40,7 +25,7 @@ export const HighlightsDividendCard: React.FC<HighlightsCardProps> = ({
         <Button
           variant="link"
           className="h-auto cursor-pointer p-0 text-sm"
-          onClick={onSeeMore}
+          onClick={onSeeMore as MouseEventHandler<HTMLButtonElement>}
         >
           Ver Mais
         </Button>
@@ -51,6 +36,7 @@ export const HighlightsDividendCard: React.FC<HighlightsCardProps> = ({
             <div
               key={item.ticker}
               className="hover:bg-input active:bg-primary flex cursor-pointer items-center justify-between rounded-[8px] p-2 transition-all duration-200 ease-in-out"
+              onClick={() => navigate(item.ticker)}
             >
               <div>
                 <p className="text-md font-semibold">{item.ticker}</p>

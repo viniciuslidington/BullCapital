@@ -19,8 +19,9 @@ export function SidebarFooter() {
   ];
 
   function handleSubmit() {
-    setInput("");
+    if (input === "") return;
     addMessageHandler(input);
+    setInput("");
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -59,6 +60,7 @@ export function SidebarFooter() {
             size="sm"
             className="bg-input cursor-pointer rounded-xl"
             onClick={() => setInput(s)}
+            key={s}
           >
             <p className="text-muted-foreground text-xs">{s}</p>
           </Button>
