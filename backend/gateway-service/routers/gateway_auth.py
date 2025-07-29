@@ -1,5 +1,6 @@
 
 from fastapi import APIRouter, HTTPException, status, Request, Depends
+from fastapi.encoders import jsonable_encoder
 import httpx
 from typing import List
 from models.auth_models import UserCreate, UserLogin, UserResponse, TokenResponse, UserUpdate
@@ -11,15 +12,16 @@ AUTH_SERVICE_URL = "http://localhost:8003/api/v1/auth"
 
 @router.post(
     "/register",
-    response_model=TokenResponse,
+    response_model=UserResponse,
     status_code=status.HTTP_201_CREATED
 )
 async def register_user(user: UserCreate):
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.post(f"{AUTH_SERVICE_URL}/register", json=user.dict())
+            user_json = jsonable_encoder(user)
+            response = await client.post(f"{AUTH_SERVICE_URL}/register", json=user_json)
             response.raise_for_status()
-            return TokenResponse(**response.json())
+            return UserResponse(**response.json())
         except httpx.HTTPStatusError as e:
             raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
 
@@ -32,7 +34,8 @@ async def register_user(user: UserCreate):
 async def login_user(user: UserLogin):
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.post(f"{AUTH_SERVICE_URL}/login", json=user.dict())
+            user_json = jsonable_encoder(user)
+            response = await client.post(f"{AUTH_SERVICE_URL}/login", json=user_json)
             response.raise_for_status()
             return TokenResponse(**response.json())
         except httpx.HTTPStatusError as e:
@@ -50,9 +53,10 @@ async def update_profile(user: UserUpdate, request: Request):
     token = request.headers.get("Authorization")
     async with httpx.AsyncClient() as client:
         try:
+            user_json = jsonable_encoder(user)
             response = await client.put(
                 f"{AUTH_SERVICE_URL}/profile",
-                json=user.dict(),
+                json=user_json,
                 headers={"Authorization": token} if token else {}
             )
             response.raise_for_status()

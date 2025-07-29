@@ -16,9 +16,6 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 import pandas as pd
 import yfinance as yf
-import yahooquery as yq
-from yahooquery import Screener
-import investpy as inv
 import os
 
 from core.config import settings
