@@ -24,19 +24,22 @@ export function QuestionMark({
   children,
   icon = true,
   side = "right",
-  delay = 200,
+  delay = 0,
 }: QuestionMarkProps) {
   return (
     <Tooltip delayDuration={delay}>
       <TooltipTrigger>
         {icon && (
-          <CircleQuestionMark className="text-primary mt-1 h-4 w-4 cursor-pointer" />
+          <CircleQuestionMark
+            onMouseDown={(e) => e.preventDefault()}
+            className="text-primary mt-1 h-4 w-4"
+          />
         )}
         {children}
       </TooltipTrigger>
       <TooltipContent side={side} className={`max-w-full text-wrap`}>
         <p
-          className={`max-w-[400px] text-left font-medium whitespace-pre-line lg:max-w-[464px] ${dataType === "categoryTitle" ? "" : "p-1"}`}
+          className={`max-w-[400px] text-left font-medium whitespace-pre-line lg:max-w-[464px] ${dataType === "categoryTitle" ? "" : "p-2"}`}
         >
           {dataType === "indexes"
             ? indexesData[dataIndex as IndexesType].description
