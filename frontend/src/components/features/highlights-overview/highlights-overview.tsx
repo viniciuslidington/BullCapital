@@ -1,6 +1,10 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HighlightsCard } from "./highlights-card";
 import { HighlightsDividendCard } from "./highlights-dividend-card";
+import { useState, type ReactNode } from "react";
+import type { CategoriasType } from "@/types/assets";
+import { useNavigate } from "react-router-dom";
+import { QuestionMark } from "@/components/ui/question-mark";
 
 const mockAcoesBR = {
   emAlta: [
@@ -174,10 +178,20 @@ const mockAcoesBR = {
 };
 
 export function HighlightsOverview() {
+  const [categoria, setCategoria] = useState<CategoriasType>("acoes");
+
+  const navigate = useNavigate();
+  const onSeeMore = (filtro: string) =>
+    navigate(`/ranking?categoria=${categoria}&filtro=${filtro}`);
+
   return (
-    <div className="flex w-full items-center gap-5">
-      <Tabs defaultValue="acoes" className="w-full">
-        <TabsList className="gap-2">
+    <div className="flex w-full flex-col gap-2">
+      <Tabs
+        defaultValue="acoes"
+        className="w-full"
+        onValueChange={(value) => setCategoria(value as CategoriasType)}
+      >
+        <TabsList className="gap-2 bg-transparent">
           <p className="text-muted-foreground dark:text-foreground mr-2 font-semibold">
             DESTAQUES
           </p>
@@ -187,74 +201,74 @@ export function HighlightsOverview() {
           >
             Ações
           </TabsTrigger>
-          <TabsTrigger
-            value="fiis"
-            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
-          >
-            FIIs
-          </TabsTrigger>
-          <TabsTrigger
-            value="etfs"
-            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
-          >
-            ETFs
-          </TabsTrigger>
-          <TabsTrigger
-            value="bdrs"
-            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
-          >
-            BDRs
-          </TabsTrigger>
+          <Tooltip value="fiis">
+            <TabsTrigger
+              value="fiis"
+              className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
+            >
+              FIIs
+            </TabsTrigger>
+          </Tooltip>
+          <Tooltip value="etfs">
+            <TabsTrigger
+              value="etfs"
+              className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
+            >
+              ETFs
+            </TabsTrigger>
+          </Tooltip>
+          <Tooltip value="bdrs">
+            <TabsTrigger
+              value="bdrs"
+              className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
+            >
+              BDRs
+            </TabsTrigger>
+          </Tooltip>
         </TabsList>
-        <TabsContent value="acoes" className="flex gap-5">
-          <HighlightsCard title="Altas" items={mockAcoesBR.emAlta} />
-          <HighlightsCard title="Baixas" items={mockAcoesBR.emBaixa} />
-          <HighlightsCard
-            title="Mais Ativas"
-            items={mockAcoesBR.maisNegociados}
-          />
-          <HighlightsDividendCard
-            title="Dividendos"
-            items={mockAcoesBR.maioresDividendos}
-          />
-        </TabsContent>
-        <TabsContent value="fiis" className="flex gap-5">
-          <HighlightsCard title="Altas" items={mockAcoesBR.emAlta} />
-          <HighlightsCard title="Baixas" items={mockAcoesBR.emBaixa} />
-          <HighlightsCard
-            title="Mais Ativas"
-            items={mockAcoesBR.maisNegociados}
-          />
-          <HighlightsDividendCard
-            title="Dividendos"
-            items={mockAcoesBR.maioresDividendos}
-          />
-        </TabsContent>
-        <TabsContent value="etfs" className="flex gap-5">
-          <HighlightsCard title="Altas" items={mockAcoesBR.emAlta} />
-          <HighlightsCard title="Baixas" items={mockAcoesBR.emBaixa} />
-          <HighlightsCard
-            title="Mais Ativas"
-            items={mockAcoesBR.maisNegociados}
-          />
-          <HighlightsDividendCard
-            title="Dividendos"
-            items={mockAcoesBR.maioresDividendos}
-          />
-        </TabsContent>
-        <TabsContent value="bdrs" className="flex gap-5">
-          <HighlightsCard title="Altas" items={mockAcoesBR.emAlta} />
-          <HighlightsCard title="Baixas" items={mockAcoesBR.emBaixa} />
-          <HighlightsCard
-            title="Mais Ativas"
-            items={mockAcoesBR.maisNegociados}
-          />
-          <HighlightsDividendCard
-            title="Dividendos"
-            items={mockAcoesBR.maioresDividendos}
-          />
-        </TabsContent>
       </Tabs>
+      <div className="flex gap-5">
+        <HighlightsCard
+          title="Altas"
+          items={mockAcoesBR.emAlta}
+          onSeeMore={() => onSeeMore("altas")}
+        />
+        <HighlightsCard
+          title="Baixas"
+          items={mockAcoesBR.emBaixa}
+          onSeeMore={() => onSeeMore("baixas")}
+        />
+        <HighlightsCard
+          title="Mais Ativas"
+          items={mockAcoesBR.maisNegociados}
+          onSeeMore={() => onSeeMore("ativas")}
+        />
+        <HighlightsDividendCard
+          title="Dividendos"
+          items={mockAcoesBR.maioresDividendos}
+          onSeeMore={() => onSeeMore("dividendos")}
+        />
+      </div>
     </div>
+  );
+}
+
+function Tooltip({
+  children,
+  value,
+}: {
+  children: ReactNode;
+  value: CategoriasType;
+}) {
+  return (
+    <QuestionMark
+      dataIndex={value}
+      dataType="categoryTitle"
+      icon={false}
+      side="top"
+      delay={600}
+    >
+      {children}
+    </QuestionMark>
   );
 }

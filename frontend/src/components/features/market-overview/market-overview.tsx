@@ -4,7 +4,7 @@ const response = {
   lastUpdated: "2025-07-18T14:43:00-03:00",
   cards: [
     {
-      id: "ibov",
+      ticker: "IBOV",
       name: "Ibovespa",
       type: "index",
       value: 136362.5,
@@ -12,7 +12,7 @@ const response = {
       changePercent: -0.81,
     },
     {
-      id: "ifix",
+      ticker: "IFIX",
       name: "IFIX",
       type: "index",
       value: 3420.1,
@@ -20,7 +20,7 @@ const response = {
       changePercent: 0.12,
     },
     {
-      id: "smll",
+      ticker: "SMLL",
       name: "SMLL",
       type: "index",
       value: 2250.75,
@@ -28,7 +28,7 @@ const response = {
       changePercent: -0.25,
     },
     {
-      id: "cdi",
+      ticker: "CDI",
       name: "CDI 12m",
       type: "fixed_income",
       value: 12.14,
@@ -36,7 +36,7 @@ const response = {
       changePercent: 1.09,
     },
     {
-      id: "sp500",
+      ticker: "SPX",
       name: "S&P 500",
       type: "index",
       value: 5635.25,
@@ -44,7 +44,7 @@ const response = {
       changePercent: 0.27,
     },
     {
-      id: "nasdaq",
+      ticker: "^IXIC",
       name: "Nasdaq",
       type: "index",
       value: 18250.15,
@@ -52,21 +52,13 @@ const response = {
       changePercent: 0.42,
     },
     {
-      id: "usd",
+      ticker: "USDBRL",
       name: "USD",
       type: "currency",
       value: 5.55,
       unit: "R$",
       changePercent: -0.18,
     },
-    /* {
-      id: "eur",
-      name: "EUR",
-      type: "currency",
-      value: 6.02,
-      unit: "R$",
-      changePercent: -0.18,
-    }, */
   ],
 };
 
@@ -75,7 +67,8 @@ export function MarketOverview() {
     <div className="flex flex-nowrap justify-between gap-5">
       {response.cards.map((data) => (
         <AssetBox
-          key={data.id}
+          key={data.ticker}
+          ticker={data.ticker}
           name={data.name}
           value={data.value}
           unit={data.unit}
