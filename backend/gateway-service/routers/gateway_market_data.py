@@ -7,7 +7,7 @@ from models.responses.market_data_response import StockDataResponse, StockSearch
 
 router = APIRouter()
 
-MARKET_DATA_SERVICE_URL = "http://localhost:8003"  # URL do serviço de Market Data, deve ser configurado corretamente
+MARKET_DATA_SERVICE_URL = "http://market-data-service:8002"  # URL do serviço de Market Data, deve ser configurado corretamente
 
 @router.get(
     "/stocks/{symbol}",
