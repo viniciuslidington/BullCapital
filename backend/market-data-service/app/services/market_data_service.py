@@ -1,16 +1,4 @@
-"""
-Serviço principal de Market Data.
 
-Este módulo implementa a lógica de negócio principal do microserviço,
-coordenando diferentes provedores de dados, cache e rate limiting.
-Segue os princípios SOLID e oferece uma interface unificada.
-
-Example:
-    from services.market_data_service import MarketDataService
-    
-    service = MarketDataService()
-    data = service.get_stock_data("PETR4.SA", request)
-"""
 
 import time
 import uuid
@@ -26,6 +14,7 @@ from models.responses import (
     SearchResultItem,
     StockDataResponse,
     ValidationResponse,
+    HistoricalDataPoint,
 )
 from services.interfaces import (
     ICacheService,
@@ -35,7 +24,7 @@ from services.interfaces import (
     RateLimitException,
 )
 from services.yahoo_finance_provider import YahooFinanceProvider
-from sqlalchemy.orm import Session
+
 
 
 class InMemoryCache(ICacheService):
@@ -159,12 +148,48 @@ class SimpleRateLimiter(IRateLimiter):
 
 
 class MarketDataService(LoggerMixin):
-    def list_all_tickers(self, db: Session):
-        """Retorna todos os tickers únicos do banco de dados."""
-        from models.market_data import MarketData as MarketDataORM
-        results = db.query(MarketDataORM.symbol).distinct().all()
-        tickers = [r[0] for r in results if r[0]]
-        return {"tickers": tickers}
+
+    def get_stock_history(
+        self,
+        symbol: str,
+        period: str = "1mo",
+        client_id: str = "default"
+    ) -> List[HistoricalDataPoint]:
+        """
+        Obtém a série histórica de uma ação para o período especificado.
+        Args:
+            symbol: Símbolo da ação
+            period: Período (ex: '1mo', '1y', etc)
+            client_id: Identificador do cliente
+        Returns:
+            Lista de pontos históricos
+        """
+        from models.requests import StockDataRequest
+        from models.responses import HistoricalDataPoint
+        import yfinance as yf
+
+        # Rate limit opcional
+        if not self.rate_limiter.is_allowed(client_id):
+            raise RateLimitException(
+                f"Rate limit excedido para cliente {client_id}",
+                remaining=self.rate_limiter.get_remaining_requests(client_id)
+            )
+
+        try:
+            request = StockDataRequest(symbol=symbol, period=period)
+            ticker = yf.Ticker(symbol)
+            return self.provider._get_historical_data(ticker, request, symbol)
+        except Exception as e:
+            self.logger.error(f"Erro ao obter histórico para {symbol}: {e}")
+            return []
+
+    
+
+    def list_available_stocks(self, client_id: str = "default", market: str = "BR") -> list:
+        """
+        Lista todos os tickers disponíveis para o mercado especificado.
+        """
+        return self.provider.get_all_tickers(market=market)
     """
     Serviço principal de Market Data.
     
@@ -202,7 +227,6 @@ class MarketDataService(LoggerMixin):
         symbol: str,
         request: StockDataRequest,
         client_id: str = "default",
-        db: Session = None
     ) -> StockDataResponse:
         """
         Obtém dados completos de uma ação específica.
@@ -225,26 +249,6 @@ class MarketDataService(LoggerMixin):
                 f"Rate limit excedido para cliente {client_id}",
                 remaining=self.rate_limiter.get_remaining_requests(client_id)
             )
-        
-        # Obter dados do banco de dados se a sessão estiver disponível
-        if db:
-            from models.market_data import MarketData as MarketDataORM
-            result = db.query(MarketDataORM).filter(MarketDataORM.symbol == symbol).order_by(MarketDataORM.data.desc()).first()
-            if result:
-                return StockDataResponse(
-                    symbol=result.symbol,
-                    company_name=result.longName or result.shortName,
-                    current_price=result.close_price,
-                    previous_close=result.open_price,
-                    change=(result.close_price - result.open_price) if result.open_price else None,
-                    change_percent=((result.close_price - result.open_price) / result.open_price * 100) if result.open_price else None,
-                    volume=result.volume,
-                    currency="BRL",
-                    last_updated=str(result.data),
-                    fundamentals=None,
-                    historical_data=None,
-                    metadata={"db": True}
-                )
         
         # Tentar obter do cache primeiro
         cache_key = self._generate_cache_key("stock_data", symbol, request)
@@ -274,30 +278,6 @@ class MarketDataService(LoggerMixin):
                     ttl=settings.CACHE_TTL_SECONDS
                 )
             
-            # Salvar no banco de dados se a sessão estiver disponível
-            if db:
-                try:
-                    from models.market_data import MarketData as MarketDataORM
-                    md = MarketDataORM(
-                        data=datetime.strptime(data.last_updated[:10], "%Y-%m-%d"),
-                        ticker=symbol,
-                        open_price=data.previous_close,
-                        high_price=None,
-                        low_price=None,
-                        close_price=data.current_price,
-                        volume=data.volume,
-                        symbol=symbol,
-                        shortName=data.company_name,
-                        longName=data.company_name,
-                        sector=None,
-                        industry=None,
-                        exchange=None
-                    )
-                    db.add(md)
-                    db.commit()
-                except Exception as e:
-                    self.logger.warning(f"Erro ao salvar no banco: {e}")
-            
             return data
             
         except ProviderException:
@@ -316,7 +296,6 @@ class MarketDataService(LoggerMixin):
         self,
         request: SearchRequest,
         client_id: str = "default",
-        db: Session = None
     ) -> SearchResponse:
         """
         Busca ações por nome ou símbolo.
@@ -336,38 +315,18 @@ class MarketDataService(LoggerMixin):
             start_time = time.time()
             
             search_results = []
-            # Buscar no banco de dados se a sessão estiver disponível
-            if db:
-                from models.market_data import MarketData as MarketDataORM
-                query = db.query(MarketDataORM)
-                query = query.filter(
-                    (MarketDataORM.symbol.ilike(f"%{request.query}%")) |
-                    (MarketDataORM.shortName.ilike(f"%{request.query}%")) |
-                    (MarketDataORM.longName.ilike(f"%{request.query}%"))
-                ).limit(request.limit)
-                for result in query:
-                    search_results.append(SearchResultItem(
-                        symbol=result.symbol,
-                        name=result.longName or result.shortName or result.symbol,
-                        sector=result.sector,
-                        market=result.exchange,
-                        current_price=result.close_price,
-                        currency="BRL"
-                    ))
             
-            # Se não houver resultados, buscar no provedor
-            if not search_results:
-                results = self.provider.search_tickers(request.query, request.limit)
-                for result in results:
-                    search_results.append(SearchResultItem(
-                        symbol=result["symbol"],
-                        name=result["name"],
-                        sector=result.get("sector"),
-                        market=result.get("market"),
-                        current_price=result.get("current_price"),
-                        currency=result.get("currency"),
-                        relevance_score=result.get("relevance_score")
-                    ))
+            results = self.provider.search_tickers(request.query, request.limit)
+            for result in results:
+                search_results.append(SearchResultItem(
+                    symbol=result["symbol"],
+                    name=result["name"],
+                    sector=result.get("sector"),
+                    market=result.get("market"),
+                    current_price=result.get("current_price"),
+                    currency=result.get("currency"),
+                    relevance_score=result.get("relevance_score")
+                ))
             
             search_time = (time.time() - start_time) * 1000
             
@@ -392,7 +351,6 @@ class MarketDataService(LoggerMixin):
         self,
         request: BulkDataRequest,
         client_id: str = "default",
-        db: Session = None
     ) -> BulkDataResponse:
         """
         Obtém dados em lote para múltiplos tickers.
@@ -409,7 +367,7 @@ class MarketDataService(LoggerMixin):
         
         self.logger.info(
             f"Iniciando requisição em lote {request_id} "
-            f"para {len(request.tickers)} tickers"
+            f"para {len(request.symbols)} tickers"
         )
         
         # Verificar rate limit (usar limite maior para bulk)
@@ -419,42 +377,21 @@ class MarketDataService(LoggerMixin):
         successful_data = {}
         errors = {}
         
-        # Obter dados do banco de dados se a sessão estiver disponível
-        if db:
-            from models.market_data import MarketData as MarketDataORM
-            query = db.query(MarketDataORM).filter(MarketDataORM.symbol.in_(request.symbols)).all()
-            for result in query:
-                successful_data[result.symbol] = StockDataResponse(
-                    symbol=result.symbol,
-                    company_name=result.longName or result.shortName,
-                    current_price=result.close_price,
-                    previous_close=result.open_price,
-                    change=(result.close_price - result.open_price) if result.open_price else None,
-                    change_percent=((result.close_price - result.open_price) / result.open_price * 100) if result.open_price else None,
-                    volume=result.volume,
-                    currency="BRL",
-                    last_updated=str(result.data),
-                    fundamentals=None,
-                    historical_data=None,
-                    metadata={"db": True}
-                )
-        
         # Processar cada ticker
         for symbol in request.symbols:  # Corrigido: usar 'symbols' em vez de 'tickers'
-            if symbol not in successful_data:
-                try:
-                    # Criar requisição individual simplificada
-                    stock_request = StockDataRequest(
-                        symbol=symbol,
-                        period=request.period
-                    )
-                    
-                    # Obter dados (sem verificar rate limit novamente)
-                    data = self.provider.get_stock_data(symbol, stock_request)
-                    successful_data[symbol] = data
-                except Exception as e:
-                    self.logger.warning(f"Erro ao obter dados para {symbol}: {e}")
-                    errors[symbol] = str(e)
+            try:
+                # Criar requisição individual simplificada
+                stock_request = StockDataRequest(
+                    symbol=symbol,
+                    period=request.period
+                )
+                
+                # Obter dados (sem verificar rate limit novamente)
+                data = self.provider.get_stock_data(symbol, stock_request)
+                successful_data[symbol] = data
+            except Exception as e:
+                self.logger.warning(f"Erro ao obter dados para {symbol}: {e}")
+                errors[symbol] = str(e)
         
         processing_time = (time.time() - start_time) * 1000
         
@@ -466,7 +403,7 @@ class MarketDataService(LoggerMixin):
         
         return BulkDataResponse(
             request_id=request_id,
-            total_tickers=len(request.tickers),
+            total_tickers=len(request.symbols),
             successful_requests=len(successful_data),
             failed_requests=len(errors),
             data=successful_data,
@@ -483,7 +420,6 @@ class MarketDataService(LoggerMixin):
         self,
         symbol: str,
         client_id: str = "default",
-        db: Session = None
     ) -> ValidationResponse:
         """
         Valida se um ticker existe e é válido.
@@ -508,23 +444,6 @@ class MarketDataService(LoggerMixin):
                 return ValidationResponse(**cached_result)
         
         try:
-            # Obter dados do banco de dados se a sessão estiver disponível
-            if db:
-                from models.market_data import MarketData as MarketDataORM
-                result = db.query(MarketDataORM).filter(MarketDataORM.symbol == symbol).first()
-                if result:
-                    return ValidationResponse(
-                        symbol=result.symbol,
-                        is_valid=True,
-                        exists=True,
-                        market=result.exchange,
-                        tradeable=True,
-                        last_trade_date=str(result.data),
-                        validation_time=datetime.now().isoformat(),
-                        error_message=None,
-                        suggestions=[]
-                    )
-            
             # Obter validação do provedor
             result = self.provider.validate_ticker(symbol)
             
@@ -551,7 +470,6 @@ class MarketDataService(LoggerMixin):
         self,
         market: str = "BR",
         client_id: str = "default",
-        db: Session = None
     ) -> List[Dict[str, Any]]:
         """
         Obtém ações em tendência.
@@ -576,23 +494,7 @@ class MarketDataService(LoggerMixin):
                 return cached_data
         
         try:
-            trending_data = []
-            # Obter dados do banco de dados se a sessão estiver disponível
-            if db:
-                from models.market_data import MarketData as MarketDataORM
-                query = db.query(MarketDataORM).filter(MarketDataORM.exchange == market).order_by(MarketDataORM.volume.desc()).limit(30)
-                for result in query:
-                    trending_data.append({
-                        "symbol": result.symbol,
-                        "name": result.longName or result.shortName or result.symbol,
-                        "volume": result.volume,
-                        "exchange": result.exchange,
-                        "last_price": result.close_price
-                    })
-            
-            # Se não houver dados em tendência, buscar no provedor
-            if not trending_data:
-                trending_data = self.provider.get_trending_stocks(market)
+            trending_data = self.provider.get_trending_stocks(market)
             
             if settings.ENABLE_CACHE:
                 self.cache_service.set(f"trending:{market}", trending_data, ttl=60)
@@ -646,22 +548,10 @@ class MarketDataService(LoggerMixin):
         except Exception as e:
             health_data["provider_status"] = f"error: {str(e)}"
         
-        # Testar conexão com o banco de dados
-        try:
-            from core.database import SessionLocal
-            db = SessionLocal()
-            # Executa uma consulta simples para testar conexão
-            db.execute("SELECT 1")
-            db.close()
-            health_data["db_status"] = "healthy"
-        except Exception as e:
-            health_data["db_status"] = f"error: {str(e)}"
-
         # Determinar status geral
         if (
             health_data["cache_status"] == "healthy" and
-            health_data["provider_status"] == "healthy" and
-            health_data["db_status"] == "healthy"
+            health_data["provider_status"] == "healthy"
         ):
             health_data["status"] = "healthy"
         else:
