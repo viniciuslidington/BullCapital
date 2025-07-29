@@ -26,6 +26,7 @@ class HistoricalDataPoint(BaseModel):
     
     Attributes:
         date: Data do ponto de dados
+        symbol: Símbolo da ação
         open: Preço de abertura
         high: Preço máximo
         low: Preço mínimo
@@ -35,6 +36,7 @@ class HistoricalDataPoint(BaseModel):
     """
     
     date: str = Field(..., description="Data no formato YYYY-MM-DD")
+    symbol: str = Field(..., description="Símbolo da ação")
     open: float = Field(..., description="Preço de abertura")
     high: float = Field(..., description="Preço máximo")
     low: float = Field(..., description="Preço mínimo")
@@ -124,6 +126,8 @@ class StockDataResponse(BaseModel):
     currency: Optional[str] = Field(default=None, description="Moeda de negociação")
     timezone: Optional[str] = Field(default=None, description="Fuso horário")
     last_updated: str = Field(..., description="Timestamp da última atualização")
+    sector: Optional[str] = Field(default=None, description="Setor da empresa")
+    type: Optional[str] = Field(default=None, description="Tipo do ativo (Ação, BDR, Outro)")
     fundamentals: Optional[FundamentalData] = Field(
         default=None,
         description="Dados fundamentais"

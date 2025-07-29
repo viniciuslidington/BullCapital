@@ -12,18 +12,18 @@ from fastapi import Depends
 
 from typing import List
 from core.config import settings
-from sqlalchemy.orm import Session
-from models.database import get_db
 from models.schemas import MarketData as MarketDataSchema
-from models.market_data import MarketData as MarketDataORM
 from core.logging import get_logger
 from models.requests import BulkDataRequest, SearchRequest, StockDataRequest
+
 from models.responses import (
     BulkDataResponse,
     HealthResponse,
     SearchResponse,
     StockDataResponse,
     ValidationResponse,
+    SearchResultItem,
+    HistoricalDataPoint
 )
 from services.market_data_service import MarketDataService
 
@@ -34,6 +34,41 @@ router = APIRouter()
 # Serviço
 market_data_service = MarketDataService()
 
+
+
+@router.get(
+    "/stocks-all",
+    response_model=List[SearchResultItem],
+    summary="Listar todos os tickers disponíveis",
+    description="Retorna todos os tickers disponíveis para o frontend."
+)
+def list_available_stocks() -> List[SearchResultItem]:
+    tickers = market_data_service.list_available_stocks("simple-client")
+    results = []
+    for t in tickers:
+        # Garante valores válidos para os campos obrigatórios
+        t = dict(t)
+        t["market"] = t.get("market") or ""
+        t["current_price"] = t.get("current_price") if t.get("current_price") is not None else 0.0
+        results.append(SearchResultItem(**t))
+    return results
+
+
+@router.get(
+    "/stocks/{symbol}/history",
+    response_model=List[HistoricalDataPoint],
+    summary="Obter histórico de dados de uma ação",
+    description="Retorna a série histórica de dados de uma ação específica."
+)
+def get_stock_history(symbol: str, period: str = "1mo") -> List[HistoricalDataPoint]:
+    """
+    Endpoint para obter o histórico de dados de uma ação.
+    :param symbol: Símbolo da ação (ex: PETR4.SA, AAPL)
+    :param period: Período dos dados (ex: 1mo, 1y, etc)
+    :return: Lista de pontos históricos de dados
+    """
+    logger.info(f"Obtendo histórico para {symbol}, período {period}")
+    return market_data_service.get_stock_history(symbol, period, client_id="simple-client")
 
 
 @router.get(
@@ -78,12 +113,11 @@ market_data_service = MarketDataService()
 def get_stock_data(
     symbol: str,
     period: str = "1mo",
-    db: Session = Depends(get_db)
 ) -> StockDataResponse:
     """Endpoint ultra-simplificado para dados de ação."""
     logger.info(f"Dados para {symbol}, período {period}")
     stock_request = StockDataRequest(symbol=symbol, period=period)
-    return market_data_service.get_stock_data(symbol, stock_request, "simple-client", db=db)
+    return market_data_service.get_stock_data(symbol, stock_request, "simple-client")
 
 
 @router.get(
@@ -128,13 +162,12 @@ def get_stock_data(
 )
 def search_stocks(
     q: str,
-    limit: int = 10,
-    db: Session = Depends(get_db)
+    limit: int = 10
 ) -> SearchResponse:
     """Endpoint ultra-simplificado para busca."""
     logger.info(f"Busca por: {q}")
     search_request = SearchRequest(query=q, limit=limit)
-    return market_data_service.search_stocks(search_request, "simple-client", db=db)
+    return market_data_service.search_stocks(search_request, "simple-client")
 
 
 @router.get(
@@ -179,15 +212,19 @@ def search_stocks(
 def get_trending_stocks(
     market: str = "BR",
     limit: int = 10,
-    db: Session = Depends(get_db)
 ):
     """Endpoint ultra-simplificado para trending."""
     logger.info(f"Trending para {market}")
-    trending_data = market_data_service.get_trending_stocks(market, "simple-client", db=db)
-    return {
-        "market": market,
-        "trending_stocks": trending_data[:limit]
-    }
+    try:
+        trending_data = market_data_service.get_trending_stocks(market, "simple-client")
+        if not trending_data:
+            logger.info(f"Nenhuma ação trending encontrada para {market}.")
+            return []
+        return trending_data[:limit]
+    except Exception as e:
+        logger.error(f"Erro inesperado no endpoint /trending: {e}")
+        # Retornar 200 com lista vazia em caso de erro inesperado
+        return []
 
 
 @router.get(
@@ -233,10 +270,10 @@ def get_trending_stocks(
     **Dica:** Use antes de chamar /stocks/{symbol} para evitar erros!
     """
 )
-def validate_ticker(symbol: str, db: Session = Depends(get_db)) -> ValidationResponse:
+def validate_ticker(symbol: str) -> ValidationResponse:
     """Endpoint ultra-simplificado para validação."""
     logger.info(f"Validando {symbol}")
-    return market_data_service.validate_ticker(symbol, "simple-client", db=db)
+    return market_data_service.validate_ticker(symbol, "simple-client")
 
 
 @router.post(
@@ -313,10 +350,10 @@ def validate_ticker(symbol: str, db: Session = Depends(get_db)) -> ValidationRes
     **Dica:** Use periods iguais para comparar performance entre ações!
     """
 )
-def get_bulk_data(bulk_request: BulkDataRequest, db: Session = Depends(get_db)) -> BulkDataResponse:
+def get_bulk_data(bulk_request: BulkDataRequest) -> BulkDataResponse:
     """Endpoint ultra-simplificado para dados em lote."""
     logger.info(f"Bulk para {len(bulk_request.symbols)} ações")
-    return market_data_service.get_bulk_data(bulk_request, "simple-client", db=db)
+    return market_data_service.get_bulk_data(bulk_request, "simple-client")
 
 
 
