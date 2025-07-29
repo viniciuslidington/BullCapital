@@ -196,7 +196,7 @@ function IndexTitle({
   return (
     <CardTitle className="flex items-center gap-1.5">
       {title}
-      <QuestionMark dataType="indexes" dataIndex={dataIndex} delay={300} />
+      <QuestionMark dataType="indexes" dataIndex={dataIndex} delay={100} />
     </CardTitle>
   );
 }

@@ -36,7 +36,7 @@ A fórmula é: Preço da Ação x Número de Ações.`,
 A fórmula é: Preço da Ação ÷ Lucro por Ação (LPA).`,
   },
   netMargin: {
-    title: "Margem Líquida (Ações/BDRs)",
+    title: "Margem Líquida",
     description: `Margem Líquida indica a porcentagem do lucro líquido obtido sobre a receita total da empresa, mostrando a eficiência operacional. 
 
 A fórmula é: (Lucro Líquido ÷ Receita Total) x 100%.`,

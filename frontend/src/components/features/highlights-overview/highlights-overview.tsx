@@ -181,7 +181,8 @@ export function HighlightsOverview() {
   const [categoria, setCategoria] = useState<CategoriasType>("acoes");
 
   const navigate = useNavigate();
-  const onSeeMore = () => navigate(`/ranking?categoria=${categoria}`);
+  const onSeeMore = (filtro: string) =>
+    navigate(`/ranking?categoria=${categoria}&filtro=${filtro}`);
 
   return (
     <div className="flex w-full flex-col gap-2">
@@ -230,22 +231,22 @@ export function HighlightsOverview() {
         <HighlightsCard
           title="Altas"
           items={mockAcoesBR.emAlta}
-          onSeeMore={onSeeMore}
+          onSeeMore={() => onSeeMore("altas")}
         />
         <HighlightsCard
           title="Baixas"
           items={mockAcoesBR.emBaixa}
-          onSeeMore={onSeeMore}
+          onSeeMore={() => onSeeMore("baixas")}
         />
         <HighlightsCard
           title="Mais Ativas"
           items={mockAcoesBR.maisNegociados}
-          onSeeMore={onSeeMore}
+          onSeeMore={() => onSeeMore("ativas")}
         />
         <HighlightsDividendCard
           title="Dividendos"
           items={mockAcoesBR.maioresDividendos}
-          onSeeMore={onSeeMore}
+          onSeeMore={() => onSeeMore("dividendos")}
         />
       </div>
     </div>

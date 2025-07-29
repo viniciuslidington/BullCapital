@@ -15,12 +15,12 @@ export const categoriaData = {
     title: "Brazilian Depositary Receipts",
     shortTitle: "BDRs",
     discription:
-      "BDRs(Brazilian Depositary Receipts) são recibos de ações de empresas estrangeiras negociados na bolsa brasileira. Permitem investir no exterior sem sair do país.",
+      "BDRs (Brazilian Depositary Receipts) são recibos de ações de empresas estrangeiras negociados na bolsa brasileira. Permitem investir no exterior sem sair do país.",
   },
   etfs: {
     title: "Exchange Traded Funds",
     shortTitle: "ETFs",
     discription:
-      "ETFs(Exchange Traded Funds) são fundos que acompanham um índice (como o Ibovespa) e são negociados como ações. São uma forma prática de diversificar com um único ativo.",
+      "ETFs (Exchange Traded Funds) são fundos que acompanham um índice (como o Ibovespa) e são negociados como ações. São uma forma prática de diversificar com um único ativo.",
   },
 };

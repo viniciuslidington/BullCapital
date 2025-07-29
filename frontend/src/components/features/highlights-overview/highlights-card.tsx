@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { formatChange, formatPrice } from "@/lib/utils";
 import type { StockItem } from "@/types/assets";
-import React from "react";
+import React, { type MouseEventHandler } from "react";
 import { useNavigate, type NavigateFunction } from "react-router-dom";
 
 interface HighlightsCardProps {
@@ -26,7 +26,7 @@ export const HighlightsCard: React.FC<HighlightsCardProps> = ({
         <Button
           variant="link"
           className="h-auto cursor-pointer p-0 text-sm"
-          onClick={onSeeMore}
+          onClick={onSeeMore as MouseEventHandler<HTMLButtonElement>}
         >
           Ver Mais
         </Button>

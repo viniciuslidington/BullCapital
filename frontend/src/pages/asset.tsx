@@ -6,7 +6,7 @@ import {
   formatNumber,
   formatPrice,
 } from "@/lib/utils";
-import { ArrowDown, ArrowUp } from "lucide-react";
+import { ArrowDown, ArrowUp, Dot } from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TabsContent } from "@radix-ui/react-tabs";
@@ -640,7 +640,12 @@ function HeaderAsset() {
     <div className="flex justify-between">
       <div className="flex flex-col gap-3">
         <h1 className="text-foreground/80 text-3xl font-medium">{`${response.company_name} (${response.symbol})`}</h1>
-        <p className="text-muted-foreground pl-1 text-base">{`Ação - ${response.currency} - NASDAQ`}</p>
+        <p className="text-muted-foreground flex items-center pl-1 text-base">
+          {"Ação"} <Dot />
+          {response.currency}
+          <Dot />
+          {"NASDAQ"}
+        </p>
       </div>
       <div className="flex flex-col items-end gap-2">
         <div className="flex gap-3">
@@ -670,7 +675,7 @@ function HeaderAsset() {
 function MarketDataCard() {
   return (
     <Card className="w-[300px] flex-none gap-0 p-0">
-      <CardHeader className="border-border flex items-center border-b-2 py-5">
+      <CardHeader className="border-border flex items-center border-b-1 py-5">
         <CardTitle className="text-base">Dados de Mercado</CardTitle>
       </CardHeader>
       <ul className="flex flex-col p-5 text-xs">
@@ -771,19 +776,19 @@ function AssetTabs() {
       <TabsList className="border-border flex h-auto w-full justify-start rounded-none border-b-2 bg-transparent p-0">
         <TabsTrigger
           value="sobre"
-          className="text-muted-foreground hover:text-primary data-[state=active]:text-primary data-[state=active]:dark:text-primary data-[state=active]:dark:border-primary border-primary hover:dark:text-primary flex-none cursor-pointer rounded-none border-0 px-5 py-3 data-[state=active]:-mb-[1px] data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:dark:bg-transparent"
+          className="text-muted-foreground hover:text-primary data-[state=active]:text-primary data-[state=active]:dark:text-primary data-[state=active]:dark:border-primary border-primary hover:dark:text-primary flex-none cursor-pointer rounded-none border-0 px-5 py-3 data-[state=active]:-mb-[2px] data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:dark:bg-transparent"
         >
           Sobre
         </TabsTrigger>
         <TabsTrigger
           value="noticias"
-          className="text-muted-foreground hover:text-primary data-[state=active]:text-primary data-[state=active]:dark:text-primary data-[state=active]:dark:border-primary border-primary hover:dark:text-primary flex-none cursor-pointer rounded-none border-0 px-6 py-3 data-[state=active]:-mb-[1px] data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:dark:bg-transparent"
+          className="text-muted-foreground hover:text-primary data-[state=active]:text-primary data-[state=active]:dark:text-primary data-[state=active]:dark:border-primary border-primary hover:dark:text-primary flex-none cursor-pointer rounded-none border-0 px-6 py-3 data-[state=active]:-mb-[2px] data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:dark:bg-transparent"
         >
           Notícias
         </TabsTrigger>
         <TabsTrigger
           value="historico-proventos"
-          className="text-muted-foreground hover:text-primary data-[state=active]:text-primary data-[state=active]:dark:text-primary data-[state=active]:dark:border-primary border-primary hover:dark:text-primary flex-none cursor-pointer rounded-none border-0 px-5 py-3 data-[state=active]:-mb-[1px] data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:dark:bg-transparent"
+          className="text-muted-foreground hover:text-primary data-[state=active]:text-primary data-[state=active]:dark:text-primary data-[state=active]:dark:border-primary border-primary hover:dark:text-primary flex-none cursor-pointer rounded-none border-0 px-5 py-3 data-[state=active]:-mb-[2px] data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:dark:bg-transparent"
         >
           Histórico de Proventos
         </TabsTrigger>

@@ -9,7 +9,7 @@ export function capitalizeFirstLetter(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-export function formatNumber(valor: number, currency: string | null) {
+export function formatNumber(valor: number) {
   const abs = Math.abs(valor);
 
   let base = 0;
@@ -27,11 +27,8 @@ export function formatNumber(valor: number, currency: string | null) {
   } else if (abs >= 1e3) {
     base = valor / 1e3;
     sufixo = " mil";
-  } else if (currency) {
-    return valor.toLocaleString("pt-BR", {
-      style: "currency",
-      currency: currency,
-    }); // número pequeno, sem sufixo
+  } else {
+    return valor.toLocaleString("pt-BR"); // número pequeno, sem sufixo
   }
 
   return `${base.toLocaleString("pt-BR", {
