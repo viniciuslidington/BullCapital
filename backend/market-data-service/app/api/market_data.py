@@ -12,10 +12,7 @@ from fastapi import Depends
 
 from typing import List
 from core.config import settings
-from sqlalchemy.orm import Session
-from models.database import get_db
 from models.schemas import MarketData as MarketDataSchema
-from models.market_data import MarketData as MarketDataORM
 from core.logging import get_logger
 from models.requests import BulkDataRequest, SearchRequest, StockDataRequest
 
