@@ -79,7 +79,10 @@ class Settings(BaseSettings):
     # Server Configuration
     HOST: str = "0.0.0.0"
     PORT: int = 8002
-    
+
+    # Client ID para identificar o consumidor dos endpoints
+    MARKET_DATA_CLIENT_ID: str = "simple-client"  # Valor padrão, pode ser sobrescrito por env
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",
