@@ -140,3 +140,8 @@
     @apply bg-accent text-foreground dark:bg-background/98.5;
   }
 }
+
+html body[data-scroll-locked] {
+  overflow: visible !important;
+  margin-right: 0 !important;
+}
