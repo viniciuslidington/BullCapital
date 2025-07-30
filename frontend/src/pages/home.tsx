@@ -1,6 +1,7 @@
+import { AssetChart } from "@/components/features/assets-chart/asset-chart";
 import { HighlightsOverview } from "@/components/features/highlights-overview/highlights-overview";
 import { MarketOverview } from "@/components/features/market-overview/market-overview";
-import { MarketsChart } from "@/components/features/markets-chart/markets-chart";
+import { ChartTabs } from "@/components/features/markets-chart/chart-tabs";
 import { SearchBar } from "@/components/ui/search-bar";
 
 export function Home() {
@@ -9,7 +10,8 @@ export function Home() {
       <MarketOverview />
       <SearchBar />
       <HighlightsOverview />
-      <MarketsChart />
+      <ChartTabs />
+      <AssetChart />
     </div>
   );
 }
