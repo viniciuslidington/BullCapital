@@ -153,6 +153,7 @@ class MarketDataService(LoggerMixin):
         self,
         symbol: str,
         period: str = "1mo",
+        interval: str = "1d",
         client_id: str = "default"
     ) -> List[HistoricalDataPoint]:
         """
@@ -160,6 +161,7 @@ class MarketDataService(LoggerMixin):
         Args:
             symbol: Símbolo da ação
             period: Período (ex: '1mo', '1y', etc)
+            interval: Intervalo (ex: '1d', '1h', etc)
             client_id: Identificador do cliente
         Returns:
             Lista de pontos históricos
@@ -176,7 +178,7 @@ class MarketDataService(LoggerMixin):
             )
 
         try:
-            request = StockDataRequest(symbol=symbol, period=period)
+            request = StockDataRequest(symbol=symbol, period=period, interval=interval)
             ticker = yf.Ticker(symbol)
             return self.provider._get_historical_data(ticker, request, symbol)
         except Exception as e:
