@@ -181,6 +181,19 @@ wheels = [
 ]
 
 [[package]]
+name = "deep-translator"
+version = "1.11.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "beautifulsoup4" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/7d/03/8fa7635c729a01de71151894cdf002ad6d245bfd6d1a731da864cf534dcf/deep_translator-1.11.4.tar.gz", hash = "sha256:801260c69231138707ea88a0955e484db7d40e210c9e0ae0f77372ffda5f4bf5", size = 36043 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/38/3f/61a8ef73236dbea83a1a063a8af2f8e1e41a0df64f122233938391d0f175/deep_translator-1.11.4-py3-none-any.whl", hash = "sha256:d635df037e23fa35d12fd42dab72a0b55c9dd19e6292009ee7207e3f30b9e60a", size = 42285 },
+]
+
+[[package]]
 name = "dnspython"
 version = "2.7.0"
 source = { registry = "https://pypi.org/simple" }
@@ -420,6 +433,7 @@ name = "market-data-service"
 version = "1.0.0"
 source = { editable = "." }
 dependencies = [
+    { name = "deep-translator" },
     { name = "email-validator" },
     { name = "fastapi" },
     { name = "httpx" },
@@ -451,6 +465,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "black", marker = "extra == 'dev'", specifier = ">=23.11.0" },
+    { name = "deep-translator", specifier = ">=1.11.4" },
     { name = "email-validator", specifier = ">=2.2.0" },
     { name = "fastapi", specifier = ">=0.104.1" },
     { name = "flake8", marker = "extra == 'dev'", specifier = ">=6.1.0" },
