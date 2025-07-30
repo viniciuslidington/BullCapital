@@ -1,18 +1,12 @@
-
 """
 Endpoints ULTRA-SIMPLIFICADOS do Market Data Service.
 
 Removidos args, kwargs, validações complexas e middleware desnecessário.
 Foco na simplicidade e facilidade de uso.
 """
-
 from fastapi import APIRouter
-from fastapi import Depends
-
-
 from typing import List
 from core.config import settings
-from models.schemas import MarketData as MarketDataSchema
 from core.logging import get_logger
 from models.requests import BulkDataRequest, SearchRequest, StockDataRequest
 
@@ -23,7 +17,7 @@ from models.responses import (
     StockDataResponse,
     ValidationResponse,
     SearchResultItem,
-    HistoricalDataPoint
+    HistoricalDataPoint,
 )
 from services.market_data_service import MarketDataService
 
@@ -35,12 +29,11 @@ router = APIRouter()
 market_data_service = MarketDataService()
 
 
-
 @router.get(
     "/stocks-all",
     response_model=List[SearchResultItem],
     summary="Listar todos os tickers disponíveis",
-    description="Retorna todos os tickers disponíveis para o frontend."
+    description="Retorna todos os tickers disponíveis para o frontend.",
 )
 def list_available_stocks() -> List[SearchResultItem]:
     tickers = market_data_service.list_available_stocks("simple-client")
@@ -49,7 +42,9 @@ def list_available_stocks() -> List[SearchResultItem]:
         # Garante valores válidos para os campos obrigatórios
         t = dict(t)
         t["market"] = t.get("market") or ""
-        t["current_price"] = t.get("current_price") if t.get("current_price") is not None else 0.0
+        t["current_price"] = (
+            t.get("current_price") if t.get("current_price") is not None else 0.0
+        )
         results.append(SearchResultItem(**t))
     return results
 
@@ -58,17 +53,20 @@ def list_available_stocks() -> List[SearchResultItem]:
     "/stocks/{symbol}/history",
     response_model=List[HistoricalDataPoint],
     summary="Obter histórico de dados de uma ação",
-    description="Retorna a série histórica de dados de uma ação específica."
+    description="Retorna a série histórica de dados de uma ação específica.",
 )
-def get_stock_history(symbol: str, period: str = "1mo") -> List[HistoricalDataPoint]:
+def get_stock_history(symbol: str, period: str = "1mo", interval: str = "1d") -> List[HistoricalDataPoint]:
     """
     Endpoint para obter o histórico de dados de uma ação.
     :param symbol: Símbolo da ação (ex: PETR4.SA, AAPL)
     :param period: Período dos dados (ex: 1mo, 1y, etc)
+    :param interval: Intervalo dos dados (ex: 1d, 1h, etc)
     :return: Lista de pontos históricos de dados
     """
-    logger.info(f"Obtendo histórico para {symbol}, período {period}")
-    return market_data_service.get_stock_history(symbol, period, client_id="simple-client")
+    logger.info(f"Obtendo histórico para {symbol}, período {period}, intervalo {interval}")
+    return market_data_service.get_stock_history(
+        symbol, period, interval, client_id="simple-client"
+    )
 
 
 @router.get(
@@ -81,6 +79,7 @@ def get_stock_history(symbol: str, period: str = "1mo") -> List[HistoricalDataPo
     **Parâmetros:**
     - **symbol**: Símbolo da ação (obrigatório)
     - **period**: Período dos dados (opcional, padrão: 1mo)
+    - **interval**: Intervalo dos dados (opcional, padrão: 1d)
     
     **Símbolos para testar:**
     - 🇧🇷 Brasil: PETR4.SA, VALE3.SA, ITUB4.SA, BBDC4.SA, ABEV3.SA
@@ -95,28 +94,46 @@ def get_stock_history(symbol: str, period: str = "1mo") -> List[HistoricalDataPo
     - 6mo = 6 meses (análise semestral)
     - 1y = 1 ano (tendência anual, recomendado)
     
+    **Intervalos disponíveis:**
+    - 1m = 1 minuto (apenas para períodos ≤ 7 dias)
+    - 2m = 2 minutos (apenas para períodos ≤ 60 dias)
+    - 5m = 5 minutos (apenas para períodos ≤ 60 dias)
+    - 15m = 15 minutos (apenas para períodos ≤ 60 dias)
+    - 30m = 30 minutos (apenas para períodos ≤ 60 dias)
+    - 1h = 1 hora (apenas para períodos ≤ 730 dias)
+    - 1d = 1 dia (padrão, funciona com todos os períodos)
+    - 5d = 5 dias
+    - 1wk = 1 semana
+    - 1mo = 1 mês
+    - 3mo = 3 meses
+    
     **Exemplos de teste:**
     ```
-    /stocks/PETR4.SA                    # Petrobras, último mês
-    /stocks/AAPL?period=1y             # Apple, último ano
-    /stocks/VALE3.SA?period=6mo        # Vale, 6 meses
-    /stocks/MSFT?period=3mo            # Microsoft, 3 meses
-    /stocks/SPY?period=1d              # S&P 500 ETF, 1 dia
+    /stocks/PETR4.SA                           # Petrobras, último mês, dados diários
+    /stocks/AAPL?period=1y                     # Apple, último ano, dados diários
+    /stocks/VALE3.SA?period=6mo                # Vale, 6 meses, dados diários
+    /stocks/MSFT?period=3mo                    # Microsoft, 3 meses, dados diários
+    /stocks/SPY?period=1d&interval=1h          # S&P 500 ETF, 1 dia, dados por hora
+    /stocks/AAPL?period=1y&interval=1h         # Apple, último ano, dados por hora
+    /stocks/PETR4.SA?period=7d&interval=15m    # Petrobras, 7 dias, dados de 15 min
+    /stocks/TSLA?period=1mo&interval=1d        # Tesla, 1 mês, dados diários
+    /stocks/NVDA?period=5d&interval=5m         # Nvidia, 5 dias, dados de 5 min
     ```
     
     **Dicas:**
     - Para análise rápida: use period=1mo
     - Para tendências: use period=1y
     - Para day trading: use period=1d ou 5d
-    """
+    """,
 )
 def get_stock_data(
     symbol: str,
     period: str = "1mo",
+    interval: str = "1d",
 ) -> StockDataResponse:
-    """Endpoint ultra-simplificado para dados de ação."""
-    logger.info(f"Dados para {symbol}, período {period}")
-    stock_request = StockDataRequest(symbol=symbol, period=period)
+    """Endpoint ultra-simplificado para dados de ação com suporte a intervalos."""
+    logger.info(f"Dados para {symbol}, período {period}, intervalo {interval}")
+    stock_request = StockDataRequest(symbol=symbol, period=period, interval=interval)
     return market_data_service.get_stock_data(symbol, stock_request, "simple-client")
 
 
@@ -158,12 +175,9 @@ def get_stock_data(
     - Use nomes em inglês para empresas US
     - Símbolos parciais também funcionam
     - Quanto menor o limit, mais rápida a resposta
-    """
+    """,
 )
-def search_stocks(
-    q: str,
-    limit: int = 10
-) -> SearchResponse:
+def search_stocks(q: str, limit: int = 10) -> SearchResponse:
     """Endpoint ultra-simplificado para busca."""
     logger.info(f"Busca por: {q}")
     search_request = SearchRequest(query=q, limit=limit)
@@ -207,7 +221,7 @@ def search_stocks(
     - 🔥 Day trading: Ações com volume alto
     
     **Dica:** Combine com /stocks/{symbol} para detalhes das trending!
-    """
+    """,
 )
 def get_trending_stocks(
     market: str = "BR",
@@ -268,7 +282,7 @@ def get_trending_stocks(
     - exchange: bolsa (BOVESPA/NYSE/etc)
     
     **Dica:** Use antes de chamar /stocks/{symbol} para evitar erros!
-    """
+    """,
 )
 def validate_ticker(symbol: str) -> ValidationResponse:
     """Endpoint ultra-simplificado para validação."""
@@ -298,7 +312,7 @@ def validate_ticker(symbol: str) -> ValidationResponse:
     **Portfolios para testar:**
     
     🇧🇷 **Top Brasil:**
-    ```json
+    # ```json
     {
         "symbols": ["PETR4.SA", "VALE3.SA", "ITUB4.SA", "BBDC4.SA", "ABEV3.SA"],
         "period": "1mo"
@@ -348,14 +362,12 @@ def validate_ticker(symbol: str) -> ValidationResponse:
     - Para mais ações: faça múltiplas requisições
     
     **Dica:** Use periods iguais para comparar performance entre ações!
-    """
+    """,
 )
 def get_bulk_data(bulk_request: BulkDataRequest) -> BulkDataResponse:
     """Endpoint ultra-simplificado para dados em lote."""
     logger.info(f"Bulk para {len(bulk_request.symbols)} ações")
     return market_data_service.get_bulk_data(bulk_request, "simple-client")
-
-
 
 
 @router.get(
@@ -401,12 +413,12 @@ def get_bulk_data(bulk_request: BulkDataRequest) -> BulkDataResponse:
     - "unhealthy" = Com falhas ❌
     
     **Dica:** Chame este endpoint primeiro se algo não estiver funcionando!
-    """
+    """,
 )
 def health_check() -> HealthResponse:
     """Endpoint de health check."""
     health_data = market_data_service.get_service_health()
-    
+
     return HealthResponse(
         status=health_data["status"],
         timestamp=health_data["timestamp"],
@@ -414,8 +426,8 @@ def health_check() -> HealthResponse:
         uptime_seconds=0.0,  # Implementar se necessário
         external_services={
             "yahoo_finance": health_data["provider_status"],
-            "cache": health_data["cache_status"]
-        }
+            "cache": health_data["cache_status"],
+        },
     )
 
 
@@ -452,7 +464,7 @@ def health_check() -> HealthResponse:
     4. 📈 /stocks/{symbol} (obter dados detalhados)
     
     **Dica:** Este endpoint é seu ponto de partida na API!
-    """
+    """,
 )
 def service_info():
     """Informações da API ultra-simplificada."""
@@ -465,15 +477,15 @@ def service_info():
             "search": "GET /search?q=termo&limit=10",
             "trending": "GET /trending?market=BR&limit=10",
             "validate": "GET /validate/{symbol}",
-            "bulk": "POST /bulk (JSON: {symbols: [...], period: '1mo'})"
+            "bulk": "POST /bulk (JSON: {symbols: [...], period: '1mo'})",
         },
         "examples": {
             "get_stock": "/stocks/PETR4.SA?period=1y",
             "search": "/search?q=petrobras&limit=5",
             "trending": "/trending?market=US&limit=15",
             "validate": "/validate/AAPL",
-            "bulk": 'POST /bulk {"symbols": ["PETR4.SA", "VALE3.SA"], "period": "1mo"}'
-        }
+            "bulk": 'POST /bulk {"symbols": ["PETR4.SA", "VALE3.SA"], "period": "1mo"}',
+        },
     }
 
 
@@ -514,15 +526,15 @@ def service_info():
     - Use apenas quando necessário
     
     **Dica:** Combine com /health para verificar se limpeza foi bem-sucedida!
-    """
+    """,
 )
 def clear_cache():
     """Endpoint simples para limpar cache."""
     logger.info("Limpando cache")
-    
+
     success = market_data_service.clear_cache()
-    
+
     return {
         "message": "Cache limpo!" if success else "Erro ao limpar cache",
-        "success": success
+        "success": success,
     }

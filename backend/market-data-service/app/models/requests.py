@@ -13,6 +13,7 @@ class StockRequest(BaseModel):
     """Requisição simples para dados de ação."""
     symbol: str
     period: str = "1mo"
+    interval: str = "1d"
 
 
 class SearchRequest(BaseModel):
@@ -25,6 +26,7 @@ class BulkRequest(BaseModel):
     """Requisição simples para múltiplas ações."""
     symbols: List[str]
     period: str = "1mo"
+    interval: str = "1d"
 
 
 # Aliases para compatibilidade

@@ -111,6 +111,7 @@ class StockDataResponse(BaseModel):
     
     symbol: str = Field(..., description="Símbolo da ação")
     company_name: Optional[str] = Field(default=None, description="Nome da empresa")
+    about: Optional[str] = Field(default=None, description="Resumo da empresa")
     current_price: Optional[float] = Field(default=None, description="Preço atual")
     previous_close: Optional[float] = Field(
         default=None,

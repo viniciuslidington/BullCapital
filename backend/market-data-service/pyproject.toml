@@ -26,6 +26,7 @@ dependencies = [
     "email-validator>=2.2.0",
     "investpy>=1.0.8",
     "yahooquery>=2.4.1",
+    "ruff>=0.12.7",
 ]
 
 [project.optional-dependencies]

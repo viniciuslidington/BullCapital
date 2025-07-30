@@ -121,6 +121,7 @@ class YahooFinanceProvider(IMarketDataProvider, LoggerMixin):
             response = StockDataResponse(
                 symbol=normalized_symbol,
                 company_name=info.get('longName') or info.get('shortName'),
+                about=info.get('longBusinessSummary', 'Resumo não disponível'),
                 current_price=self._safe_get_price(info, 'currentPrice', 'regularMarketPrice'),
                 previous_close=info.get('previousClose'),
                 volume=info.get('volume'),
@@ -156,7 +157,7 @@ class YahooFinanceProvider(IMarketDataProvider, LoggerMixin):
                 "market_state": info.get('marketState', 'unknown'),
                 "request_params": {
                     "period": request.period,
-                    "interval": "1d",  # Padrão simplificado
+                    "interval": request.interval,  # Usar o intervalo do request
                     "start_date": None,  # Sempre usar período em vez de datas
                     "end_date": None
                 }
@@ -466,23 +467,54 @@ class YahooFinanceProvider(IMarketDataProvider, LoggerMixin):
     ) -> List[HistoricalDataPoint]:
         """Obtém dados históricos formatados."""
         try:
-            # Usar sempre o período especificado com intervalo padrão
+            # Usar o período e intervalo especificados no request
+            self.logger.info(f"Obtendo dados históricos para {symbol} - period: {request.period}, interval: {request.interval}")
+            
             hist = ticker.history(
                 period=request.period,
-                interval="1d"  # Sempre usar intervalo diário para simplificar
+                interval=request.interval  # Usar o intervalo do request
             )
             
+            self.logger.info(f"Dados retornados pelo yfinance: {len(hist)} linhas")
+            
             if hist.empty:
+                self.logger.warning(f"Nenhum dado histórico retornado para {symbol}")
                 return []
+            
+            # Debug: mostrar colunas e primeiras linhas
+            self.logger.debug(f"Colunas retornadas: {list(hist.columns)}")
+            self.logger.debug(f"Index type: {type(hist.index)}")
+            self.logger.debug(f"Primeiras 3 linhas:\n{hist.head(3)}")
             
             # Converter para lista de pontos históricos
             hist = hist.reset_index()
+            
+            # Determinar nome da coluna de data
+            date_column = 'Datetime' if 'Datetime' in hist.columns else 'Date'
+            self.logger.debug(f"Usando coluna de data: {date_column}")
+            
             historical_points = []
             
             for _, row in hist.iterrows():
                 try:
+                    # Verificar se temos dados válidos
+                    if pd.isna(row['Open']) or pd.isna(row['Close']):
+                        continue
+                    
+                    # Formatar data/datetime apropriadamente usando a coluna correta
+                    date_value = row[date_column]
+                    
+                    if hasattr(date_value, 'strftime'):
+                        # Para dados intraday, incluir hora se disponível
+                        if request.interval in ['1m', '2m', '5m', '15m', '30m', '1h']:
+                            formatted_date = date_value.strftime('%Y-%m-%d %H:%M:%S')
+                        else:
+                            formatted_date = date_value.strftime('%Y-%m-%d')
+                    else:
+                        formatted_date = str(date_value)
+                    
                     point = HistoricalDataPoint(
-                        date=row['Date'].strftime('%Y-%m-%d') if hasattr(row['Date'], 'strftime') else str(row['Date']),
+                        date=formatted_date,
                         symbol=symbol,
                         open=round(float(row['Open']), 2),
                         high=round(float(row['High']), 2),
@@ -494,8 +526,10 @@ class YahooFinanceProvider(IMarketDataProvider, LoggerMixin):
                     historical_points.append(point)
                 except (ValueError, TypeError) as e:
                     self.logger.warning(f"Erro ao processar ponto histórico: {e}")
+                    self.logger.debug(f"Dados da linha problemática: {row}")
                     continue
             
+            self.logger.info(f"Processados {len(historical_points)} pontos históricos para {symbol}")
             return historical_points
             
         except Exception as e:
