@@ -385,7 +385,8 @@ class MarketDataService(LoggerMixin):
                 # Criar requisição individual simplificada
                 stock_request = StockDataRequest(
                     symbol=symbol,
-                    period=request.period
+                    period=request.period,
+                    interval=request.interval,
                 )
                 
                 # Obter dados (sem verificar rate limit novamente)
