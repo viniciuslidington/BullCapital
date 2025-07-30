@@ -1,8 +1,3 @@
-# Load environment variables first, before any other imports
-from dotenv import load_dotenv
-
-load_dotenv(override=True)
-
 """
 Market Data Service - Aplicação Principal.
 
