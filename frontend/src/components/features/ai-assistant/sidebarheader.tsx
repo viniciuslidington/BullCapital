@@ -40,7 +40,7 @@ export function SidebarHeader() {
               <History className="text-muted-foreground !h-6 !w-6" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent sideOffset={5}>
+          <TooltipContent sideOffset={5} portal={false}>
             <p>Histórico de conversas</p>
           </TooltipContent>
         </Tooltip>
@@ -56,7 +56,7 @@ export function SidebarHeader() {
               <SquarePen className="text-muted-foreground !h-5 !w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent sideOffset={5}>
+          <TooltipContent sideOffset={5} portal={false}>
             <p>Nova conversa</p>
           </TooltipContent>
         </Tooltip>
@@ -75,7 +75,7 @@ export function SidebarHeader() {
               )}
             </Button>
           </TooltipTrigger>
-          <TooltipContent sideOffset={5}>
+          <TooltipContent sideOffset={5} portal={false}>
             <p>{isFixed ? "Desfixar chat" : "Fixar chat"}</p>
           </TooltipContent>
         </Tooltip>
