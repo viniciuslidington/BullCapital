@@ -18,6 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from api.market_data import router as market_data_router
+from yfinance_endpoints import router as yfinance_router
 from core.config import settings
 from core.logging import get_logger
 from models.responses import ErrorResponse
@@ -260,6 +261,9 @@ app.include_router(
     market_data_router, prefix="/api/v1/market-data", tags=["Market Data"]
 )
 
+# Registrar todos os endpoints do yfinance
+app.include_router(yfinance_router, tags=["YFinance Complete API"])
+
 
 # Endpoints raiz
 @app.get(
@@ -285,12 +289,21 @@ async def root():
         "endpoints": {
             "documentation": "/docs",
             "api": "/api/v1/market-data/",
+            "yfinance": "/api/v1/yfinance/",
             "health": "/health",
             "ping": "/ping",
         },
         "features": [
             "Real-time stock data",
-            "Historical price data",
+            "Historical price data", 
+            "Complete YFinance API integration",
+            "Financial statements (DRE, Balanço, Fluxo de Caixa)",
+            "Dividends and splits tracking",
+            "Analyst recommendations",
+            "Options chains",
+            "ESG and sustainability data",
+            "Technical analysis indicators",
+            "Multi-ticker comparisons",
             "Stock search and validation",
             "Bulk data requests",
             "Rate limiting",
