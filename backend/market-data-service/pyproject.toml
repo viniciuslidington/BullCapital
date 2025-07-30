@@ -27,6 +27,7 @@ dependencies = [
     "investpy>=1.0.8",
     "yahooquery>=2.4.1",
     "ruff>=0.12.7",
+    "deep-translator>=1.11.4",
 ]
 
 [project.optional-dependencies]
