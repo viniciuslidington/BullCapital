@@ -841,7 +841,21 @@ async def listar_categorias():
             alta_liquidez  -> Ações de alta liquidez
             crescimento_lucros  -> Ações com crescimento de lucros
             baixo_risco  -> Ações de baixo risco
+            mercado_br -> listar sem filtros ações do brasil
+            mercado_todo -> listar sem filtros ações do brasil, eua, japao, eur
             
+                    Setores:
+            Basic Materials
+            Communication Services
+            Consumer Cyclical
+            Consumer Defensive
+            Energy
+            Financial Services
+            Healthcare
+            Industrials
+            Real Estate
+            Technology
+            Utilities
             """)
 async def obter_trending(
     categoria: str,
