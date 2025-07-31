@@ -22,6 +22,7 @@ Version: 1.0.0
 from datetime import datetime
 from typing import List, Optional
 import yfinance as yf
+from yfinance import EquityQuery
 import pandas as pd
 import numpy as np
 from fastapi import APIRouter, HTTPException, Query, Path
@@ -732,4 +733,298 @@ async def yfinance_health_check():
         raise HTTPException(
             status_code=503,
             detail=f"YFinance service unhealthy: {str(e)}"
+        )
+
+BR_PREDEFINED_SCREENER_QUERIES = {
+    "mercado_todo": EquityQuery('and', [
+        EquityQuery('is-in', ['region', 'br', 'us', 'gb', 'jp']),
+        EquityQuery("gte", ["intradaymarketcap", 1000000000]),
+    ]),
+    "mercado_br": EquityQuery('and', [
+        EquityQuery('eq', ['region', 'br']),
+        EquityQuery('eq', ['exchange', 'SAO']),
+    ]),
+    "alta_do_dia": EquityQuery('and', [
+        EquityQuery('gt', ['percentchange', 3]),
+        EquityQuery('eq', ['region', 'br']),
+        EquityQuery('eq', ['exchange', 'SAO']),
+        EquityQuery('gte', ['intradaymarketcap', 1000000000]),
+        EquityQuery('gt', ['dayvolume', 15000])
+    ]),
+    
+    "baixa_do_dia": EquityQuery('and', [
+        EquityQuery('lt', ['percentchange', -2.5]),
+        EquityQuery('eq', ['region', 'br']),
+        EquityQuery('eq', ['exchange', 'SAO']),
+        EquityQuery('gte', ['intradaymarketcap', 1000000000]),
+        EquityQuery('gt', ['dayvolume', 20000])
+    ]),
+    
+    "mais_negociadas": EquityQuery('and', [
+        EquityQuery('eq', ['region', 'br']),
+        EquityQuery('eq', ['exchange', 'SAO']),
+        EquityQuery('gte', ['intradaymarketcap', 1000000000]),
+        EquityQuery('gt', ['dayvolume', 2000000])
+    ]),
+    
+    "small_caps_crescimento": EquityQuery('and', [
+        EquityQuery('eq', ['region', 'br']),
+        EquityQuery('eq', ['exchange', 'SAO']),
+        EquityQuery('lt', ['intradaymarketcap', 2000000000]),
+        EquityQuery('gte', ['quarterlyrevenuegrowth.quarterly', 15])
+    ]),
+    
+    "valor_dividendos": EquityQuery('and', [
+        EquityQuery('eq', ['region', 'br']),
+        EquityQuery('eq', ['exchange', 'SAO']),
+        EquityQuery('gt', ['forward_dividend_yield', 5]),
+        EquityQuery('gt', ['intradaymarketcap', 1000000000])
+    ]),
+    
+    "baixo_pe": EquityQuery('and', [
+        EquityQuery('eq', ['region', 'br']),
+        EquityQuery('eq', ['exchange', 'SAO']),
+        EquityQuery('btwn', ['peratio.lasttwelvemonths', 1, 15]),
+        EquityQuery('gt', ['intradaymarketcap', 1000000000])
+    ]),
+    
+    "alta_liquidez": EquityQuery('and', [
+        EquityQuery('eq', ['region', 'br']),
+        EquityQuery('eq', ['exchange', 'SAO']),
+        EquityQuery('gt', ['avgdailyvol3m', 5000000]),
+        EquityQuery('gt', ['intradaymarketcap', 5000000000])
+    ]),
+    
+    "crescimento_lucros": EquityQuery('and', [
+        EquityQuery('eq', ['region', 'br']),
+        EquityQuery('eq', ['exchange', 'SAO']),
+        EquityQuery('gt', ['epsgrowth.lasttwelvemonths', 20]),
+        EquityQuery('gt', ['netincomemargin.lasttwelvemonths', 10])
+    ]),
+    
+    "baixo_risco": EquityQuery('and', [
+        EquityQuery('eq', ['region', 'br']),
+        EquityQuery('eq', ['exchange', 'SAO']),
+        EquityQuery('lt', ['beta', 0.8]),
+        EquityQuery('gt', ['intradaymarketcap', 5000000000]),
+        EquityQuery('gt', ['forward_dividend_yield', 3])
+    ])
+}
+
+@router.get("/categorias")
+async def listar_categorias():
+    """Lista todas as categorias disponíveis para screening."""
+    return {
+        "categorias": list(BR_PREDEFINED_SCREENER_QUERIES.keys()),
+        "descricoes": {
+            "alta_do_dia": "Ações em alta no dia (>3%)",
+            "baixa_do_dia": "Ações em baixa no dia (<-2.5%)",
+            "mais_negociadas": "Ações mais negociadas por volume",
+            "small_caps_crescimento": "Small Caps com alto crescimento",
+            "valor_dividendos": "Ações pagadoras de dividendos",
+            "baixo_pe": "Ações com baixo P/L",
+            "alta_liquidez": "Ações de alta liquidez",
+            "crescimento_lucros": "Ações com crescimento de lucros",
+            "baixo_risco": "Ações de baixo risco"
+        }
+    }
+
+@router.get("/categorias/{categoria}")
+async def obter_trending(
+    categoria: str,
+    setor: Optional[str] = Query(None, description="Filtrar por setor específico (opcional)"),
+    limit: Optional[int] = Query(25, ge=1, le=100, description="Número de resultados"),
+    offset: Optional[int] = Query(0, ge=0, description="Offset dos resultados"),
+    sort_field: Optional[str] = Query("percentchange", description="Campo para ordenação"),
+    sort_asc: Optional[bool] = Query(False, description="Ordenar de forma ascendente")
+):
+    """
+    Obtém lista de ações baseada na categoria de screening selecionada.
+    """
+    try:
+        if categoria not in BR_PREDEFINED_SCREENER_QUERIES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Categoria '{categoria}' não encontrada. Use /categorias para ver as opções disponíveis."
+            )
+            
+        base_query = BR_PREDEFINED_SCREENER_QUERIES[categoria]
+        
+        # Adicionar filtro de setor se especificado
+        if setor:
+            query = EquityQuery('and', [
+                base_query,
+                EquityQuery('eq', ['sector', setor])
+            ])
+        else:
+            query = base_query
+        
+        # Executar screening com try/except específico
+        try:
+            results = yf.screen(
+                query=query,
+                size=limit,
+                offset=offset,
+                sortField=sort_field,
+                sortAsc=sort_asc
+            )
+        except Exception as e:
+            logger.error(f"Erro no yf.screen(): {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Erro ao executar screening: {str(e)}"
+            )
+            
+        # Extrair quotes do resultado
+        if isinstance(results, dict) and 'quotes' in results:
+            quotes = results['quotes']
+        else:
+            quotes = results if isinstance(results, (list, tuple)) else []
+            
+        if not quotes:
+            logger.warning(f"Nenhum resultado encontrado para a categoria: {categoria}")
+            return {
+                "categoria": categoria,
+                "resultados": [],
+                "total": 0,
+                "offset": offset,
+                "limit": limit,
+                "ordenacao": {
+                    "campo": sort_field,
+                    "ascendente": sort_asc
+                }
+            }
+        
+        # Processar e formatar resultados com validação
+        formatted_results = []
+        for item in quotes:
+            if not isinstance(item, dict):
+                logger.warning(f"Item inválido no resultado: {item}")
+                continue
+                
+            try:
+                formatted_results.append({
+                    "symbol": str(item.get("symbol", "")),
+                    "name": str(item.get("shortName", "") or item.get("longName", "")),
+                    "sector": str(item.get("sector", "")),
+                    "price": float(item.get("regularMarketPrice", 0) or 0),
+                    "change": float(item.get("regularMarketChangePercent", 0) or 0),
+                    "volume": int(item.get("regularMarketVolume", 0) or 0),
+                    "market_cap": float(item.get("marketCap", 0) or 0),
+                    "pe_ratio": float(item.get("trailingPE", 0) or 0),
+                    "dividend_yield": float(item.get("dividendYield", 0) or 0),
+                    "beta": float(item.get("beta", 0) or 0),
+                    # Adicionar campos extras úteis
+                    "price_range_day": str(item.get("regularMarketDayRange", "")),
+                    "price_range_52w": str(item.get("fiftyTwoWeekRange", "")),
+                    "avg_volume_3m": int(item.get("averageDailyVolume3Month", 0) or 0),
+                    "eps": float(item.get("epsTrailingTwelveMonths", 0) or 0),
+                    "book_value": float(item.get("bookValue", 0) or 0),
+                    "exchange": str(item.get("exchange", "")),
+                    "currency": str(item.get("currency", ""))
+                })
+            except (TypeError, ValueError) as e:
+                logger.warning(f"Erro ao formatar item: {str(e)}")
+                continue
+            
+        return {
+            "categoria": categoria,
+            "resultados": formatted_results,
+            "total": len(formatted_results),
+            "total_disponivel": int(results.get("total", len(formatted_results))),
+            "offset": offset,
+            "limit": limit,
+            "ordenacao": {
+                "campo": sort_field,
+                "ascendente": sort_asc
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro ao executar screening '{categoria}': {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao executar screening: {str(e)}"
+        )
+
+
+@router.get("/busca-personalizada")
+async def busca_personalizada(
+    min_price: Optional[float] = Query(None, description="Preço mínimo"),
+    max_price: Optional[float] = Query(None, description="Preço máximo"),
+    min_volume: Optional[int] = Query(None, description="Volume mínimo"),
+    min_market_cap: Optional[float] = Query(None, description="Market Cap mínimo"),
+    max_pe: Optional[float] = Query(None, description="P/L máximo"),
+    min_dividend_yield: Optional[float] = Query(None, description="Dividend Yield mínimo"),
+    setor: Optional[str] = Query(None, description="Setor específico"),
+    limit: Optional[int] = Query(50, ge=1, le=100, description="Número de resultados")
+):
+    """
+    Realiza uma busca personalizada com múltiplos critérios.
+    """
+    try:
+        # Construir query dinamicamente
+        conditions = [
+            EquityQuery('eq', ['region', 'br']),
+            EquityQuery('eq', ['exchange', 'SAO'])
+        ]
+        
+        if min_price:
+            conditions.append(EquityQuery('gte', ['intradayprice', min_price]))
+        if max_price:
+            conditions.append(EquityQuery('lte', ['intradayprice', max_price]))
+        if min_volume:
+            conditions.append(EquityQuery('gt', ['dayvolume', min_volume]))
+        if min_market_cap:
+            conditions.append(EquityQuery('gte', ['intradaymarketcap', min_market_cap]))
+        if max_pe:
+            conditions.append(EquityQuery('lte', ['peratio.lasttwelvemonths', max_pe]))
+        if min_dividend_yield:
+            conditions.append(EquityQuery('gte', ['forward_dividend_yield', min_dividend_yield]))
+        if setor:
+            conditions.append(EquityQuery('eq', ['sector', setor]))
+            
+        query = EquityQuery('and', conditions)
+        
+        results = yf.screen(
+            query=query,
+            size=limit,
+            sortField="marketCap",
+            sortAsc=False
+        )
+        
+        formatted_results = []
+        for item in results:
+            formatted_results.append({
+                "symbol": item.get("symbol"),
+                "name": item.get("shortName") or item.get("longName"),
+                "sector": item.get("sector"),
+                "price": item.get("regularMarketPrice"),
+                "change": item.get("regularMarketChangePercent"),
+                "volume": item.get("regularMarketVolume"),
+                "market_cap": item.get("marketCap"),
+                "pe_ratio": item.get("trailingPE"),
+                "dividend_yield": item.get("dividendYield")
+            })
+            
+        return {
+            "tipo": "busca_personalizada",
+            "criterios": {
+                "min_price": min_price,
+                "max_price": max_price,
+                "min_volume": min_volume,
+                "min_market_cap": min_market_cap,
+                "max_pe": max_pe,
+                "min_dividend_yield": min_dividend_yield,
+                "setor": setor
+            },
+            "resultados": formatted_results,
+            "total": len(formatted_results)
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro na busca personalizada: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro na busca personalizada: {str(e)}"
         )
