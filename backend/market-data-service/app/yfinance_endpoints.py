@@ -834,8 +834,8 @@ async def listar_categorias():
     description="""
 Categorias disponíveis:
 
-- **alta_do_dia** (sort: `changepercent`, asc: `false`): Ações em alta no dia (>3%)
-- **baixa_do_dia** (sort: `changepercent`, asc: `true`): Ações em baixa no dia (<-2.5%)
+- **alta_do_dia** (sort: `percentchange`, asc: `false`): Ações em alta no dia (>3%)
+- **baixa_do_dia** (sort: `percentchange`, asc: `true`): Ações em baixa no dia (<-2.5%)
 - **mais_negociadas** (sort: `dayvolume`, asc: `false`): Ações mais negociadas por volume
 - **valor_dividendos** (sort: `forward_dividend_yield`, asc: `false`): Ações pagadoras de dividendos
 - **small_caps_crescimento**: Small Caps com alto crescimento
