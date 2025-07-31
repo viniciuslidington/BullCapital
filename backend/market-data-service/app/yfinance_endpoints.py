@@ -829,7 +829,20 @@ async def listar_categorias():
         }
     }
 
-@router.get("/categorias/{categoria}")
+@router.get("/categorias/{categoria}",
+    summary="Listar tickers por categorias predefinidas e adicionar sorting por atributo",
+    description="""Categorias: 
+            alta_do_dia (sort: changepercent, asc: false)  -> Ações em alta no dia (>3%)
+            baixa_do_dia (sort: changepercent, asc: true) -> Ações em baixa no dia (<-2.5%)
+            mais_negociadas (sort: dayvolume, asc: false) -> Ações mais negociadas por volume
+            valor_dividendos (sort: forward_dividend_yield, asc: false) -> Ações pagadoras de dividendos
+            small_caps_crescimento  -> Small Caps com alto crescimento
+            baixo_pe  -> Ações com baixo P/L
+            alta_liquidez  -> Ações de alta liquidez
+            crescimento_lucros  -> Ações com crescimento de lucros
+            baixo_risco  -> Ações de baixo risco
+            
+            """)
 async def obter_trending(
     categoria: str,
     setor: Optional[str] = Query(None, description="Filtrar por setor específico (opcional)"),
