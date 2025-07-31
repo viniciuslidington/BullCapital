@@ -831,32 +831,35 @@ async def listar_categorias():
 
 @router.get("/categorias/{categoria}",
     summary="Listar tickers por categorias predefinidas e adicionar sorting por atributo",
-    description="""Categorias: 
-            alta_do_dia (sort: changepercent, asc: false)  -> Ações em alta no dia (>3%)
-            baixa_do_dia (sort: changepercent, asc: true) -> Ações em baixa no dia (<-2.5%)
-            mais_negociadas (sort: dayvolume, asc: false) -> Ações mais negociadas por volume
-            valor_dividendos (sort: forward_dividend_yield, asc: false) -> Ações pagadoras de dividendos
-            small_caps_crescimento  -> Small Caps com alto crescimento
-            baixo_pe  -> Ações com baixo P/L
-            alta_liquidez  -> Ações de alta liquidez
-            crescimento_lucros  -> Ações com crescimento de lucros
-            baixo_risco  -> Ações de baixo risco
-            mercado_br -> listar sem filtros ações do brasil
-            mercado_todo -> listar sem filtros ações do brasil, eua, japao, eur
-            
-                    Setores:
-            Basic Materials
-            Communication Services
-            Consumer Cyclical
-            Consumer Defensive
-            Energy
-            Financial Services
-            Healthcare
-            Industrials
-            Real Estate
-            Technology
-            Utilities
-            """)
+    description="""
+Categorias disponíveis:
+
+- **alta_do_dia** (sort: `changepercent`, asc: `false`): Ações em alta no dia (>3%)
+- **baixa_do_dia** (sort: `changepercent`, asc: `true`): Ações em baixa no dia (<-2.5%)
+- **mais_negociadas** (sort: `dayvolume`, asc: `false`): Ações mais negociadas por volume
+- **valor_dividendos** (sort: `forward_dividend_yield`, asc: `false`): Ações pagadoras de dividendos
+- **small_caps_crescimento**: Small Caps com alto crescimento
+- **baixo_pe**: Ações com baixo P/L
+- **alta_liquidez**: Ações de alta liquidez
+- **crescimento_lucros**: Ações com crescimento de lucros
+- **baixo_risco**: Ações de baixo risco
+- **mercado_br**: Lista sem filtros ações do Brasil
+- **mercado_todo**: Lista sem filtros ações do Brasil, EUA, Japão, Europa
+
+Setores disponíveis:
+
+- Basic Materials
+- Communication Services
+- Consumer Cyclical
+- Consumer Defensive
+- Energy
+- Financial Services
+- Healthcare
+- Industrials
+- Real Estate
+- Technology
+- Utilities
+""")
 async def obter_trending(
     categoria: str,
     setor: Optional[str] = Query(None, description="Filtrar por setor específico (opcional)"),
