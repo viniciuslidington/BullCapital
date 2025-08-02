@@ -85,6 +85,82 @@ def convert_to_serializable(data):
 
 
 # ==================== ENDPOINTS DE DADOS HISTÓRICOS ====================
+@router.get("/multi-info")
+async def get_multiple_tickers_info(
+    symbols: str = Query(..., description="Símbolos dos tickers separados por vírgula (ex: AAPL,MSFT,PETR4.SA)")
+):
+    """
+    Obtém informações básicas para múltiplos tickers simultaneamente.
+    
+    Exemplo de uso:
+    ```
+    GET /api/v1/frontend/multi-info?symbols=PETR4.SA,VALE3.SA,ITUB4.SA
+    ```
+    
+    Retorna informações básicas como preço, volume, market cap, etc. para cada ticker.
+    """
+    try:
+        # Limpa e valida os símbolos
+        symbol_list = [s.strip().upper() for s in symbols.split(',') if s.strip()]
+        if not symbol_list:
+            raise HTTPException(
+                status_code=400,
+                detail="Nenhum símbolo válido fornecido"
+            )
+
+        result = {}
+        # Processa cada símbolo individualmente
+        for symbol in symbol_list:
+            try:
+                def get_info(ticker):
+                    info = ticker.info
+                    return {
+                        "symbol": symbol,
+                        "name": str(info.get("shortName", "") or info.get("longName", "")),
+                        "sector": str(info.get("sector", "")),
+                        "price": float(info.get("regularMarketPrice", 0) or 0),
+                        "change": float(info.get("regularMarketChangePercent", 0) or 0),
+                        "volume": int(info.get("regularMarketVolume", 0) or 0),
+                        "market_cap": float(info.get("marketCap", 0) or 0),
+                        "pe_ratio": float(info.get("trailingPE", 0) or 0),
+                        "dividend_yield": float(info.get("dividendYield", 0) or 0),
+                        "beta": float(info.get("beta", 0) or 0),
+                        "fiftyTwoWeekChangePercent": float(info.get("fiftyTwoWeekChangePercent", 0)or 0),
+                        "avg_volume_3m": int(info.get("averageDailyVolume3Month", 0) or 0),
+                        "returnOnEquity": float(info.get("returnOnEquity", 0) or 0),
+                        "book_value": float(info.get("bookValue", 0) or 0),
+                        "exchange": str(info.get("exchange", "")),
+                        "fullExchangeName": str(info.get("fullExchangeName", "")),
+                        "currency": str(info.get("currency", "")),
+                        "website": str(info.get("website", "")),
+                    }
+
+                ticker_info = safe_ticker_operation(symbol, get_info)
+                result[symbol] = {
+                    "success": True,
+                    "data": ticker_info
+                }
+
+            except Exception as e:
+                logger.error(f"Erro ao obter dados para {symbol}: {str(e)}")
+                result[symbol] = {
+                    "success": False,
+                    "error": str(e),
+                    "data": None
+                }
+
+        return {
+            "symbols": symbol_list,
+            "timestamp": datetime.now().isoformat(),
+            "results": result
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao obter informações múltiplas: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao obter informações dos tickers: {str(e)}"
+        )
 
 @router.get("/multi-history")
 async def get_multiple_historical_data(
@@ -582,24 +658,23 @@ async def obter_trending(
                 
             try:
                 formatted_results.append({
-                    "symbol": str(item.get("symbol", "")),
-                    "name": str(item.get("shortName", "") or item.get("longName", "")),
-                    "sector": str(item.get("sector", "")),
-                    "price": float(item.get("regularMarketPrice", 0) or 0),
-                    "change": float(item.get("regularMarketChangePercent", 0) or 0),
-                    "volume": int(item.get("regularMarketVolume", 0) or 0),
-                    "market_cap": float(item.get("marketCap", 0) or 0),
-                    "pe_ratio": float(item.get("trailingPE", 0) or 0),
-                    "dividend_yield": float(item.get("dividendYield", 0) or 0),
-                    "beta": float(item.get("beta", 0) or 0),
-                    # Adicionar campos extras úteis
-                    "price_range_day": str(item.get("regularMarketDayRange", "")),
-                    "price_range_52w": str(item.get("fiftyTwoWeekRange", "")),
-                    "avg_volume_3m": int(item.get("averageDailyVolume3Month", 0) or 0),
-                    "eps": float(item.get("epsTrailingTwelveMonths", 0) or 0),
-                    "book_value": float(item.get("bookValue", 0) or 0),
-                    "exchange": str(item.get("exchange", "")),
-                    "currency": str(item.get("currency", ""))
+                        "symbol": str(item.get("symbol", "")),
+                        "name": str(item.get("shortName", "") or item.get("longName", "")),
+                        "sector": str(item.get("sector", "")),
+                        "price": float(item.get("regularMarketPrice", 0) or 0),
+                        "change": float(item.get("regularMarketChangePercent", 0) or 0),
+                        "volume": int(item.get("regularMarketVolume", 0) or 0),
+                        "market_cap": float(item.get("marketCap", 0) or 0),
+                        "pe_ratio": float(item.get("trailingPE", 0) or 0),
+                        "dividend_yield": float(item.get("dividendYield", 0) or 0),
+                        "fiftyTwoWeekChangePercent": float(item.get("fiftyTwoWeekChangePercent", 0)or 0),
+                        "avg_volume_3m": int(item.get("averageDailyVolume3Month", 0) or 0),
+                        "returnOnEquity": float(item.get("returnOnEquity", 0) or 0),
+                        "book_value": float(item.get("bookValue", 0) or 0),
+                        "exchange": str(item.get("exchange", "")),
+                        "fullExchangeName": str(item.get("fullExchangeName", "")),
+                        "currency": str(item.get("currency", "")),
+                        "website": str(item.get("website", "")),
                 })
             except (TypeError, ValueError) as e:
                 logger.warning(f"Erro ao formatar item: {str(e)}")
