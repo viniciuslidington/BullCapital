@@ -1,0 +1,731 @@
+
+from deep_translator import GoogleTranslator
+from datetime import datetime
+from typing import List, Optional
+import yfinance as yf
+from yfinance import EquityQuery
+import pandas as pd
+import numpy as np
+from fastapi import APIRouter, HTTPException, Query, Path
+from pydantic import BaseModel, Field
+
+from core.logging import get_logger
+
+# Configurar logger
+logger = get_logger(__name__)
+
+# Criar router
+router = APIRouter(prefix="/api/v1/frontend", tags=["API YFinance Personalizada para o FrontEnd"])
+
+
+# ==================== MODELOS PYDANTIC ====================
+
+class TickerInfo(BaseModel):
+    """Modelo para informações básicas do ticker"""
+    symbol: str
+    name: str = None
+    sector: str = None
+    industry: str = None
+    market_cap: float = None
+    pe_ratio: float = None
+    dividend_yield: float = None
+    beta: float = None
+    
+class HistoricalDataRequest(BaseModel):
+    """Modelo para requisição de dados históricos"""
+    period: str = Field(default="1mo", description="Período: 1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, ytd, max")
+    interval: str = Field(default="1d", description="Intervalo: 1m, 2m, 5m, 15m, 30m, 60m, 90m, 1h, 1d, 5d, 1wk, 1mo, 3mo")
+    start: Optional[str] = Field(default=None, description="Data início (YYYY-MM-DD)")
+    end: Optional[str] = Field(default=None, description="Data fim (YYYY-MM-DD)")
+    prepost: bool = Field(default=False, description="Incluir pre/post market")
+    auto_adjust: bool = Field(default=True, description="Ajustar dividendos/splits")
+    repair: bool = Field(default=False, description="Reparar dados inválidos")
+
+class MultiTickerRequest(BaseModel):
+    """Modelo para requisições de múltiplos tickers"""
+    symbols: List[str] = Field(..., description="Lista de símbolos")
+    period: str = Field(default="1mo", description="Período")
+    interval: str = Field(default="1d", description="Intervalo")
+
+
+# ==================== UTILITÁRIOS ====================
+
+def safe_ticker_operation(symbol: str, operation):
+    """Executa operação no ticker com tratamento de erro"""
+    try:
+        ticker = yf.Ticker(symbol.upper())
+        result = operation(ticker)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao obter dados para {symbol}: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Erro ao obter dados para {symbol}: {str(e)}")
+
+def convert_to_serializable(data):
+    """Converte dados pandas/numpy para formato serializável"""
+    if isinstance(data, pd.DataFrame):
+        return data.fillna(0).to_dict(orient='records')
+    elif isinstance(data, pd.Series):
+        return data.fillna(0).to_dict()
+    elif isinstance(data, np.ndarray):
+        return data.tolist()
+    elif isinstance(data, (np.integer, np.floating)):
+        return float(data)
+    elif isinstance(data, (int, float, str, bool, list, dict)):
+        return data
+    elif data is None or (hasattr(data, '__len__') and len(data) == 0):
+        return None
+    else:
+        # Para valores únicos, verifica se é NaN
+        try:
+            if pd.isna(data):
+                return None
+        except (ValueError, TypeError):
+            pass
+        return str(data)  # Converte para string como fallback
+
+
+# ==================== ENDPOINTS DE DADOS HISTÓRICOS ====================
+
+@router.get("/multi-history")
+async def get_multiple_historical_data(
+    symbols: str = Query(..., description="Símbolos dos tickers separados por vírgula (ex: AAPL,MSFT,PETR4.SA)"),
+    period: str = Query("1mo", description="Período: 1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, ytd, max"),
+    interval: str = Query("1d", description="Intervalo: 1m, 2m, 5m, 15m, 30m, 60m, 90m, 1h, 1d, 5d, 1wk, 1mo, 3mo"),
+    start: Optional[str] = Query(None, description="Data início (YYYY-MM-DD)"),
+    end: Optional[str] = Query(None, description="Data fim (YYYY-MM-DD)"),
+    prepost: bool = Query(False, description="Incluir pre/post market"),
+    auto_adjust: bool = Query(True, description="Ajustar dividendos/splits"),
+):
+    """
+    Obtém dados históricos de preços para múltiplos tickers simultaneamente.
+    """
+    try:
+        # Limpa e valida os símbolos
+        symbol_list = [s.strip().upper() for s in symbols.split(',') if s.strip()]
+        if not symbol_list:
+            raise HTTPException(
+                status_code=400,
+                detail="Nenhum símbolo válido fornecido"
+            )
+
+        result = {}
+        # Processa cada símbolo individualmente para garantir maior confiabilidade
+        for symbol in symbol_list:
+            try:
+                # Usa o safe_ticker_operation que já temos
+                ticker_data = safe_ticker_operation(symbol, lambda t: t.history(
+                    period=period,
+                    interval=interval,
+                    start=start,
+                    end=end,
+                    prepost=prepost,
+                    auto_adjust=auto_adjust
+                ))
+
+                # Processa os dados
+                if isinstance(ticker_data, pd.DataFrame) and not ticker_data.empty:
+                    # Converte o índice de datetime para string
+                    ticker_data.index = ticker_data.index.strftime('%Y-%m-%d %H:%M:%S')
+                    
+                    # Converte para o formato desejado
+                    result[symbol] = {
+                        "success": True,
+                        "data": ticker_data.reset_index().fillna(0).to_dict(orient='records')
+                    }
+                else:
+                    result[symbol] = {
+                        "success": False,
+                        "error": "Dados não encontrados",
+                        "data": []
+                    }
+                    
+            except Exception as e:
+                logger.error(f"Erro ao obter dados para {symbol}: {str(e)}")
+                result[symbol] = {
+                    "success": False,
+                    "error": str(e),
+                    "data": []
+                }
+
+        return {
+            "symbols": symbol_list,
+            "period": period,
+            "interval": interval,
+            "results": result
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao obter dados históricos múltiplos: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao obter dados históricos: {str(e)}"
+        )
+
+@router.get("/{symbol}/history")
+async def get_historical_data(
+    symbol: str = Path(..., description="Símbolo do ticker (ex: AAPL, PETR4.SA)"),
+    period: str = Query("1mo", description="Período: 1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, ytd, max"),
+    interval: str = Query("1d", description="Intervalo: 1m, 2m, 5m, 15m, 30m, 60m, 90m, 1h, 1d, 5d, 1wk, 1mo, 3mo"),
+    start: Optional[str] = Query(None, description="Data início (YYYY-MM-DD)"),
+    end: Optional[str] = Query(None, description="Data fim (YYYY-MM-DD)"),
+    prepost: bool = Query(False, description="Incluir pre/post market"),
+    auto_adjust: bool = Query(True, description="Ajustar dividendos/splits"),
+):
+    """
+    Obtém dados históricos de preços para um ticker.
+    
+    Retorna: Open, High, Low, Close, Volume, Dividends, Stock Splits
+    """
+    def get_history(ticker):
+        return ticker.history(
+            period=period,
+            interval=interval,
+            start=start,
+            end=end,
+            prepost=prepost,
+            auto_adjust=auto_adjust
+        )
+    
+    data = safe_ticker_operation(symbol, get_history)
+    return {
+        "symbol": symbol.upper(),
+        "period": period,
+        "interval": interval,
+        "data": convert_to_serializable(data)
+    }
+
+
+# ==================== ENDPOINTS DE INFORMAÇÕES GERAIS ====================
+
+@router.get("/{symbol}/fulldata")
+async def get_ticker_fulldata (symbol: str = Path(..., description="Símbolo do ticker")):
+    """
+    Obtém todas informações 
+
+    """
+    def get_info(ticker):
+        return ticker.info
+    
+    info = safe_ticker_operation(symbol, get_info)
+    return {
+        "symbol": symbol.upper(),
+        "info": convert_to_serializable(info)
+    }
+
+
+@router.get("/{symbol}/data")
+async def get_ticker_data(symbol: str = Path(..., description="Símbolo do ticker")):
+    """
+    Obtém informações principais.
+    """
+    def get_profile(ticker):
+        info = ticker.info
+        return {
+        "longName": info.get("longName"),
+        "sector": info.get("sector"),
+        "industry": info.get("industry"),
+        "employees": info.get("fullTimeEmployees"),
+        "website": info.get("website"),
+        "country": info.get("country"),
+        "business_summary": GoogleTranslator(source='auto', target='pt').translate(info.get("longBusinessSummary", "Resumo não disponível"), dest='pt'),
+        "fullExchangeName": info.get("fullExchangeName"),
+        "type": info.get("quoteType"),
+        "currency": info.get("currency"),
+
+        "priceAndVariation": {
+            "currentPrice": info.get("currentPrice"),
+            "previousClose": info.get("previousClose"),
+            "dayLow": info.get("dayLow"),
+            "dayHigh": info.get("dayHigh"),
+            "fiftyTwoWeekLow": info.get("fiftyTwoWeekLow"),
+            "fiftyTwoWeekHigh": info.get("fiftyTwoWeekHigh"),
+            "fiftyTwoWeekChangePercent": info.get("fiftyTwoWeekChangePercent"),
+            "regularMarketChangePercent": info.get("regularMarketChangePercent"),
+            "fiftyDayAverage": info.get("fiftyDayAverage"),
+            "twoHundredDayAverage": info.get("twoHundredDayAverage")
+        },
+
+        "volumeAndLiquidity": {
+            "volume": info.get("regularMarketVolume"),
+            "averageVolume10days": info.get("averageVolume10days"),
+            "averageDailyVolume3Month": info.get("averageDailyVolume3Month"),
+            "bid": info.get("bid"),
+            "ask": info.get("ask")
+        },
+
+        "riskAndMarketOpinion": {
+            "beta": info.get("beta"),
+            "recommendationKey": info.get("recommendationKey"),
+            "recommendationMean": info.get("recommendationMean"),
+            "targetHighPrice": info.get("targetHighPrice"),
+            "targetLowPrice": info.get("targetLowPrice"),
+            "targetMeanPrice": info.get("targetMeanPrice"),
+            "numberOfAnalystOpinions": info.get("numberOfAnalystOpinions")
+        },
+
+        "valuation": {
+            "marketCap": info.get("marketCap"),
+            "enterpriseValue": info.get("enterpriseValue"),
+            "trailingPE": info.get("trailingPE"),
+            "forwardPE": info.get("forwardPE"),
+            "priceToBook": info.get("priceToBook"),
+            "priceToSalesTrailing12Months": info.get("priceToSalesTrailing12Months"),
+            "enterpriseToRevenue": info.get("enterpriseToRevenue"),
+            "enterpriseToEbitda": info.get("enterpriseToEbitda")
+        },
+
+        "rentability": {
+            "returnOnEquity": info.get("returnOnEquity"),
+            "returnOnAssets": info.get("returnOnAssets"),
+            "profitMargins": info.get("profitMargins"),
+            "grossMargins": info.get("grossMargins"),
+            "operatingMargins": info.get("operatingMargins"),
+            "ebitdaMargins": info.get("ebitdaMargins")
+        },
+
+        "eficiencyAndCashflow": {
+            "revenuePerShare": info.get("revenuePerShare"),
+            "grossProfits": info.get("grossProfits"),
+            "ebitda": info.get("ebitda"),
+            "operatingCashflow": info.get("operatingCashflow"),
+            "freeCashflow": info.get("freeCashflow"),
+            "earningsQuarterlyGrowth": info.get("earningsQuarterlyGrowth"),
+            "revenueGrowth": info.get("revenueGrowth"),
+            "totalRevenue": info.get("totalRevenue")
+        },
+
+        "debtAndSolvency": {
+            "totalDebt": info.get("totalDebt"),
+            "debtToEquity": info.get("debtToEquity"),
+            "quickRatio": info.get("quickRatio"),
+            "currentRatio": info.get("currentRatio")
+        },
+
+        "dividends": {
+            "dividendRate": info.get("dividendRate"),
+            "dividendYield": info.get("dividendYield"),
+            "payoutRatio": info.get("payoutRatio"),
+            "lastDividendValue": info.get("lastDividendValue"),
+            "exDividendDate": info.get("exDividendDate")
+        },
+
+        "ShareholdingAndProfit": {
+            "sharesOutstanding": info.get("sharesOutstanding"),
+            "floatShares": info.get("floatShares"),
+            "heldPercentInsiders": info.get("heldPercentInsiders"),
+            "heldPercentInstitutions": info.get("heldPercentInstitutions"),
+            "epsTrailingTwelveMonths": info.get("epsTrailingTwelveMonths"),
+            "epsForward": info.get("epsForward"),
+            "netIncomeToCommon": info.get("netIncomeToCommon")
+        }
+    }
+
+    
+    profile = safe_ticker_operation(symbol, get_profile)
+    return {
+        "symbol": symbol.upper(),
+        "profile": convert_to_serializable(profile)
+    }
+
+
+@router.get("/{symbol}/dividends")
+async def get_dividends(symbol: str = Path(..., description="Símbolo do ticker")):
+    """Obtém histórico de dividendos pagos."""
+    def get_dividends(ticker):
+        return ticker.dividends
+    
+    data = safe_ticker_operation(symbol, get_dividends)
+    return {
+        "symbol": symbol.upper(),
+        "dividends": convert_to_serializable(data)
+    }
+
+
+
+@router.get("/{symbol}/recommendations")
+async def get_recommendations(symbol: str = Path(..., description="Símbolo do ticker")):
+    """Obtém recomendações detalhadas de analistas."""
+    def get_recommendations(ticker):
+        return ticker.recommendations
+    
+    data = safe_ticker_operation(symbol, get_recommendations)
+    return {
+        "symbol": symbol.upper(),
+        "recommendations": convert_to_serializable(data)
+    }
+
+
+@router.get("/{symbol}/calendar")
+async def get_calendar(symbol: str = Path(..., description="Símbolo do ticker")):
+    """Obtém calendário de eventos corporativos."""
+    def get_calendar(ticker):
+        return ticker.calendar
+    
+    data = safe_ticker_operation(symbol, get_calendar)
+    return {
+        "symbol": symbol.upper(),
+        "calendar": convert_to_serializable(data)
+    }
+
+
+@router.get("/{symbol}/news")
+async def get_news(symbol: str = Path(..., description="Símbolo do ticker")):
+    """Obtém notícias relacionadas ao ticker."""
+    def get_news(ticker):
+        return ticker.news
+    
+    data = safe_ticker_operation(symbol, get_news)
+    return {
+        "symbol": symbol.upper(),
+        "news": convert_to_serializable(data)
+    }
+
+
+
+
+BR_PREDEFINED_SCREENER_QUERIES = {
+    "mercado_todo": EquityQuery('and', [
+        EquityQuery('is-in', ['region', 'br', 'us', 'gb', 'jp']),
+        EquityQuery("gte", ["intradaymarketcap", 1000000000]),
+    ]),
+    "mercado_br": EquityQuery('and', [
+        EquityQuery('eq', ['region', 'br']),
+        EquityQuery('eq', ['exchange', 'SAO']),
+    ]),
+    "alta_do_dia": EquityQuery('and', [
+        EquityQuery('gt', ['percentchange', 3]),
+        EquityQuery('eq', ['region', 'br']),
+        EquityQuery('eq', ['exchange', 'SAO']),
+        EquityQuery('gte', ['intradaymarketcap', 1000000000]),
+        EquityQuery('gt', ['dayvolume', 15000])
+    ]),
+    
+    "baixa_do_dia": EquityQuery('and', [
+        EquityQuery('lt', ['percentchange', -2.5]),
+        EquityQuery('eq', ['region', 'br']),
+        EquityQuery('eq', ['exchange', 'SAO']),
+        EquityQuery('gte', ['intradaymarketcap', 1000000000]),
+        EquityQuery('gt', ['dayvolume', 20000])
+    ]),
+    
+    "mais_negociadas": EquityQuery('and', [
+        EquityQuery('eq', ['region', 'br']),
+        EquityQuery('eq', ['exchange', 'SAO']),
+        EquityQuery('gte', ['intradaymarketcap', 1000000000]),
+        EquityQuery('gt', ['dayvolume', 2000000])
+    ]),
+    
+    "small_caps_crescimento": EquityQuery('and', [
+        EquityQuery('eq', ['region', 'br']),
+        EquityQuery('eq', ['exchange', 'SAO']),
+        EquityQuery('lt', ['intradaymarketcap', 2000000000]),
+        EquityQuery('gte', ['quarterlyrevenuegrowth.quarterly', 15])
+    ]),
+    
+    "valor_dividendos": EquityQuery('and', [
+        EquityQuery('eq', ['region', 'br']),
+        EquityQuery('eq', ['exchange', 'SAO']),
+        EquityQuery('gt', ['forward_dividend_yield', 5]),
+        EquityQuery('gt', ['intradaymarketcap', 1000000000])
+    ]),
+    
+    "baixo_pe": EquityQuery('and', [
+        EquityQuery('eq', ['region', 'br']),
+        EquityQuery('eq', ['exchange', 'SAO']),
+        EquityQuery('btwn', ['peratio.lasttwelvemonths', 1, 15]),
+        EquityQuery('gt', ['intradaymarketcap', 1000000000])
+    ]),
+    
+    "alta_liquidez": EquityQuery('and', [
+        EquityQuery('eq', ['region', 'br']),
+        EquityQuery('eq', ['exchange', 'SAO']),
+        EquityQuery('gt', ['avgdailyvol3m', 5000000]),
+        EquityQuery('gt', ['intradaymarketcap', 5000000000])
+    ]),
+    
+    "crescimento_lucros": EquityQuery('and', [
+        EquityQuery('eq', ['region', 'br']),
+        EquityQuery('eq', ['exchange', 'SAO']),
+        EquityQuery('gt', ['epsgrowth.lasttwelvemonths', 20]),
+        EquityQuery('gt', ['netincomemargin.lasttwelvemonths', 10])
+    ]),
+    
+    "baixo_risco": EquityQuery('and', [
+        EquityQuery('eq', ['region', 'br']),
+        EquityQuery('eq', ['exchange', 'SAO']),
+        EquityQuery('lt', ['beta', 0.8]),
+        EquityQuery('gt', ['intradaymarketcap', 5000000000]),
+        EquityQuery('gt', ['forward_dividend_yield', 3])
+    ])
+}
+
+@router.get("/categorias")
+async def listar_categorias():
+    """Lista todas as categorias disponíveis para screening."""
+    return {
+        "categorias": list(BR_PREDEFINED_SCREENER_QUERIES.keys()),
+        "descricoes": {
+            "alta_do_dia": "Ações em alta no dia (>3%)",
+            "baixa_do_dia": "Ações em baixa no dia (<-2.5%)",
+            "mais_negociadas": "Ações mais negociadas por volume",
+            "small_caps_crescimento": "Small Caps com alto crescimento",
+            "valor_dividendos": "Ações pagadoras de dividendos",
+            "baixo_pe": "Ações com baixo P/L",
+            "alta_liquidez": "Ações de alta liquidez",
+            "crescimento_lucros": "Ações com crescimento de lucros",
+            "baixo_risco": "Ações de baixo risco"
+        }
+    }
+
+@router.get("/categorias/{categoria}",
+    summary="Listar tickers por categorias predefinidas e adicionar sorting por atributo",
+    description="""
+Categorias disponíveis:
+
+- **alta_do_dia** (sort: `percentchange`, asc: `false`): Ações em alta no dia (>3%)
+- **baixa_do_dia** (sort: `percentchange`, asc: `true`): Ações em baixa no dia (<-2.5%)
+- **mais_negociadas** (sort: `dayvolume`, asc: `false`): Ações mais negociadas por volume
+- **valor_dividendos** (sort: `forward_dividend_yield`, asc: `false`): Ações pagadoras de dividendos
+- **small_caps_crescimento**: Small Caps com alto crescimento
+- **baixo_pe**: Ações com baixo P/L
+- **alta_liquidez**: Ações de alta liquidez
+- **crescimento_lucros**: Ações com crescimento de lucros
+- **baixo_risco**: Ações de baixo risco
+- **mercado_br**: Lista sem filtros ações do Brasil
+- **mercado_todo**: Lista sem filtros ações do Brasil, EUA, Japão, Europa
+
+Setores disponíveis:
+
+- Basic Materials
+- Communication Services
+- Consumer Cyclical
+- Consumer Defensive
+- Energy
+- Financial Services
+- Healthcare
+- Industrials
+- Real Estate
+- Technology
+- Utilities
+""")
+async def obter_trending(
+    categoria: str,
+    setor: Optional[str] = Query(None, description="Filtrar por setor específico (opcional)"),
+    limit: Optional[int] = Query(25, ge=1, le=100, description="Número de resultados"),
+    offset: Optional[int] = Query(0, ge=0, description="Offset dos resultados"),
+    sort_field: Optional[str] = Query("percentchange", description="Campo para ordenação"),
+    sort_asc: Optional[bool] = Query(False, description="Ordenar de forma ascendente")
+):
+    """
+    Obtém lista de ações baseada na categoria de screening selecionada.
+    """
+    try:
+        if categoria not in BR_PREDEFINED_SCREENER_QUERIES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Categoria '{categoria}' não encontrada. Use /categorias para ver as opções disponíveis."
+            )
+            
+        base_query = BR_PREDEFINED_SCREENER_QUERIES[categoria]
+        
+        # Adicionar filtro de setor se especificado
+        if setor:
+            query = EquityQuery('and', [
+                base_query,
+                EquityQuery('eq', ['sector', setor])
+            ])
+        else:
+            query = base_query
+        
+        # Executar screening com try/except específico
+        try:
+            results = yf.screen(
+                query=query,
+                size=limit,
+                offset=offset,
+                sortField=sort_field,
+                sortAsc=sort_asc
+            )
+        except Exception as e:
+            logger.error(f"Erro no yf.screen(): {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Erro ao executar screening: {str(e)}"
+            )
+            
+        # Extrair quotes do resultado
+        if isinstance(results, dict) and 'quotes' in results:
+            quotes = results['quotes']
+        else:
+            quotes = results if isinstance(results, (list, tuple)) else []
+            
+        if not quotes:
+            logger.warning(f"Nenhum resultado encontrado para a categoria: {categoria}")
+            return {
+                "categoria": categoria,
+                "resultados": [],
+                "total": 0,
+                "offset": offset,
+                "limit": limit,
+                "ordenacao": {
+                    "campo": sort_field,
+                    "ascendente": sort_asc
+                }
+            }
+        
+        # Processar e formatar resultados com validação
+        formatted_results = []
+        for item in quotes:
+            if not isinstance(item, dict):
+                logger.warning(f"Item inválido no resultado: {item}")
+                continue
+                
+            try:
+                formatted_results.append({
+                    "symbol": str(item.get("symbol", "")),
+                    "name": str(item.get("shortName", "") or item.get("longName", "")),
+                    "sector": str(item.get("sector", "")),
+                    "price": float(item.get("regularMarketPrice", 0) or 0),
+                    "change": float(item.get("regularMarketChangePercent", 0) or 0),
+                    "volume": int(item.get("regularMarketVolume", 0) or 0),
+                    "market_cap": float(item.get("marketCap", 0) or 0),
+                    "pe_ratio": float(item.get("trailingPE", 0) or 0),
+                    "dividend_yield": float(item.get("dividendYield", 0) or 0),
+                    "beta": float(item.get("beta", 0) or 0),
+                    # Adicionar campos extras úteis
+                    "price_range_day": str(item.get("regularMarketDayRange", "")),
+                    "price_range_52w": str(item.get("fiftyTwoWeekRange", "")),
+                    "avg_volume_3m": int(item.get("averageDailyVolume3Month", 0) or 0),
+                    "eps": float(item.get("epsTrailingTwelveMonths", 0) or 0),
+                    "book_value": float(item.get("bookValue", 0) or 0),
+                    "exchange": str(item.get("exchange", "")),
+                    "currency": str(item.get("currency", ""))
+                })
+            except (TypeError, ValueError) as e:
+                logger.warning(f"Erro ao formatar item: {str(e)}")
+                continue
+            
+        return {
+            "categoria": categoria,
+            "resultados": formatted_results,
+            "total": len(formatted_results),
+            "total_disponivel": int(results.get("total", len(formatted_results))),
+            "offset": offset,
+            "limit": limit,
+            "ordenacao": {
+                "campo": sort_field,
+                "ascendente": sort_asc
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro ao executar screening '{categoria}': {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao executar screening: {str(e)}"
+        )
+
+
+@router.get("/busca-personalizada")
+async def busca_personalizada(
+    min_price: Optional[float] = Query(None, description="Preço mínimo"),
+    max_price: Optional[float] = Query(None, description="Preço máximo"),
+    min_volume: Optional[int] = Query(None, description="Volume mínimo"),
+    min_market_cap: Optional[float] = Query(None, description="Market Cap mínimo"),
+    max_pe: Optional[float] = Query(None, description="P/L máximo"),
+    min_dividend_yield: Optional[float] = Query(None, description="Dividend Yield mínimo"),
+    setor: Optional[str] = Query(None, description="Setor específico"),
+    limit: Optional[int] = Query(50, ge=1, le=100, description="Número de resultados")
+):
+    """
+    Realiza uma busca personalizada com múltiplos critérios.
+    """
+    try:
+        # Construir query dinamicamente
+        conditions = [
+            EquityQuery('eq', ['region', 'br']),
+            EquityQuery('eq', ['exchange', 'SAO'])
+        ]
+        
+        if min_price:
+            conditions.append(EquityQuery('gte', ['intradayprice', min_price]))
+        if max_price:
+            conditions.append(EquityQuery('lte', ['intradayprice', max_price]))
+        if min_volume:
+            conditions.append(EquityQuery('gt', ['dayvolume', min_volume]))
+        if min_market_cap:
+            conditions.append(EquityQuery('gte', ['intradaymarketcap', min_market_cap]))
+        if max_pe:
+            conditions.append(EquityQuery('lte', ['peratio.lasttwelvemonths', max_pe]))
+        if min_dividend_yield:
+            conditions.append(EquityQuery('gte', ['forward_dividend_yield', min_dividend_yield]))
+        if setor:
+            conditions.append(EquityQuery('eq', ['sector', setor]))
+            
+        query = EquityQuery('and', conditions)
+        
+        results = yf.screen(
+            query=query,
+            size=limit,
+            sortField="marketCap",
+            sortAsc=False
+        )
+        
+        formatted_results = []
+        for item in results:
+            formatted_results.append({
+                "symbol": item.get("symbol"),
+                "name": item.get("shortName") or item.get("longName"),
+                "sector": item.get("sector"),
+                "price": item.get("regularMarketPrice"),
+                "change": item.get("regularMarketChangePercent"),
+                "volume": item.get("regularMarketVolume"),
+                "market_cap": item.get("marketCap"),
+                "pe_ratio": item.get("trailingPE"),
+                "dividend_yield": item.get("dividendYield")
+            })
+            
+        return {
+            "tipo": "busca_personalizada",
+            "criterios": {
+                "min_price": min_price,
+                "max_price": max_price,
+                "min_volume": min_volume,
+                "min_market_cap": min_market_cap,
+                "max_pe": max_pe,
+                "min_dividend_yield": min_dividend_yield,
+                "setor": setor
+            },
+            "resultados": formatted_results,
+            "total": len(formatted_results)
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro na busca personalizada: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro na busca personalizada: {str(e)}"
+        )
+    
+# ==================== ENDPOINT DE HEALTH CHECK ====================
+
+@router.get("/health")
+async def yfinance_health_check():
+    """Health check específico para os endpoints do yfinance."""
+    try:
+        # Teste simples com um ticker conhecido
+        test_ticker = yf.Ticker("AAPL")
+        test_info = test_ticker.info
+        
+        return {
+            "status": "healthy",
+            "service": "YFinance API",
+            "timestamp": datetime.now().isoformat(),
+            "test_ticker": "AAPL",
+            "test_successful": bool(test_info.get("symbol"))
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"YFinance service unhealthy: {str(e)}"
+        )
