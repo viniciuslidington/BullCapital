@@ -403,6 +403,201 @@ async def get_ticker_info(symbol: str = Path(..., description="Símbolo do ticke
         "profile": convert_to_serializable(profile)
     }
 
+@router.get("/search", 
+    summary="Buscar tickers e empresas",
+    description="""
+Busca por empresas, setores, símbolos ou países.
+
+**Exemplos de busca:**
+- 🏢 Empresas: "petrobras", "vale", "apple", "microsoft"
+- 🏦 Setores: "banco", "energia", "tecnologia", "mineração"
+- 📊 Símbolos: "PETR", "VALE", "AAPL", "MSFT"
+- 🌎 Países: "brazil", "usa", "american"
+""")
+async def search_tickers(
+    q: str = Query(..., description="Termo de busca", min_length=1),
+    limit: int = Query(10, ge=1, le=50, description="Número máximo de resultados (máx: 50)")
+):
+    """
+    Busca por tickers, empresas, setores ou países no Yahoo Finance.
+    """
+    try:
+        # Inicializa a busca com os parâmetros corretos
+        search = yf.Search(
+            query=q,
+            max_results=limit,
+            news_count=0,  # Não precisamos de notícias
+            lists_count=0,  # Não precisamos de listas
+            enable_fuzzy_query=True,  # Permite busca aproximada
+            recommended=0,  # Não precisamos de recomendados
+            raise_errors=True
+        )
+
+        quotes = search.quotes
+        if not quotes:
+            return {
+                "query": q,
+                "count": 0,
+                "results": []
+            }
+        
+        # Formata os resultados
+        formatted_results = []
+        for item in quotes:
+            try:
+                result = {
+                    "symbol": str(item.get("symbol", "")),
+                    "name": str(item.get("shortname", "") or item.get("longname", "")),
+                    "exchange": str(item.get("exchange", "")),
+                    "type": str(item.get("quoteType", "")),
+                    "score": float(item.get("score", 0) or 0),
+                    "sector": str(item.get("sector", "")),
+                    "industry": str(item.get("industry", "")),
+                }
+                formatted_results.append(result)
+            except (TypeError, ValueError) as e:
+                logger.warning(f"Erro ao formatar resultado da busca: {str(e)}")
+                continue
+                
+        # Ordena por score (relevância) descendente
+        formatted_results.sort(key=lambda x: x["score"], reverse=True)
+        
+        return {
+            "query": q,
+            "count": len(formatted_results),
+            "results": formatted_results
+        } 
+        
+    except Exception as e:
+        logger.error(f"Erro na busca por '{q}': {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao realizar busca: {str(e)}"
+        )
+
+@router.get("/lookup",
+    summary="Lookup de instrumentos financeiros",
+    description="""
+Busca informações detalhadas sobre instrumentos financeiros.
+
+**Tipos disponíveis:**
+- all: Todos os tipos
+- stock: Ações
+- etf: ETFs
+- future: Futuros
+- index: Índices
+- mutualfund: Fundos Mútuos
+- currency: Moedas
+- cryptocurrency: Criptomoedas
+
+**Exemplos de busca:**
+- Ações brasileiras: "petrobras"
+- ETFs: "ishares"
+- Índices: "ibovespa"
+""")
+async def lookup_instruments(
+    query: str = Query(..., description="Termo de busca (ex: petrobras, ishares, etc)"),
+    type: str = Query("all", description="Tipo do instrumento (all, stock, etf, future, index, mutualfund, currency, cryptocurrency)"),
+    count: int = Query(25, ge=1, le=100, description="Número de resultados"),
+):
+    """
+    Realiza lookup de instrumentos financeiros por tipo e query.
+    """
+    try:
+        # Validar o tipo de lookup
+        valid_types = ["all", "stock", "etf", "future", "index", "mutualfund", "currency", "cryptocurrency"]
+        if type.lower() not in valid_types:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Tipo inválido. Tipos válidos: {', '.join(valid_types)}"
+            )
+
+        # Realizar o lookup
+        try:
+            lookup = yf.Lookup(
+                query=query,
+                raise_errors=True
+            )
+
+            # Obter resultados baseado no tipo
+            if type == "all":
+                results = lookup.get_all(count=count)
+            elif type == "stock":
+                results = lookup.get_stock(count=count)
+            elif type == "etf":
+                results = lookup.get_etf(count=count)
+            elif type == "future":
+                results = lookup.get_future(count=count)
+            elif type == "index":
+                results = lookup.get_index(count=count)
+            elif type == "mutualfund":
+                results = lookup.get_mutualfund(count=count)
+            elif type == "currency":
+                results = lookup.get_currency(count=count)
+            elif type == "cryptocurrency":
+                results = lookup.get_cryptocurrency(count=count)
+            
+            # Converter DataFrame para formato serializável
+            if isinstance(results, pd.DataFrame):
+                results = results.fillna("").to_dict(orient='records')
+            else:
+                results = []
+            
+            return results
+            # Formatar os resultados
+            formatted_results = []
+            for item in results:
+                try:
+                    result = {
+                        "symbol": str(item.get("symbol", "")),
+                        "name": str(item.get("shortName", "") or item.get("longName", "")),
+                        "exchange": str(item.get("exchange", "")),
+                        "quoteType": str(item.get("quoteType", "")),
+                        "typeDisp": str(item.get("typeDisp", "")),
+                        "sector": str(item.get("sector", "")),
+                        "industry": str(item.get("industry", "")),
+                        "exchDisp": str(item.get("exchDisp", "")),
+                        "region": str(item.get("region", "")),
+                        "currency": str(item.get("currency", "")),
+                        "market": str(item.get("market", "")),
+                        "quoteSourceName": str(item.get("quoteSourceName", "")),
+                        "triggerable": bool(item.get("triggerable", False)),
+                        "firstTradeDateMilliseconds": item.get("firstTradeDateMilliseconds"),
+                        "priceHint": item.get("priceHint"),
+                        "marketState": str(item.get("marketState", "")),
+                        "tradeable": bool(item.get("tradeable", False)),
+                        "regularMarketPrice": float(item.get("regularMarketPrice", 0) or 0),
+                        "regularMarketTime": item.get("regularMarketTime"),
+                        "regularMarketChange": float(item.get("regularMarketChange", 0) or 0),
+                        "regularMarketVolume": float(item.get("regularMarketVolume", 0) or 0),
+                        "regularMarketPreviousClose": float(item.get("regularMarketPreviousClose", 0) or 0),
+                        "fullExchangeName": str(item.get("fullExchangeName", ""))
+                    }
+                    formatted_results.append(result)
+                except (TypeError, ValueError) as e:
+                    logger.warning(f"Erro ao formatar resultado do lookup: {str(e)}")
+                    continue
+            
+            return {
+                "query": query,
+                "type": type,
+                "count": len(formatted_results),
+                "results": formatted_results
+            }
+
+        except Exception as e:
+            logger.error(f"Erro no lookup: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Erro ao realizar lookup: {str(e)}"
+            )
+
+    except Exception as e:
+        logger.error(f"Erro no endpoint lookup: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro no endpoint lookup: {str(e)}"
+        )
 
 @router.get("/{symbol}/dividends")
 async def get_dividends(symbol: str = Path(..., description="Símbolo do ticker")):
