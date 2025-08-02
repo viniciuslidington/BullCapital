@@ -289,8 +289,8 @@ async def get_ticker_fulldata (symbol: str = Path(..., description="Símbolo do 
     }
 
 
-@router.get("/{symbol}/data")
-async def get_ticker_data(symbol: str = Path(..., description="Símbolo do ticker")):
+@router.get("/{symbol}/info")
+async def get_ticker_info(symbol: str = Path(..., description="Símbolo do ticker")):
     """
     Obtém informações principais.
     """
@@ -445,10 +445,24 @@ async def get_calendar(symbol: str = Path(..., description="Símbolo do ticker")
 
 
 @router.get("/{symbol}/news")
-async def get_news(symbol: str = Path(..., description="Símbolo do ticker")):
+async def get_news(symbol: str = Path(..., description="Símbolo do ticker"), 
+                   num: int = Query(5, ge=1, le=20, description="Contagem de noticias")):
     """Obtém notícias relacionadas ao ticker."""
     def get_news(ticker):
-        return ticker.news
+        news = ticker.get_news(count=num)
+        simplified_news = []
+        for item in news:
+            news_content = item.get('content', {})
+            simplified_item = {
+                "id": news_content.get('id'),
+                "title": GoogleTranslator(source='auto', target='pt').translate(news_content.get('title', "Resumo não disponível"), dest='pt'),
+                "date": news_content.get('pubDate'),
+                "summary": GoogleTranslator(source='auto', target='pt').translate(news_content.get('summary', "Resumo não disponível"), dest='pt'),
+                "url": news_content.get('canonicalUrl', {}).get('url'),
+                "thumbnail": news_content.get('thumbnail', {}).get('resolutions', [{}])[0].get('url') if news_content.get('thumbnail') else None
+            }
+            simplified_news.append(simplified_item)
+        return simplified_news
     
     data = safe_ticker_operation(symbol, get_news)
     return {
