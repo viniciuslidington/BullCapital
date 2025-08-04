@@ -1111,8 +1111,128 @@ async def get_market_overview(
         raise HTTPException(
             status_code=500,
             detail=f"Erro ao obter visão geral do mercado: {str(e)}"
+        )
+        
+# ==================== ENDPOINT PERIOD-PERFORMANCE ====================   
+     
+@router.get("/period-performance",
+        summary="Tabela de variação de ativos por período",
+        description="""
+    Retorna a performance de múltiplos ativos em diferentes períodos de tempo.
+
+    **Períodos calculados:**
+    - 1D: Variação de 1 dia
+    - 7D: Variação de 7 dias
+    - 1M: Variação de 1 mês
+    - 3M: Variação de 3 meses
+    - 6M: Variação de 6 meses
+    - 1Y: Variação de 1 ano
+
+    **Exemplo de uso:**""")
+async def get_period_performance(
+    symbols: str = Query(..., description="Lista de símbolos separados por vírgula (ex: PETR4.SA,VALE3.SA,^BVSP). Máximo 5 tickers."),
+):
+    """
+    Calcula a performance de múltiplos ativos em diferentes períodos.
+    """
+    try:
+        # Limpar e validar símbolos
+        symbol_list = [s.strip().upper() for s in symbols.split(',') if s.strip()]
+        
+        # Validar número máximo de tickers
+        if len(symbol_list) > 5:
+            raise HTTPException(
+                status_code=400,
+                detail="Número máximo de 5 tickers permitido por requisição"
+            )
             
-            
+        # Limpar e validar símbolos
+        symbol_list = [s.strip().upper() for s in symbols.split(',') if s.strip()]
+        if not symbol_list:
+            raise HTTPException(
+                status_code=400,
+                detail="Nenhum símbolo válido fornecido"
+            )
+
+        # Definir períodos e intervalos para os cálculos
+        periods = {
+            "1D": ("1d", "1d"),    # período, intervalo
+            "7D": ("7d", "1d"),
+            "1M": ("1mo", "1d"),
+            "3M": ("3mo", "1d"),
+            "6M": ("6mo", "1d"),
+            "1Y": ("1y", "1d")
+        }
+
+        results = {}
+        for symbol in symbol_list:
+            try:
+                ticker = yf.Ticker(symbol)
+                info = ticker.info
+                
+                # Pegar logo se disponível
+                if info.get("website", False):
+                    logo = f"https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url={info.get('website', None)}"
+                else:
+                    logo = None
+
+                # Inicializar dados do ticker
+                ticker_data = {
+                    "name": info.get("shortName", "") or info.get("longName", ""),
+                    "current_price": info.get("regularMarketPrice", 0),
+                    "currency": info.get("currency", ""),
+                    "logo": logo,
+                    "performance": {}
+                }
+
+                # Calcular performance para cada período
+                for period_name, (period, interval) in periods.items():
+                    try:
+                        hist = ticker.history(period=period, interval=interval)
+                        if not hist.empty:
+                            first_price = hist['Close'].iloc[0]
+                            last_price = hist['Close'].iloc[-1]
+                            change_percent = ((last_price - first_price) / first_price) * 100
+                            
+                            ticker_data["performance"][period_name] = {
+                                "change_percent": round(change_percent, 2),
+                                "start_price": round(first_price, 2),
+                                "end_price": round(last_price, 2),
+                                "start_date": hist.index[0].strftime('%Y-%m-%d'),
+                                "end_date": hist.index[-1].strftime('%Y-%m-%d')
+                            }
+                        else:
+                            ticker_data["performance"][period_name] = None
+                    except Exception as e:
+                        logger.warning(f"Erro ao calcular {period_name} para {symbol}: {str(e)}")
+                        ticker_data["performance"][period_name] = None
+
+                results[symbol] = {
+                    "success": True,
+                    "data": ticker_data
+                }
+
+            except Exception as e:
+                logger.error(f"Erro ao processar {symbol}: {str(e)}")
+                results[symbol] = {
+                    "success": False,
+                    "error": str(e),
+                    "data": None
+                }
+
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "symbols_count": len(symbol_list),
+            "results": results
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao calcular performance dos ativos: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao calcular performance dos ativos: {str(e)}"
+        )
+        
 # ==================== ENDPOINT DE HEALTH CHECK ====================
 
 @router.get("/health")
@@ -1135,4 +1255,5 @@ async def yfinance_health_check():
             status_code=503,
             detail=f"YFinance service unhealthy: {str(e)}"
         )
-        )
+        
+
