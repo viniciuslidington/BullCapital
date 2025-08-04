@@ -107,13 +107,17 @@ async def get_multiple_tickers_info(
                 status_code=400,
                 detail="Nenhum símbolo válido fornecido"
             )
-
+        
         result = {}
         # Processa cada símbolo individualmente
         for symbol in symbol_list:
             try:
                 def get_info(ticker):
                     info = ticker.info
+                    if info.get("website", False):
+                        logo = f"https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url={info.get('website', None)}"
+                    else:
+                        logo = None
                     return {
                         "symbol": symbol,
                         "name": str(info.get("shortName", "") or info.get("longName", "")),
@@ -133,6 +137,7 @@ async def get_multiple_tickers_info(
                         "fullExchangeName": str(info.get("fullExchangeName", "")),
                         "currency": str(info.get("currency", "")),
                         "website": str(info.get("website", "")),
+                        "logo": logo
                     }
 
                 ticker_info = safe_ticker_operation(symbol, get_info)
@@ -296,6 +301,10 @@ async def get_ticker_info(symbol: str = Path(..., description="Símbolo do ticke
     """
     def get_profile(ticker):
         info = ticker.info
+        if info.get("website", False):
+            logo = f"https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url={info.get('website', None)}"
+        else:
+            logo = None
         return {
         "longName": info.get("longName"),
         "sector": info.get("sector"),
@@ -307,6 +316,7 @@ async def get_ticker_info(symbol: str = Path(..., description="Símbolo do ticke
         "fullExchangeName": info.get("fullExchangeName"),
         "type": info.get("quoteType"),
         "currency": info.get("currency"),
+        "logo": logo,
 
         "priceAndVariation": {
             "currentPrice": info.get("currentPrice"),
@@ -445,6 +455,10 @@ async def search_tickers(
         formatted_results = []
         for item in quotes:
             try:
+                if item.get("website", False):
+                    logo = f"https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url={item.get('website', None)}"
+                else:
+                    logo = None
                 result = {
                     "symbol": str(item.get("symbol", "")),
                     "name": str(item.get("shortname", "") or item.get("longname", "")),
@@ -453,6 +467,7 @@ async def search_tickers(
                     "score": float(item.get("score", 0) or 0),
                     "sector": str(item.get("sector", "")),
                     "industry": str(item.get("industry", "")),
+                    "logo": logo
                 }
                 formatted_results.append(result)
             except (TypeError, ValueError) as e:
@@ -544,46 +559,6 @@ async def lookup_instruments(
                 results = []
             
             return results
-            # Formatar os resultados
-            formatted_results = []
-            for item in results:
-                try:
-                    result = {
-                        "symbol": str(item.get("symbol", "")),
-                        "name": str(item.get("shortName", "") or item.get("longName", "")),
-                        "exchange": str(item.get("exchange", "")),
-                        "quoteType": str(item.get("quoteType", "")),
-                        "typeDisp": str(item.get("typeDisp", "")),
-                        "sector": str(item.get("sector", "")),
-                        "industry": str(item.get("industry", "")),
-                        "exchDisp": str(item.get("exchDisp", "")),
-                        "region": str(item.get("region", "")),
-                        "currency": str(item.get("currency", "")),
-                        "market": str(item.get("market", "")),
-                        "quoteSourceName": str(item.get("quoteSourceName", "")),
-                        "triggerable": bool(item.get("triggerable", False)),
-                        "firstTradeDateMilliseconds": item.get("firstTradeDateMilliseconds"),
-                        "priceHint": item.get("priceHint"),
-                        "marketState": str(item.get("marketState", "")),
-                        "tradeable": bool(item.get("tradeable", False)),
-                        "regularMarketPrice": float(item.get("regularMarketPrice", 0) or 0),
-                        "regularMarketTime": item.get("regularMarketTime"),
-                        "regularMarketChange": float(item.get("regularMarketChange", 0) or 0),
-                        "regularMarketVolume": float(item.get("regularMarketVolume", 0) or 0),
-                        "regularMarketPreviousClose": float(item.get("regularMarketPreviousClose", 0) or 0),
-                        "fullExchangeName": str(item.get("fullExchangeName", ""))
-                    }
-                    formatted_results.append(result)
-                except (TypeError, ValueError) as e:
-                    logger.warning(f"Erro ao formatar resultado do lookup: {str(e)}")
-                    continue
-            
-            return {
-                "query": query,
-                "type": type,
-                "count": len(formatted_results),
-                "results": formatted_results
-            }
 
         except Exception as e:
             logger.error(f"Erro no lookup: {str(e)}")
@@ -864,6 +839,11 @@ async def obter_trending(
             if not isinstance(item, dict):
                 logger.warning(f"Item inválido no resultado: {item}")
                 continue
+            
+            if item.get("website", False):
+                logo = f"https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url={item.get('website', None)}"
+            else:
+                logo = None
                 
             try:
                 formatted_results.append({
@@ -884,6 +864,7 @@ async def obter_trending(
                         "fullExchangeName": str(item.get("fullExchangeName", "")),
                         "currency": str(item.get("currency", "")),
                         "website": str(item.get("website", "")),
+                        "logo": logo
                 })
             except (TypeError, ValueError) as e:
                 logger.warning(f"Erro ao formatar item: {str(e)}")
@@ -1012,4 +993,136 @@ async def yfinance_health_check():
         raise HTTPException(
             status_code=503,
             detail=f"YFinance service unhealthy: {str(e)}"
+        )
+
+
+
+# Adicionar aos imports existentes
+from concurrent.futures import ThreadPoolExecutor
+
+# Adicionar constantes para os símbolos por categoria
+MARKET_OVERVIEW_SYMBOLS = {
+    "all": [
+        "^BVSP", "^SMLL", "SELIC", "IFIX11.SA", "WEGE3.SA", "PETR4.SA", "VALE3.SA", "ITUB4.SA",  # Brasil
+        "^GSPC", "^IXIC", "^DJI", "^VIX", "^RUT",  # EUA
+        "^STOXX", "^GDAXI", "^FTSE", "^FCHI", "^STOXX50E",  # Europa
+        "^N225", "000001.SS", "^HSI", "^NSEI", "^BSESN",  # Ásia
+        "USDBRL=X", "EURBRL=X", "GBPBRL=X", "JPYBRL=X", "AUDBRL=X"  # Moedas
+    ],
+    "brasil": ["^BVSP", "^SMLL", "SELIC", "IFIX11.SA", "WEGE3.SA", "PETR4.SA", "VALE3.SA", "ITUB4.SA"],
+    "eua": ["^GSPC", "^IXIC", "^DJI", "^VIX", "^RUT"],
+    "europa": ["^STOXX", "^GDAXI", "^FTSE", "^FCHI", "^STOXX50E"],
+    "asia": ["^N225", "000001.SS", "^HSI", "^NSEI", "^BSESN"],
+    "moedas": ["USDBRL=X", "EURBRL=X", "GBPBRL=X", "JPYBRL=X", "AUDBRL=X"]
+}
+
+SYMBOL_NAMES = {
+    "^BVSP": "Ibovespa",
+    "^SMLL": "Small Cap",
+    "SELIC": "Taxa Selic",
+    "IFIX11.SA": "Índice Fundos Imobiliários",
+    "WEGE3.SA": "WEG ON",
+    "PETR4.SA": "Petrobras PN",
+    "VALE3.SA": "Vale ON",
+    "ITUB4.SA": "Itaú PN",
+    "^GSPC": "S&P 500",
+    "^IXIC": "Nasdaq",
+    "^DJI": "Dow Jones",
+    "^VIX": "VIX",
+    "^RUT": "Russell 2000",
+    "^STOXX": "STOXX 600",
+    "^GDAXI": "DAX",
+    "^FTSE": "FTSE 100",
+    "^FCHI": "CAC 40",
+    "^STOXX50E": "Euro STOXX 50",
+    "^N225": "Nikkei 225",
+    "000001.SS": "SSE Composite",
+    "^HSI": "Hang Seng",
+    "^NSEI": "Nifty 50",
+    "^BSESN": "Sensex",
+    "USDBRL=X": "Dólar/Real",
+    "EURBRL=X": "Euro/Real",
+    "GBPBRL=X": "Libra/Real",
+    "JPYBRL=X": "Iene/Real",
+    "AUDBRL=X": "Dólar Australiano/Real"
+}
+
+@router.get("/market-overview/{category}",
+    summary="Visão geral do mercado por categoria",
+    description="""
+Retorna uma visão geral do mercado para a categoria selecionada.
+
+Categorias disponíveis:
+- **all**: Todos os mercados
+- **brasil**: IBOV, SMLL, SELIC, IFIX, PETR4, VALE3, ITUB4
+- **eua**: SPX, IXIC, DJI, VIX, RUT
+- **europa**: STOXX, DAX, FTSE, CAC40, EURO STOXX 50
+- **asia**: Nikkei, SSE Composite, Hang Seng, Nifty 50, Sensex
+- **moedas**: USD/BRL, EUR/BRL, GBP/BRL, JPY/BRL, AUD/BRL
+""")
+async def get_market_overview(
+    category: str = Path(..., description="Categoria de mercado"),
+):
+    """
+    Obtém visão geral do mercado para uma categoria específica.
+    """
+    try:
+        category = category.lower()
+        if category not in MARKET_OVERVIEW_SYMBOLS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Categoria '{category}' inválida. Categorias disponíveis: {', '.join(MARKET_OVERVIEW_SYMBOLS.keys())}"
+            )
+
+        symbols = MARKET_OVERVIEW_SYMBOLS[category]
+        
+        # Função para processar um símbolo
+        def process_symbol(symbol):
+            try:
+                ticker = yf.Ticker(symbol)
+                info = ticker.info
+                
+                if info.get("website", False):
+                    logo = f"https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url={info.get('website', None)}"
+                else:
+                    logo = None
+                
+                return {
+                    "symbol": symbol,
+                    "name": SYMBOL_NAMES.get(symbol, info.get("shortName", "N/A")),
+                    "price": info.get("regularMarketPrice", 0),
+                    "change": info.get("regularMarketChangePercent", 0),
+                    "website": info.get("website", None),
+                    "currency": info.get("currency", "N/A"),
+                    "logo": logo
+                }
+            except Exception as e:
+                logger.warning(f"Erro ao processar {symbol}: {str(e)}")
+                return None
+
+        # Processar símbolos em paralelo para melhor performance
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            results = list(executor.map(process_symbol, symbols))
+        
+        # Filtrar resultados None e organizar por categoria
+        market_data = [r for r in results if r is not None]
+        
+        # Adicionar metadados
+        response = {
+            "category": category,
+            "timestamp": datetime.now().isoformat(),
+            "count": len(market_data),
+            "data": market_data
+        }
+
+        if not market_data:
+            logger.warning(f"Nenhum dado encontrado para a categoria: {category}")
+            
+        return response
+
+    except Exception as e:
+        logger.error(f"Erro ao obter visão geral do mercado: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao obter visão geral do mercado: {str(e)}"
         )
