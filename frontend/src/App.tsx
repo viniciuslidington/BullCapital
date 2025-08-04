@@ -9,8 +9,9 @@ import { Sidebar } from "./components/features/ai-assistant/sidebar";
 import { Asset } from "./pages/asset";
 import { Ranking } from "./pages/ranking";
 import { ScrollToTop } from "./components/ui/scrolltotop";
+import { queryClientConfig } from "./hooks/queries/queries-config";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient(queryClientConfig);
 
 function App() {
   return (
