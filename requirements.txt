@@ -20,3 +20,12 @@ boto3==1.39.4
 typing-extensions==4.7.0
 pypdf==3.17.4
 streamlit==1.35.0
+
+pdfplumber
+faiss-cpu
+langchain
+langchain-community
+langchain-openai
+openai
+agno
+yfinance
