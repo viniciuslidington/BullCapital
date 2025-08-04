@@ -1,11 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { CategoriesService } from "@/services/categories-service";
 import type { Categorias, Setores } from "@/types/category";
+import { getQueryConfig } from "./queries-config";
 
 export function useCategories() {
   return useQuery({
     queryKey: ["categories"],
     queryFn: () => CategoriesService.listAll(),
+    ...getQueryConfig("marketData"),
   });
 }
 
