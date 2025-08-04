@@ -276,7 +276,7 @@ async def get_historical_data(
     }
 
 
-# ==================== ENDPOINTS DE INFORMAÇÕES GERAIS ====================
+# ==================== ENDPOINTS DE INFO COMPLETAS ====================
 
 @router.get("/{symbol}/fulldata")
 async def get_ticker_fulldata (symbol: str = Path(..., description="Símbolo do ticker")):
@@ -293,6 +293,7 @@ async def get_ticker_fulldata (symbol: str = Path(..., description="Símbolo do 
         "info": convert_to_serializable(info)
     }
 
+# ==================== ENDPOINT DE INFO ESSENCIAIS ====================
 
 @router.get("/{symbol}/info")
 async def get_ticker_info(symbol: str = Path(..., description="Símbolo do ticker")):
@@ -413,6 +414,8 @@ async def get_ticker_info(symbol: str = Path(..., description="Símbolo do ticke
         "profile": convert_to_serializable(profile)
     }
 
+# ==================== ENDPOINT DE SEARCH ====================
+
 @router.get("/search", 
     summary="Buscar tickers e empresas",
     description="""
@@ -489,6 +492,8 @@ async def search_tickers(
             status_code=500,
             detail=f"Erro ao realizar busca: {str(e)}"
         )
+
+# ==================== ENDPOINT DE EXPERIMENTAL DE LOOKUP ====================
 
 @router.get("/lookup",
     summary="Lookup de instrumentos financeiros",
@@ -586,7 +591,7 @@ async def get_dividends(symbol: str = Path(..., description="Símbolo do ticker"
         "dividends": convert_to_serializable(data)
     }
 
-
+# ==================== ENDPOINT DE RECOMENDAÇÕES ====================
 
 @router.get("/{symbol}/recommendations")
 async def get_recommendations(symbol: str = Path(..., description="Símbolo do ticker")):
@@ -600,6 +605,7 @@ async def get_recommendations(symbol: str = Path(..., description="Símbolo do t
         "recommendations": convert_to_serializable(data)
     }
 
+# ==================== ENDPOINT DE CALENDARIO ====================
 
 @router.get("/{symbol}/calendar")
 async def get_calendar(symbol: str = Path(..., description="Símbolo do ticker")):
@@ -613,6 +619,7 @@ async def get_calendar(symbol: str = Path(..., description="Símbolo do ticker")
         "calendar": convert_to_serializable(data)
     }
 
+# ==================== ENDPOINT DE NEWS ====================
 
 @router.get("/{symbol}/news")
 async def get_news(symbol: str = Path(..., description="Símbolo do ticker"), 
@@ -641,7 +648,7 @@ async def get_news(symbol: str = Path(..., description="Símbolo do ticker"),
     }
 
 
-
+# ==================== ENDPOINT DE TRENDING ====================
 
 BR_PREDEFINED_SCREENER_QUERIES = {
     "mercado_todo": EquityQuery('and', [
@@ -890,6 +897,7 @@ async def obter_trending(
             detail=f"Erro ao executar screening: {str(e)}"
         )
 
+# ==================== ENDPOINT DE BUSCA-PERSONALIZADA ====================
 
 @router.get("/busca-personalizada")
 async def busca_personalizada(
@@ -972,30 +980,8 @@ async def busca_personalizada(
             detail=f"Erro na busca personalizada: {str(e)}"
         )
     
-# ==================== ENDPOINT DE HEALTH CHECK ====================
 
-@router.get("/health")
-async def yfinance_health_check():
-    """Health check específico para os endpoints do yfinance."""
-    try:
-        # Teste simples com um ticker conhecido
-        test_ticker = yf.Ticker("AAPL")
-        test_info = test_ticker.info
-        
-        return {
-            "status": "healthy",
-            "service": "YFinance API",
-            "timestamp": datetime.now().isoformat(),
-            "test_ticker": "AAPL",
-            "test_successful": bool(test_info.get("symbol"))
-        }
-    except Exception as e:
-        raise HTTPException(
-            status_code=503,
-            detail=f"YFinance service unhealthy: {str(e)}"
-        )
-
-
+# ==================== ENDPOINT MARKET-OVERVIEW ====================
 
 # Adicionar aos imports existentes
 from concurrent.futures import ThreadPoolExecutor
@@ -1125,4 +1111,28 @@ async def get_market_overview(
         raise HTTPException(
             status_code=500,
             detail=f"Erro ao obter visão geral do mercado: {str(e)}"
+            
+            
+# ==================== ENDPOINT DE HEALTH CHECK ====================
+
+@router.get("/health")
+async def yfinance_health_check():
+    """Health check específico para os endpoints do yfinance."""
+    try:
+        # Teste simples com um ticker conhecido
+        test_ticker = yf.Ticker("AAPL")
+        test_info = test_ticker.info
+        
+        return {
+            "status": "healthy",
+            "service": "YFinance API",
+            "timestamp": datetime.now().isoformat(),
+            "test_ticker": "AAPL",
+            "test_successful": bool(test_info.get("symbol"))
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"YFinance service unhealthy: {str(e)}"
+        )
         )
