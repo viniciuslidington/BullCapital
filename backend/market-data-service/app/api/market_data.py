@@ -538,3 +538,19 @@ def clear_cache():
         "message": "Cache limpo!" if success else "Erro ao limpar cache",
         "success": success,
     }
+
+@router.get("/multi-info",
+    summary="Obter informações de múltiplos tickers",
+    description="""
+    Obtém informações básicas de múltiplos tickers.
+
+    Recebe uma lista separada por vírgulas de símbolos e retorna informações de cada um.
+    """
+)
+def get_multi_info(tickers: str):
+    response = market_data_service.get_multi_info(tickers)
+    logger.info(f"Obtendo informações para múltiplos tickers: {tickers}")
+    if not response:
+        logger.warning(f"Nenhum ticker encontrado para: {tickers}")
+        return {"message": "Nenhum ticker encontrado", "data": []}
+    return response
