@@ -3,71 +3,28 @@ import {
   Carousel,
   CarouselContent,
   CarouselItem,
+  CarouselNext,
 } from "@/components/ui/carousel";
 import { useNavigate } from "react-router-dom";
-import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowDown, ArrowUp, Minus } from "lucide-react";
+import { BoxSkeleton } from "./boxskeleton";
 
-const response = {
-  lastUpdated: "2025-07-18T14:43:00-03:00",
-  cards: [
-    {
-      ticker: "IBOV",
-      name: "Ibovespa",
-      type: "index",
-      value: 136362.5,
-      unit: "pts",
-      changePercent: -0.81,
-    },
-    {
-      ticker: "IFIX",
-      name: "IFIX",
-      type: "index",
-      value: 3420.1,
-      unit: "pts",
-      changePercent: 0.12,
-    },
-    {
-      ticker: "SMLL",
-      name: "SMLL",
-      type: "index",
-      value: 2250.75,
-      unit: "pts",
-      changePercent: -0.25,
-    },
-    {
-      ticker: "CDI",
-      name: "CDI 12m",
-      type: "fixed_income",
-      value: 12.14,
-      unit: "%",
-      changePercent: 1.09,
-    },
-    {
-      ticker: "SPX",
-      name: "S&P 500",
-      type: "index",
-      value: 5635.25,
-      unit: "pts",
-      changePercent: 0.27,
-    },
-    {
-      ticker: "^IXIC",
-      name: "Nasdaq",
-      type: "index",
-      value: 18250.15,
-      unit: "pts",
-      changePercent: 0.42,
-    },
-    {
-      ticker: "USDBRL",
-      name: "USD",
-      type: "currency",
-      value: 5.55,
-      unit: "R$",
-      changePercent: -0.18,
-    },
-  ],
+const priceColor = (numero: number, text: boolean) => {
+  let base = "";
+  if (numero > 0) {
+    base = "-green-card";
+  } else if (numero === 0 && text) {
+    return "text-muted-foreground";
+  } else if (numero === 0) {
+    base = "-muted";
+  } else {
+    base = "-red-card";
+  }
+  if (text) {
+    return `text${base}`;
+  } else {
+    return `bg${base}`;
+  }
 };
 
 export function MarketOverview() {
@@ -75,71 +32,72 @@ export function MarketOverview() {
     data: response,
     isLoading,
     isFetching,
-    error,
+    isError,
   } = useMarketOverview("brasil");
   const navigate = useNavigate();
 
+  const badResponse = (isError || response === undefined) && !isLoading;
+
   return (
-    <Carousel opts={{ dragFree: true }}>
-      <CarouselContent className="select-none">
+    <Carousel
+      opts={{ dragFree: true }}
+      className={`${badResponse && "pointer-events-none touch-none"}`}
+    >
+      <CarouselContent className={`select-none ${badResponse && "blur-[3px]"}`}>
         {isLoading
-          ? Array.from({ length: 6 }).map((_, idx) => (
-              <CarouselItem
-                key={idx}
-                className="border-border bg-card ml-4 flex w-auto shrink-0 grow-0 basis-auto cursor-pointer rounded-[12px] border p-2 shadow-sm transition-all duration-200 ease-in-out hover:shadow-md"
-              >
-                <div className="flex items-end justify-between gap-5">
-                  <span className="flex flex-col gap-2">
-                    <Skeleton className="h-3 w-20"></Skeleton>
-                    <Skeleton className="h-2 w-10"></Skeleton>
-                  </span>
-                  <Skeleton className="h-10 w-16"></Skeleton>
-                </div>
-              </CarouselItem>
-            ))
-          : response?.data?.map((item) => (
-              <CarouselItem
-                className="border-border bg-card ml-4 flex w-auto shrink-0 grow-0 basis-auto cursor-pointer rounded-[12px] border p-2 shadow-sm transition-all duration-200 ease-in-out hover:shadow-md"
-                onClick={() => navigate(item.symbol)}
-              >
-                <div className="flex items-end justify-between gap-3">
-                  <span className="flex flex-col">
-                    <p className="text-foreground/85 max-w-22 overflow-hidden text-sm font-medium text-ellipsis whitespace-nowrap">
-                      {item.name}
-                    </p>
-                    <p
-                      className={`text-xs ${isFetching ? "text-muted-foreground/70" : "text-muted-foreground"}`}
+          ? Array.from({ length: 6 }).map((_, idx) => <BoxSkeleton key={idx} />)
+          : badResponse
+            ? Array.from({ length: 6 }).map((_, idx) => (
+                <BoxSkeleton isError={true} key={idx} />
+              ))
+            : response?.data?.map((item) => (
+                <CarouselItem
+                  className="border-border bg-card ml-4 flex w-auto shrink-0 grow-0 basis-auto cursor-pointer rounded-[12px] border p-2 shadow-sm transition-all duration-200 ease-in-out hover:shadow-md"
+                  onClick={() => navigate(item.symbol)}
+                >
+                  <div className="flex justify-between gap-3">
+                    <div
+                      className={`${priceColor(parseFloat(item.change.toFixed(2)), false)} flex h-9 w-9 items-center justify-center gap-0.5 rounded-[8px]`}
                     >
-                      {item.price}
-                    </p>
-                  </span>
-                  <div
-                    className={`${item.change > 0 ? "bg-green-card" : item.change === 0 ? "bg-muted-foreground/40" : "bg-red-card"} flex h-10 w-16 items-center justify-center gap-0.5 rounded-[8px]`}
-                  >
-                    {item.change > 0 ? (
-                      <ArrowUp
-                        className={`h-4 w-4 shrink-0 stroke-3 ${isFetching ? "text-primary-foreground/60" : "text-primary-foreground"}`}
-                      />
-                    ) : item.change === 0 ? (
-                      <Minus
-                        className={`h-4 w-4 shrink-0 stroke-3 ${isFetching ? "text-primary-foreground/60" : "text-primary-foreground"}`}
-                      />
-                    ) : (
-                      <ArrowDown
-                        className={`h-4 w-4 shrink-0 stroke-3 ${isFetching ? "text-primary-foreground/60" : "text-primary-foreground"}`}
-                      />
-                    )}
+                      {item.change > 0 ? (
+                        <ArrowUp
+                          className={`h-4 w-4 shrink-0 stroke-3 ${isFetching ? "text-primary-foreground/60" : "text-primary-foreground"}`}
+                        />
+                      ) : item.change === 0 ? (
+                        <Minus
+                          className={`h-4 w-4 shrink-0 stroke-3 ${isFetching ? "dark:text-primary-foreground/60 text-muted-foreground/60" : "dark:text-primary-foreground text-muted-foreground"}`}
+                        />
+                      ) : (
+                        <ArrowDown
+                          className={`h-4 w-4 shrink-0 stroke-3 ${isFetching ? "text-primary-foreground/60" : "text-primary-foreground"}`}
+                        />
+                      )}
+                    </div>
+                    <span className="flex flex-col justify-between">
+                      <p className="text-accent-foreground/85 max-w-22 overflow-hidden text-xs font-bold text-ellipsis whitespace-nowrap">
+                        {item.name}
+                      </p>
+                      <p
+                        className={`text-xs ${isFetching ? "text-muted-foreground/70" : "text-muted-foreground"}`}
+                      >
+                        {item.price}
+                      </p>
+                    </span>
                     <p
-                      className={`text-xs font-semibold ${isFetching ? "text-primary-foreground/60" : "text-primary-foreground"}`}
+                      className={`text-xs font-semibold ${isFetching ? "text-muted-foreground/70" : priceColor(parseFloat(item.change.toFixed(2)), true)}`}
                     >
-                      {item.change !== 0 &&
-                        `${item.change.toFixed(2).replace("-", "")}%`}
+                      {item.change.toFixed(2).replace("-", "")}%
                     </p>
                   </div>
-                </div>
-              </CarouselItem>
-            ))}
+                </CarouselItem>
+              ))}
       </CarouselContent>
+      <CarouselNext className="disabled:!border-transparent disabled:!bg-transparent disabled:!text-transparent" />
+      {badResponse && (
+        <div className="slide-in-from-top fade-in animate-in bg-red-card absolute top-1/2 right-1/2 m-auto translate-x-1/2 -translate-y-1/2 rounded-lg p-2 shadow-lg duration-500">
+          <p className="text-white">Falha ao carregar itens</p>
+        </div>
+      )}
     </Carousel>
   );
 }
