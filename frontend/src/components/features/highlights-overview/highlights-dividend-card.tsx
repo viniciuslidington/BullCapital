@@ -61,7 +61,11 @@ export const HighlightsDividendCard: React.FC<HighlightsCardProps> = ({
                     </p>
                   </div>
                   <div className="flex h-10 w-15 items-start justify-end text-right">
-                    <p className="text-md font-medium">{item.dividend_yield}</p>
+                    <p
+                      className={`text-md font-medium ${fetchState.isFetching && "opacity-70"}`}
+                    >
+                      {item.dividend_yield}
+                    </p>
                     {/* <p className={`text-muted-foreground font-regular text-sm`}>
                       {item.dataPagamento.replaceAll("-", "/")}
                     </p> */}

@@ -65,13 +65,15 @@ export const HighlightsCard: React.FC<HighlightsCardProps> = ({
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-md font-medium">
+                    <p
+                      className={`text-md font-medium ${fetchState.isFetching && "opacity-70"}`}
+                    >
                       {formatPrice(item.price, item.currency)}
                     </p>
                     <p
                       className={`text-sm font-medium ${
                         item.change >= 0 ? "text-green-500" : "text-red-500"
-                      }`}
+                      } ${fetchState.isFetching && "opacity-70"}`}
                     >
                       {formatChange(item.change)}
                     </p>

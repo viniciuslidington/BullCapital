@@ -55,7 +55,7 @@ export function MarketOverview() {
               >
                 <div className="flex justify-between gap-3">
                   <div
-                    className={`${priceColor(parseFloat(item.change.toFixed(2)), false)} flex h-9 w-9 items-center justify-center gap-0.5 rounded-[8px]`}
+                    className={`${priceColor(parseFloat(item.change.toFixed(2)), false)} flex h-9 w-9 items-center justify-center gap-0.5 rounded-[8px] ${isFetching && "opacity-70"}`}
                   >
                     {item.change > 0 ? (
                       <ArrowUp
@@ -76,13 +76,13 @@ export function MarketOverview() {
                       {item.name}
                     </p>
                     <p
-                      className={`text-xs ${isFetching ? "text-muted-foreground/70" : "text-muted-foreground"}`}
+                      className={`text-muted-foreground text-xs ${isFetching && "opacity-70"}`}
                     >
                       {item.price}
                     </p>
                   </span>
                   <p
-                    className={`text-xs font-semibold ${isFetching ? "text-muted-foreground/70" : priceColor(parseFloat(item.change.toFixed(2)), true)}`}
+                    className={`text-xs font-semibold ${priceColor(parseFloat(item.change.toFixed(2)), true)} ${isFetching && "opacity-70"}`}
                   >
                     {item.change.toFixed(2).replace("-", "")}%
                   </p>
