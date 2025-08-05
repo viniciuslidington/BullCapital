@@ -1,14 +1,21 @@
+"""
+Módulo do Agente Financeiro - Análise Fundamentalista com Agno Framework.
+Contém todas as ferramentas, agentes e equipe para análise de ações.
+"""
+
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
-# Ajustes de robustez
-os.environ.update(
-    {
-        "OPENAI_MAX_RETRIES": "10",       
-        "OPENAI_API_TIMEOUT": "60",      
-        "AGNO_TRUNCATE_CONTEXT": "head",  
-    }
-)
+# Carregar variáveis de ambiente
+load_dotenv()
+
+# Configurações de robustez
+os.environ.update({
+    "OPENAI_MAX_RETRIES": "10",
+    "OPENAI_API_TIMEOUT": "60",
+    "AGNO_TRUNCATE_CONTEXT": "head",
+})
 
 import pdfplumber
 import yfinance as yf
@@ -25,17 +32,139 @@ from agno.tools import tool
 from agno.tools.reasoning import ReasoningTools
 
 
-# helpers
+class FinancialAgent:
+    """
+    Classe principal do Agente Financeiro.
+    Encapsula toda a lógica de análise fundamentalista.
+    """
+    
+    def __init__(self):
+        """Inicializa o agente financeiro com todas as ferramentas e equipe."""
+        self._setup_tools()
+        self._setup_agents()
+        self._setup_team()
+    
+    def _setup_tools(self):
+        """Configura todas as ferramentas (tools) do agente."""
+        self.normalize_ticker = normalize_ticker
+        self.consultar_pdf_fundamentalista = consultar_pdf_fundamentalista
+        self.calcular_valuation = calcular_valuation
+        self.calcular_multiplos = calcular_multiplos
+    
+    def _setup_agents(self):
+        """Configura os agentes especializados."""
+        self.ag_rag = Agent(
+            name="RAG Fundamentalista",
+            role="Consulta PDF",
+            model=OpenAIChat(id="gpt-3.5-turbo"),
+            tools=[consultar_pdf_fundamentalista],
+        )
+
+        self.ag_val = Agent(
+            name="Valuation",
+            role="6 métodos de valuation",
+            model=OpenAIChat(id="gpt-3.5-turbo"),
+            tools=[calcular_valuation],
+        )
+
+        self.ag_mult = Agent(
+            name="Múltiplos",
+            role="Calcula múltiplos",
+            model=OpenAIChat(id="gpt-3.5-turbo"),
+            tools=[calcular_multiplos],
+        )
+    
+    def _setup_team(self):
+        """Configura a equipe coordenada de agentes."""
+        self.equipe = Team(
+            name="Equipe Financeira Completa",
+            mode="coordinate",
+            model=OpenAIChat(id="gpt-4o"),
+            members=[self.ag_rag, self.ag_val, self.ag_mult],
+            tools=[ReasoningTools(add_instructions=True)],
+            enable_agentic_context=False,
+            instructions=[
+                "Crie relatório final em seções: Introdução, Fundamentação, Valuation, Múltiplos, Conclusão.",
+                "Use tabelas markdown sempre que houver números.",
+            ],
+            markdown=True,
+            show_members_responses=False,
+        )
+    
+    def chat(self, question: str) -> str:
+        """
+        Processa uma pergunta geral com o agente.
+        
+        Args:
+            question (str): Pergunta do usuário
+            
+        Returns:
+            str: Resposta do agente
+        """
+        try:
+            response = self.equipe.run(question)
+            return self._extract_response_content(response)
+        except Exception as e:
+            raise Exception(f"Erro no chat: {str(e)}")
+    
+    def analyze_stock(self, question: str, ticker: str) -> str:
+        """
+        Analisa uma ação específica.
+        
+        Args:
+            question (str): Pergunta do usuário
+            ticker (str): Ticker da ação
+            
+        Returns:
+            str: Análise completa da ação
+        """
+        try:
+            prompt = f"""
+            Analise a ação {ticker}:
+            
+            Pergunta do usuário: {question}
+            
+            Por favor:
+            1. Resuma o conceito de margem de segurança do PDF.
+            2. Faça valuation (6 métodos, inclua CAPM).
+            3. Calcule os principais múltiplos.
+            4. Conclua recomendando comprar, manter ou vender.
+            """
+            
+            response = self.equipe.run(prompt)
+            return self._extract_response_content(response)
+        except Exception as e:
+            raise Exception(f"Erro na análise: {str(e)}")
+    
+    def _extract_response_content(self, response) -> str:
+        """
+        Extrai o conteúdo da resposta como string.
+        
+        Args:
+            response: Resposta do agente
+            
+        Returns:
+            str: Conteúdo da resposta
+        """
+        if hasattr(response, 'content'):
+            return response.content
+        else:
+            return str(response)
+
+
+# Helpers
 def normalize_ticker(tk: str) -> str:
+    """Normaliza o ticker para formato brasileiro."""
     return f"{tk}.SA" if "." not in tk and tk[-1].isdigit() else tk
 
 
-# RAG sobre o PDF
+# Ferramentas (Tools)
 @tool(
     name="consultar_pdf_fundamentalista",
     description="Responde perguntas usando o PDF de análise fundamentalista e cita página.",
 )
 def consultar_pdf_fundamentalista(question: str) -> str:
+    """Consulta o PDF de análise fundamentalista."""
     pdf_path = Path("indicadores_fundamentalistas (1).pdf")
     with pdfplumber.open(pdf_path) as pdf:
         texto = "\n".join(page.extract_text() or "" for page in pdf.pages)
@@ -51,15 +180,16 @@ def consultar_pdf_fundamentalista(question: str) -> str:
         "Você é um analista fundamentalista. Use o contexto e cite página quando possível.\n\n"
         f"{ctx}\n\nPergunta: {question}\nResposta:"
     )
-    return llm.predict(prompt)
+    response = llm.invoke(prompt)
+    return response.content
 
 
-# Valuation (6 métodos)
 @tool(
     name="calcular_valuation",
     description="Calcula DCF, Gordon, EV/EBIT, P/L, PEG e CAPM; devolve tabela markdown.",
 )
 def calcular_valuation(ticker: str) -> str:
+    """Calcula valuation usando 6 métodos diferentes."""
     tk = normalize_ticker(ticker)
     info = yf.Ticker(tk).info
     shares = info.get("sharesOutstanding") or 1
@@ -148,12 +278,12 @@ def calcular_valuation(ticker: str) -> str:
     return df.to_markdown(index=False)
 
 
-# Múltiplos
 @tool(
     name="calcular_multiplos",
     description="Retorna tabela markdown com P/L, P/VP, EV/EBITDA, EV/Receita.",
 )
 def calcular_multiplos(ticker: str) -> str:
+    """Calcula múltiplos financeiros da ação."""
     info = yf.Ticker(normalize_ticker(ticker)).info
     pe = info.get("trailingPE")
     pb = info.get("priceToBook")
@@ -177,54 +307,5 @@ def calcular_multiplos(ticker: str) -> str:
     return df.to_markdown(index=False)
 
 
-# Agentes
-ag_rag = Agent(
-    name="RAG Fundamentalista",
-    role="Consulta PDF",
-    model=OpenAIChat(id="gpt-3.5-turbo"),
-    tools=[consultar_pdf_fundamentalista],
-)
-
-ag_val = Agent(
-    name="Valuation",
-    role="6 métodos de valuation",
-    model=OpenAIChat(id="gpt-3.5-turbo"),
-    tools=[calcular_valuation],
-)
-
-ag_mult = Agent(
-    name="Múltiplos",
-    role="Calcula múltiplos",
-    model=OpenAIChat(id="gpt-3.5-turbo"),
-    tools=[calcular_multiplos],
-)
-
-
-
-# Equipe
-
-equipe = Team(
-    name="Equipe Financeira Completa",
-    mode="coordinate",
-    model=OpenAIChat(id="gpt-4o"),             
-    members=[ag_rag, ag_val, ag_mult],
-    tools=[ReasoningTools(add_instructions=True)],
-    enable_agentic_context=False,              
-    instructions=[
-        "Crie relatório final em seções: Introdução, Fundamentação, Valuation, Múltiplos, Conclusão.",
-        "Use tabelas markdown sempre que houver números.",
-    ],
-    markdown=True,
-    show_members_responses=False,
-)
-
-# Execução CLI
-if __name__ == "__main__":
-    prompt = (
-        "Analise a ação PETR4:\n"
-        "1. Resuma o conceito de margem de segurança do PDF.\n"
-        "2. Faça valuation (6 métodos, inclua CAPM).\n"
-        "3. Calcule os principais múltiplos.\n"
-        "4. Conclua recomendando comprar, manter ou vender."
-    )
-    equipe.print_response(prompt)
+# Instância global do agente
+agent = FinancialAgent() 
