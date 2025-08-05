@@ -9,7 +9,7 @@ export interface MarketOverviewItem {
 }
 
 export interface MarketOverviewResponse {
-  category: string;
+  category: "all" | "brasil" | "eua" | "europa" | "asia" | "moedas";
   timestamp: string;
   count: number;
   data: MarketOverviewItem[];
