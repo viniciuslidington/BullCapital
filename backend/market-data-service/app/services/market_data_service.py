@@ -3,7 +3,6 @@
 import time
 import uuid
 from datetime import datetime
-from dotenv import load_dotenv
 import os
 import yfinance as yf
 import pandas as pd
@@ -13,7 +12,7 @@ from typing import Any, Dict, List, Optional
 from deep_translator import GoogleTranslator
 
 from core.config import settings
-from core.logging import loggerMixin
+from core.logging import LoggerMixin
 from models.requests import BulkDataRequest, SearchRequest, StockDataRequest
 from models.responses import (
     BulkDataResponse,
@@ -31,13 +30,57 @@ from services.interfaces import (
     RateLimitException,
 )
 from services.yahoo_finance_provider import YahooFinanceProvider
-from utils import convert_to_serializable, safe_ticker_operation
+from utils.Ticker_ops import convert_to_serializable, safe_ticker_operation
 
 
-load_dotenv()
+# Adicionar constantes para os símbolos por categoria
+MARKET_OVERVIEW_SYMBOLS = {
+        "all": [
+            "^BVSP", "^SMLL", "SELIC", "IFIX11.SA", "WEGE3.SA", "PETR4.SA", "VALE3.SA", "ITUB4.SA",  # Brasil
+            "^GSPC", "^IXIC", "^DJI", "^VIX", "^RUT",  # EUA
+            "^STOXX", "^GDAXI", "^FTSE", "^FCHI", "^STOXX50E",  # Europa
+            "^N225", "000001.SS", "^HSI", "^NSEI", "^BSESN",  # Ásia
+            "USDBRL=X", "EURBRL=X", "GBPBRL=X", "JPYBRL=X", "AUDBRL=X"  # Moedas
+        ],
+        "brasil": ["^BVSP", "^SMLL", "SELIC", "IFIX11.SA", "WEGE3.SA", "PETR4.SA", "VALE3.SA", "ITUB4.SA"],
+        "eua": ["^GSPC", "^IXIC", "^DJI", "^VIX", "^RUT"],
+        "europa": ["^STOXX", "^GDAXI", "^FTSE", "^FCHI", "^STOXX50E"],
+        "asia": ["^N225", "000001.SS", "^HSI", "^NSEI", "^BSESN"],
+        "moedas": ["USDBRL=X", "EURBRL=X", "GBPBRL=X", "JPYBRL=X", "AUDBRL=X"]
+    }
 
-MARKET_OVERVIEW_SYMBOLS = os.getenv("MARKET_OVERVIEW_SYMBOLS")
-SYMBOL_NAMES = os.getenv("SYMBOL_NAMES")
+SYMBOL_NAMES = {
+        "^BVSP": "Ibovespa",
+        "^SMLL": "Small Cap",
+        "SELIC": "Taxa Selic",
+        "IFIX11.SA": "Índice Fundos Imobiliários",
+        "WEGE3.SA": "WEG ON",
+        "PETR4.SA": "Petrobras PN",
+        "VALE3.SA": "Vale ON",
+        "ITUB4.SA": "Itaú PN",
+        "^GSPC": "S&P 500",
+        "^IXIC": "Nasdaq",
+        "^DJI": "Dow Jones",
+        "^VIX": "VIX",
+        "^RUT": "Russell 2000",
+        "^STOXX": "STOXX 600",
+        "^GDAXI": "DAX",
+        "^FTSE": "FTSE 100",
+        "^FCHI": "CAC 40",
+        "^STOXX50E": "Euro STOXX 50",
+        "^N225": "Nikkei 225",
+        "000001.SS": "SSE Composite",
+        "^HSI": "Hang Seng",
+        "^NSEI": "Nifty 50",
+        "^BSESN": "Sensex",
+        "USDBRL=X": "Dólar/Real",
+        "EURBRL=X": "Euro/Real",
+        "GBPBRL=X": "Libra/Real",
+        "JPYBRL=X": "Iene/Real",
+        "AUDBRL=X": "Dólar Australiano/Real"
+    }
+
+
 
 BR_PREDEFINED_SCREENER_QUERIES = {
         "mercado_todo": EquityQuery('and', [
@@ -237,7 +280,7 @@ class SimpleRateLimiter(IRateLimiter):
             return False
 
 
-class MarketDataService(loggerMixin):
+class MarketDataService(LoggerMixin):
 
     def get_stock_history(
         self,
@@ -312,7 +355,7 @@ class MarketDataService(loggerMixin):
         self.cache_service = cache_service or InMemoryCache()
         self.rate_limiter = rate_limiter or SimpleRateLimiter()
         
-        self.self.logger.info("MarketDataService inicializado com sucesso")
+        self.logger.info("MarketDataService inicializado com sucesso")
     
     def get_stock_data(
         self,
@@ -347,18 +390,18 @@ class MarketDataService(loggerMixin):
         if settings.ENABLE_CACHE:
             cached_data = self.cache_service.get(cache_key)
             if cached_data:
-                self.self.logger.info(f"Dados obtidos do cache para {symbol}")
+                self.logger.info(f"Dados obtidos do cache para {symbol}")
                 return StockDataResponse(**cached_data)
         
         try:
             # Obter dados do provedor
-            self.self.logger.info(f"Obtendo dados do provedor para {symbol}")
+            self.logger.info(f"Obtendo dados do provedor para {symbol}")
             start_time = time.time()
             
             data = self.provider.get_stock_data(symbol, request)
             
             processing_time = (time.time() - start_time) * 1000
-            self.self.logger.info(
+            self.logger.info(
                 f"Dados obtidos em {processing_time:.2f}ms para {symbol}"
             )
             
@@ -457,7 +500,7 @@ class MarketDataService(loggerMixin):
         request_id = str(uuid.uuid4())
         start_time = time.time()
         
-        self.self.logger.info(
+        self.logger.info(
             f"Iniciando requisição em lote {request_id} "
             f"para {len(request.symbols)} tickers"
         )
@@ -483,12 +526,12 @@ class MarketDataService(loggerMixin):
                 data = self.provider.get_stock_data(symbol, stock_request)
                 successful_data[symbol] = data
             except Exception as e:
-                self.self.logger.warning(f"Erro ao obter dados para {symbol}: {e}")
+                self.logger.warning(f"Erro ao obter dados para {symbol}: {e}")
                 errors[symbol] = str(e)
         
         processing_time = (time.time() - start_time) * 1000
         
-        self.self.logger.info(
+        self.logger.info(
             f"Requisição em lote {request_id} concluída: "
             f"{len(successful_data)} sucessos, {len(errors)} erros "
             f"em {processing_time:.2f}ms"
@@ -661,7 +704,7 @@ class MarketDataService(loggerMixin):
         """
         try:
             result = self.cache_service.clear()
-            self.self.logger.info("Cache limpo com sucesso")
+            self.logger.info("Cache limpo com sucesso")
             return result
         except Exception as e:
             self.logger.error(f"Erro ao limpar cache: {e}")
