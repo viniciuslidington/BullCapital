@@ -843,15 +843,25 @@ class MarketDataService(LoggerMixin):
             # Processa cada símbolo individualmente para garantir maior confiabilidade
             for symbol in symbol_list:
                 try:
-                    # Usa o safe_ticker_operation que já temos
-                    ticker_data = safe_ticker_operation(symbol, lambda t: t.history(
-                        period=period,
-                        interval=interval,
-                        start=start,
-                        end=end,
-                        prepost=prepost,
-                        auto_adjust=auto_adjust
-                    ))
+                    def fetch_history(ticker):
+                        # Condição para usar start/end OU period
+                        if start and end:
+                            return ticker.history(
+                                interval=interval,
+                                start=start,
+                                end=end,
+                                prepost=prepost,
+                                auto_adjust=auto_adjust
+                            )
+                        else:
+                            return ticker.history(
+                                period=period,
+                                interval=interval,
+                                prepost=prepost,
+                                auto_adjust=auto_adjust
+                            )
+
+                    ticker_data = safe_ticker_operation(symbol, fetch_history)
 
                     # Processa os dados
                     if isinstance(ticker_data, pd.DataFrame) and not ticker_data.empty:
@@ -888,8 +898,7 @@ class MarketDataService(LoggerMixin):
         except Exception as e:
             self.logger.error(f"Erro ao obter dados históricos múltiplos: {str(e)}")
             raise ValueError(
-                
-               f"Erro ao obter dados históricos dos tickers: {str(e)}"
+                f"Erro ao obter dados históricos dos tickers: {str(e)}"
             )
 
 
