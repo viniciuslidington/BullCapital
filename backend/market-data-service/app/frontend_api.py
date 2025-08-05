@@ -102,6 +102,13 @@ async def get_multiple_tickers_info(
     try:
         # Limpa e valida os símbolos
         symbol_list = [s.strip().upper() for s in symbols.split(',') if s.strip()]
+        
+        # Validar número máximo de tickers
+        if len(symbol_list) > 5:
+            raise HTTPException(
+                status_code=400,
+                detail="Número máximo de 5 tickers permitido por requisição"
+            )
         if not symbol_list:
             raise HTTPException(
                 status_code=400,
@@ -183,6 +190,13 @@ async def get_multiple_historical_data(
     try:
         # Limpa e valida os símbolos
         symbol_list = [s.strip().upper() for s in symbols.split(',') if s.strip()]
+        
+        # Validar número máximo de tickers
+        if len(symbol_list) > 5:
+            raise HTTPException(
+                status_code=400,
+                detail="Número máximo de 5 tickers permitido por requisição"
+            )
         if not symbol_list:
             raise HTTPException(
                 status_code=400,
@@ -300,7 +314,7 @@ async def get_ticker_info(symbol: str = Path(..., description="Símbolo do ticke
     """
     Obtém informações principais.
     """
-    def get_profile(ticker):
+    def get_ticker(ticker):
         info = ticker.info
         if info.get("website", False):
             logo = f"https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url={info.get('website', None)}"
@@ -408,7 +422,7 @@ async def get_ticker_info(symbol: str = Path(..., description="Símbolo do ticke
     }
 
     
-    profile = safe_ticker_operation(symbol, get_profile)
+    profile = safe_ticker_operation(symbol, get_ticker)
     return {
         "symbol": symbol.upper(),
         "profile": convert_to_serializable(profile)
