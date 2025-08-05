@@ -857,12 +857,17 @@ async def obter_trending(
         # Processar e formatar resultados com validação
         formatted_results = []
         for item in quotes:
+
+            def get_info(ticker):
+                return ticker.info
+            info = safe_ticker_operation(str(item.get("symbol", "")), get_info)
+            website = str(info.get("website", False))
+
             if not isinstance(item, dict):
                 logger.warning(f"Item inválido no resultado: {item}")
                 continue
-            
-            if item.get("website", False):
-                logo = f"https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url={item.get('website', None)}"
+            if (website):
+                logo = f"https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url={website}"
             else:
                 logo = None
                 
@@ -884,8 +889,8 @@ async def obter_trending(
                         "exchange": str(item.get("exchange", "")),
                         "fullExchangeName": str(item.get("fullExchangeName", "")),
                         "currency": str(item.get("currency", "")),
-                        "website": str(item.get("website", "")),
-                        "logo": logo
+                        "website": website or "",
+                        "logo": logo or ""
                 })
             except (TypeError, ValueError) as e:
                 logger.warning(f"Erro ao formatar item: {str(e)}")
