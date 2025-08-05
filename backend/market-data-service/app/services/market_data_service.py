@@ -903,6 +903,7 @@ class MarketDataService(LoggerMixin):
 
 
     def get_historical_data(
+        self,
         symbol: str,
         period: str,
         interval: str,
@@ -917,15 +918,18 @@ class MarketDataService(LoggerMixin):
         Retorna: Open, High, Low, Close, Volume, Dividends, Stock Splits
         """
         def get_history(ticker):
-            return ticker.history(
-                period=period,
-                interval=interval,
-                start=start,
-                end=end,
-                prepost=prepost,
-                auto_adjust=auto_adjust
-            )
-        
+            kwargs = {
+                "interval": interval,
+                "prepost": prepost,
+                "auto_adjust": auto_adjust
+            }
+            # Only set valid combinations
+            if start and end:
+                kwargs["start"] = start
+                kwargs["end"] = end
+            else:
+                kwargs["period"] = period
+            return ticker.history(**kwargs)
         data = safe_ticker_operation(symbol, get_history)
         return {
             "symbol": symbol.upper(),
@@ -938,7 +942,7 @@ class MarketDataService(LoggerMixin):
     # ==================== ENDPOINTS DE INFO COMPLETAS ====================
 
 
-    def get_ticker_fulldata (symbol: str):
+    def get_ticker_fulldata (self, symbol: str):
         """
         Obtém todas informações 
 
@@ -955,7 +959,7 @@ class MarketDataService(LoggerMixin):
     # ==================== ENDPOINT DE INFO ESSENCIAIS ====================
 
 
-    def get_ticker_info(symbol: str):
+    def get_ticker_info(self, symbol: str):
         """
         Obtém informações principais.
         """
@@ -1209,7 +1213,7 @@ class MarketDataService(LoggerMixin):
             )
 
 
-    def get_dividends(symbol: str):
+    def get_dividends(self, symbol: str):
         """Obtém histórico de dividendos pagos."""
         def get_dividends(ticker):
             return ticker.dividends
@@ -1222,7 +1226,7 @@ class MarketDataService(LoggerMixin):
 
     # ==================== ENDPOINT DE RECOMENDAÇÕES ====================
 
-    def get_recommendations(symbol: str):
+    def get_recommendations(self, symbol: str):
         """Obtém recomendações detalhadas de analistas."""
         def get_recommendations(ticker):
             return ticker.recommendations
@@ -1235,7 +1239,7 @@ class MarketDataService(LoggerMixin):
 
     # ==================== ENDPOINT DE CALENDARIO ====================
 
-    def get_calendar(symbol: str):
+    def get_calendar(self, symbol: str):
         """Obtém calendário de eventos corporativos."""
         def get_calendar(ticker):
             return ticker.calendar
@@ -1249,7 +1253,7 @@ class MarketDataService(LoggerMixin):
     # ==================== ENDPOINT DE NEWS ====================
 
 
-    def get_news(symbol: str, num: int):
+    def get_news(self, symbol: str, num: int):
         """Obtém notícias relacionadas ao ticker."""
         def get_news(ticker):
             news = ticker.get_news(count=num)
@@ -1275,7 +1279,7 @@ class MarketDataService(LoggerMixin):
 
 
     # ==================== ENDPOINT DE TRENDING ====================
-    def listar_categorias():
+    def get_categorias(self):
         """Lista todas as categorias disponíveis para screening."""
         return {
             "categorias": list(BR_PREDEFINED_SCREENER_QUERIES.keys()),
@@ -1292,7 +1296,7 @@ class MarketDataService(LoggerMixin):
             }
         }
 
-    def obter_trending(
+    def get_trending(
         self,
         categoria: str,
         setor: Optional[str],
@@ -1414,7 +1418,7 @@ class MarketDataService(LoggerMixin):
 
     # ==================== ENDPOINT DE BUSCA-PERSONALIZADA ====================
 
-    def busca_personalizada(
+    def get_custom_search(
         self,
         min_price: Optional[float],
         max_price: Optional[float],
@@ -1672,7 +1676,7 @@ class MarketDataService(LoggerMixin):
             
     # ==================== ENDPOINT DE HEALTH CHECK ====================
 
-    def yfinance_health_check():
+    def yfinance_health_check(self):
         """Health check específico para os endpoints do yfinance."""
         try:
             # Teste simples com um ticker conhecido
