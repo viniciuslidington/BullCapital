@@ -566,8 +566,8 @@ def get_multiple_tickers_history(tickers: str, period: str = "1mo", interval: st
     return response
 
 @router.get("/{symbol}/history")
-def get_ticker_history(symbol: str, period: str = "1mo", interval: str = "1d", PrePost: bool = False, autoAdjust: bool = True):
-    response = market_data_service.get_historical_data(symbol, period, interval, PrePost, autoAdjust)
+def get_ticker_history(symbol: str, period: str = "1mo", interval: str = "1d", start: str = "2020-01-01", end: str = "2025-01-01", PrePost: bool = False, autoAdjust: bool = True):
+    response = market_data_service.get_historical_data(symbol, period, interval, start, end, PrePost, autoAdjust)
     logger.info(f"Obtendo histórico para {symbol}, período {period}, intervalo {interval}")
     if not response:
         logger.warning(f"Nenhum histórico encontrado para: {symbol}")
@@ -579,7 +579,7 @@ def get_ticker_history(symbol: str, period: str = "1mo", interval: str = "1d", P
 
 @router.get("/{symbol}/fulldata")
 def get_ticker_full_data(symbol: str):
-    response = market_data_service.get_ticker_full_data(symbol)
+    response = market_data_service.get_ticker_fulldata(symbol)
     logger.info(f"Obtendo dados completos para {symbol}")
     if not response:
         logger.warning(f"Nenhum dado completo encontrado para: {symbol}")
@@ -611,6 +611,13 @@ Busca por empresas, setores, símbolos ou países.
 - 📊 Símbolos: "PETR", "VALE", "AAPL", "MSFT"
 - 🌎 Países: "brazil", "usa", "american"
 """)
+def search_tickers(query: str, limit: int = 10):
+    response = market_data_service.search_tickers(query, limit)
+    logger.info(f"Realizando busca para: {query}")
+    if not response:
+        logger.warning(f"Nenhum ticker encontrado para a busca: {query}")
+        return {"message": "Nenhum ticker encontrado", "data": []}
+    return response
 
 
 # ==================== ENDPOINT DE EXPERIMENTAL DE LOOKUP ====================
@@ -635,10 +642,20 @@ Busca informações detalhadas sobre instrumentos financeiros.
 - ETFs: "ishares"
 - Índices: "ibovespa"
 """)
+def lookup(query: str, tipo: str = "all", limit: int = 10):
+    response = market_data_service.lookup_instruments(query, tipo, limit)
+    logger.info(f"Realizando lookup para: {query}, tipo: {tipo}")
+    if not response:
+        logger.warning(f"Nenhum instrumento encontrado para a busca: {query}, tipo: {tipo}")
+        return {"message": "Nenhum instrumento encontrado", "data": []}
+    return response
 
-@router.get("/{symbol}/dividends")
+
+@router.get("/{symbol}/dividends",
+            description="Obter dividendos de um ticker específico")
+
 def get_ticker_dividends(symbol: str):
-    response = market_data_service.get_ticker_dividends(symbol)
+    response = market_data_service.get_dividends(symbol)
     logger.info(f"Obtendo dividendos para {symbol}")
     if not response:
         logger.warning(f"Nenhum dividendo encontrado para: {symbol}")
@@ -650,7 +667,7 @@ def get_ticker_dividends(symbol: str):
 
 @router.get("/{symbol}/recommendations")
 def get_ticker_recommendations(symbol: str):
-    response = market_data_service.get_ticker_recommendations(symbol)
+    response = market_data_service.get_recommendations(symbol)
     logger.info(f"Obtendo recomendações para {symbol}")
     if not response:
         logger.warning(f"Nenhuma recomendação encontrada para: {symbol}")
@@ -662,7 +679,7 @@ def get_ticker_recommendations(symbol: str):
 
 @router.get("/{symbol}/calendar")
 def get_ticker_calendar(symbol: str):
-    response = market_data_service.get_ticker_calendar(symbol)
+    response = market_data_service.get_calendar(symbol)
     logger.info(f"Obtendo calendário para {symbol}")
     if not response:
         logger.warning(f"Nenhum calendário encontrado para: {symbol}")
@@ -673,8 +690,8 @@ def get_ticker_calendar(symbol: str):
 # ==================== ENDPOINT DE NEWS ====================
 
 @router.get("/{symbol}/news")
-def get_ticker_news(symbol: str):
-    response = market_data_service.get_ticker_news(symbol)
+def get_ticker_news(symbol: str, limit: int = 10):
+    response = market_data_service.get_news(symbol, limit)
     logger.info(f"Obtendo notícias para {symbol}")
     if not response:
         logger.warning(f"Nenhuma notícia encontrada para: {symbol}")
@@ -685,12 +702,12 @@ def get_ticker_news(symbol: str):
 
 
 @router.get("/categorias")
-def get_tickers_by_category(categoria: str):
-    response = market_data_service.get_tickers_by_category(categoria)
-    logger.info(f"Obtendo tickers para a categoria: {categoria}")
+def get_categorias():
+    response = market_data_service.get_categorias()
+    logger.info(f"Obtendo categorias")
     if not response:
-        logger.warning(f"Nenhum ticker encontrado para a categoria: {categoria}")
-        return {"message": "Nenhum ticker encontrado", "data": []}
+        logger.warning(f"Nenhuma categoria encontrada")
+        return {"message": "Nenhuma categoria encontrada", "data": []}
     return response
 
 
@@ -725,10 +742,34 @@ Setores disponíveis:
 - Technology
 - Utilities
 """)
-def get_tickers_by_category(categoria: str, sort: str = "percentchange", asc: bool = False):
-    response = market_data_service.get_tickers_by_category(categoria, sort, asc)
-    logger.info(f"Obtendo tickers para a categoria: {categoria}, ordenando por {sort}, ascendente: {asc}")
-    if not response:
+def get_tickers_by_category(
+    categoria: str,
+    setor: str = None,
+    limit: int = 20,
+    offset: int = 0,
+    sort_field: str = "percentchange",
+    sort_asc: bool = False
+):
+    """
+    Endpoint para obter tickers por categoria, com lógica de filtro/sort correta.
+    """
+    # Garantir que categoria existe
+    categorias_validas = market_data_service.get_categorias()["categorias"]
+    if categoria not in categorias_validas:
+        logger.warning(f"Categoria inválida: {categoria}")
+        return {"message": "Categoria inválida", "data": []}
+
+    # Chamar serviço com argumentos corretos
+    response = market_data_service.get_trending(
+        categoria=categoria,
+        setor=setor,
+        limit=limit,
+        offset=offset,
+        sort_field=sort_field,
+        sort_asc=sort_asc
+    )
+    logger.info(f"Obtendo tickers para a categoria: {categoria}, ordenando por {sort_field}, ascendente: {sort_asc}")
+    if not response or not response.get("resultados"):
         logger.warning(f"Nenhum ticker encontrado para a categoria: {categoria}")
         return {"message": "Nenhum ticker encontrado", "data": []}
     return response
@@ -737,11 +778,23 @@ def get_tickers_by_category(categoria: str, sort: str = "percentchange", asc: bo
 # ==================== ENDPOINT DE BUSCA-PERSONALIZADA ====================
 
 @router.get("/busca-personalizada")
-def search_tickers(query: str):
-    response = market_data_service.search_tickers(query)
-    logger.info(f"Realizando busca personalizada para: {query}")
+def search_tickers( min_price: float = None, max_price: float = None, 
+                   min_volume: int = None, min_market_cap: float = None, max_pe: float = None, 
+                   min_dividend_yield: float = None, setor: str = None, limit: int = 20):
+    # Verifica se pelo menos um filtro foi fornecido
+    if all(
+        x is None for x in [min_price, max_price, min_volume, min_market_cap, max_pe, min_dividend_yield, setor]
+    ):
+        logger.warning("Busca personalizada requer pelo menos um filtro além do mercado padrão.")
+        return {"message": "Forneça pelo menos um filtro para busca personalizada.", "data": []}
+
+    response = market_data_service.get_custom_search(
+        min_price, max_price, min_volume, min_market_cap, max_pe, min_dividend_yield, setor, limit
+    )
+    logger.info(f"Realizando busca personalizada com filtros: "
+                f"min_price={min_price}, max_price={max_price}, ")
     if not response:
-        logger.warning(f"Nenhum ticker encontrado para a busca: {query}")
+        logger.warning(f"Nenhum ticker encontrado para a busca personalizada.")
         return {"message": "Nenhum ticker encontrado", "data": []}
     return response
 
