@@ -6,7 +6,7 @@ import {
   CarouselNext,
 } from "@/components/ui/carousel";
 import { useNavigate } from "react-router-dom";
-import { ArrowDown, ArrowUp, Minus } from "lucide-react";
+import { AlertCircleIcon, ArrowDown, ArrowUp, Minus } from "lucide-react";
 import { BoxSkeleton } from "./boxskeleton";
 
 const priceColor = (numero: number, text: boolean) => {
@@ -94,8 +94,11 @@ export function MarketOverview() {
       </CarouselContent>
       <CarouselNext className="disabled:!border-transparent disabled:!bg-transparent disabled:!text-transparent" />
       {badResponse && (
-        <div className="slide-in-from-top fade-in animate-in bg-red-card absolute top-1/2 right-1/2 m-auto translate-x-1/2 -translate-y-1/2 rounded-lg p-2 shadow-lg duration-500">
-          <p className="text-white">Falha ao carregar itens</p>
+        <div className="slide-in-from-top fade-in animate-in bg-card absolute top-1/2 right-1/2 m-auto translate-x-1/2 -translate-y-1/2 rounded-lg border p-3 shadow-lg duration-500">
+          <p className="text-destructive flex items-center gap-2 text-sm font-medium">
+            <AlertCircleIcon className="h-4 w-4" />
+            Falha ao carregar itens
+          </p>
         </div>
       )}
     </Carousel>
