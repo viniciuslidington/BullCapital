@@ -16,8 +16,8 @@ export function BoxSkeleton({
       <div className="flex justify-between gap-3">
         <Skeleton animation={!isError} className="h-9 w-9"></Skeleton>
         <span className="flex flex-col justify-between py-0.5">
-          <span className="flex gap-1">
-            <Skeleton animation={!isError} className="h-3 w-20"></Skeleton>
+          <span className="flex gap-2">
+            <Skeleton animation={!isError} className="h-3 w-19"></Skeleton>
             <Skeleton animation={!isError} className="h-3 w-5"></Skeleton>
           </span>
 
