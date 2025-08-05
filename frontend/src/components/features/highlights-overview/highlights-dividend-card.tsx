@@ -55,7 +55,9 @@ export const HighlightsDividendCard: React.FC<HighlightsCardProps> = ({
                     className="h-8 w-8"
                   />
                   <div>
-                    <p className="text-md font-semibold">{item.symbol}</p>
+                    <p className="text-md font-semibold">
+                      {item.symbol.replace(".SA", "")}
+                    </p>
                     <p className="text-muted-foreground w-[116px] truncate text-xs">
                       {item.name}
                     </p>
