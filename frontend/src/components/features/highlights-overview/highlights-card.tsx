@@ -41,7 +41,7 @@ export const HighlightsCard: React.FC<HighlightsCardProps> = ({
       </div>
       <div>
         <div className="flex flex-col gap-2 p-2">
-          {fetchState.isLoading || fetchState.badResponse
+          {fetchState.isLoading || fetchState.badResponse || items.length === 0
             ? Array.from({ length: 5 }).map((_, idx) => (
                 <ListSkeleton isError={fetchState.badResponse} key={idx} />
               ))

@@ -44,7 +44,7 @@ export function MarketOverview() {
       className={`${badResponse && "pointer-events-none touch-none"}`}
     >
       <CarouselContent className={`select-none ${badResponse && "blur-[3px]"}`}>
-        {isLoading || badResponse
+        {isLoading || badResponse || response?.data?.length === 0
           ? Array.from({ length: 6 }).map((_, idx) => (
               <BoxSkeleton isError={badResponse} key={idx} />
             ))

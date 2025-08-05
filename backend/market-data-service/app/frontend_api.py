@@ -874,7 +874,7 @@ async def obter_trending(
             try:
                 formatted_results.append({
                         "symbol": str(item.get("symbol", "")),
-                        "name": str(item.get("shortName", "") or item.get("longName", "")),
+                        "name": str(item.get("longName", "") or item.get("shortName", "")),
                         "sector": str(item.get("sector", "")),
                         "price": float(item.get("regularMarketPrice", 0) or 0),
                         "change": float(item.get("regularMarketChangePercent", 0) or 0),
@@ -1008,13 +1008,13 @@ from concurrent.futures import ThreadPoolExecutor
 # Adicionar constantes para os símbolos por categoria
 MARKET_OVERVIEW_SYMBOLS = {
     "all": [
-        "^BVSP", "^SMLL", "SELIC", "IFIX11.SA", "WEGE3.SA", "PETR4.SA", "VALE3.SA", "ITUB4.SA",  # Brasil
+        "^BVSP", "SMLL.SA",  "IFIX.SA", "WEGE3.SA", "PETR4.SA", "VALE3.SA", "ITUB4.SA",  # Brasil
         "^GSPC", "^IXIC", "^DJI", "^VIX", "^RUT",  # EUA
         "^STOXX", "^GDAXI", "^FTSE", "^FCHI", "^STOXX50E",  # Europa
         "^N225", "000001.SS", "^HSI", "^NSEI", "^BSESN",  # Ásia
         "USDBRL=X", "EURBRL=X", "GBPBRL=X", "JPYBRL=X", "AUDBRL=X"  # Moedas
     ],
-    "brasil": ["^BVSP", "^SMLL", "SELIC", "IFIX11.SA", "WEGE3.SA", "PETR4.SA", "VALE3.SA", "ITUB4.SA"],
+    "brasil": ["^BVSP", "SMLL.SA",  "IFIX.SA", "WEGE3.SA", "PETR4.SA", "VALE3.SA", "ITUB4.SA"],
     "eua": ["^GSPC", "^IXIC", "^DJI", "^VIX", "^RUT"],
     "europa": ["^STOXX", "^GDAXI", "^FTSE", "^FCHI", "^STOXX50E"],
     "asia": ["^N225", "000001.SS", "^HSI", "^NSEI", "^BSESN"],
@@ -1023,9 +1023,8 @@ MARKET_OVERVIEW_SYMBOLS = {
 
 SYMBOL_NAMES = {
     "^BVSP": "Ibovespa",
-    "^SMLL": "Small Cap",
-    "SELIC": "Taxa Selic",
-    "IFIX11.SA": "Índice Fundos Imobiliários",
+    "SMLL.SA": "Small Cap",
+    "IFIX.SA": "IND FDO IMOB",
     "WEGE3.SA": "WEG ON",
     "PETR4.SA": "Petrobras PN",
     "VALE3.SA": "Vale ON",
