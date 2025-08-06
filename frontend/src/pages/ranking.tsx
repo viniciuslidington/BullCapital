@@ -46,7 +46,7 @@ export function Ranking() {
   return (
     <div className="flex h-auto w-full max-w-[1180px] flex-col gap-8 p-8">
       <PathLink />
-      <h1 className="text-foreground/80 flex items-center gap-2 text-3xl font-semibold">
+      <h1 className="text-foreground/80 -mb-4 flex items-center gap-2 text-3xl font-semibold">
         <ChartNoAxesCombined className="h-8 w-8" /> Ranking de{" "}
         {categoriaData[categoria].shortTitle}
         <span className="pt-1">

@@ -50,7 +50,7 @@ export function MarketOverview() {
             ))
           : response?.data?.map((item) => (
               <CarouselItem
-                className="border-border bg-card ml-4 flex w-auto shrink-0 grow-0 basis-auto cursor-pointer rounded-[12px] border p-2 shadow-sm transition-all duration-200 ease-in-out hover:shadow-md"
+                className="border-border bg-card/60 ml-4 flex w-auto shrink-0 grow-0 basis-auto cursor-pointer rounded-[12px] border p-2 shadow-sm transition-all duration-200 ease-in-out hover:shadow-md"
                 onClick={() => navigate(item.symbol)}
               >
                 <div className="flex justify-between gap-3">
