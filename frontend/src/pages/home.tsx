@@ -8,7 +8,7 @@ import { ChartNoAxesCombined } from "lucide-react";
 
 export function Home() {
   return (
-    <div className="flex h-auto w-full max-w-[1180px] flex-col gap-8 p-8">
+    <div className="flex h-auto w-full max-w-[1180px] flex-col gap-12 p-8 pb-16">
       <MarketOverview />
       <div className="flex flex-col items-center gap-12 pt-10 pb-16">
         <h1 className="text-gradient bg-gradient-to-tr from-indigo-400 via-purple-500 to-indigo-600 text-center text-4xl font-semibold dark:from-slate-600 dark:via-slate-400 dark:to-slate-50">
