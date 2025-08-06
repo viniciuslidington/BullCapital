@@ -19,7 +19,7 @@ from fastapi.responses import JSONResponse
 
 from api.market_data import router as market_data_router
 from yfinance_endpoints import router as yfinance_router
-from frontend_api import router as frontend_router
+from cadu.frontend_api import router as frontend_router
 from core.config import settings
 from core.logging import get_logger
 from models.responses import ErrorResponse
@@ -265,7 +265,7 @@ app.include_router(
 # Registrar todos os endpoints do yfinance
 app.include_router(yfinance_router, tags=["YFinance Complete API"])
 
-app.include_router(frontend_router, tags=["API YFinance Personalizada para o FrontEnd"])
+app.include_router(frontend_router, prefix="/api/v1/frontend", tags=["API YFinance Personalizada para o FrontEnd"])
 
 # Endpoints raiz
 @app.get(
