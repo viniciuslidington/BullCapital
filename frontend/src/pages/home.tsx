@@ -10,8 +10,8 @@ export function Home() {
   return (
     <div className="flex h-auto w-full max-w-[1180px] flex-col gap-8 p-8">
       <MarketOverview />
-      <div className="flex flex-col items-center gap-16 pt-10 pb-16">
-        <h1 className="text-gradient bg-gradient-to-tr from-slate-600 via-slate-400 to-slate-50 text-center text-4xl font-semibold">
+      <div className="flex flex-col items-center gap-12 pt-10 pb-16">
+        <h1 className="text-gradient bg-gradient-to-tr from-indigo-400 via-purple-500 to-indigo-600 text-center text-4xl font-semibold dark:from-slate-600 dark:via-slate-400 dark:to-slate-50">
           Eleve seu nível como os grandes investidores <br /> e tome decisões
           com confiança
         </h1>
