@@ -22,6 +22,8 @@ class Message(BaseModel):
 class ChatRequest(BaseModel):
     sender: str = "user"
     content: str
+    user_id: str 
+    conversation_id: Optional[str] = None
 
 class ChatResponse(BaseModel):
     messages: List[Message]
@@ -56,8 +58,75 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Armazenamento temporário de conversas (em produção, usar banco de dados)
-conversations = {}
+# Armazenamento temporário de conversas usando o modelo Conversation
+conversations: dict[str, Conversation] = {}
+
+def generate_conversation_id() -> str:
+    """Gera um ID único para uma nova conversa."""
+    import uuid
+    return f"conv_{uuid.uuid4().hex[:8]}"
+
+def generate_conversation_title(first_message: str) -> str:
+    """Gera um título para a conversa baseado na primeira mensagem."""
+    try:
+        # Se a mensagem for muito longa, pegar apenas o início
+        if len(first_message) > 100:
+            first_message = first_message[:100] + "..."
+        
+        # Gerar título usando o agente
+        title_prompt = f"""
+        Gere um título curto e descritivo (máximo 50 caracteres) para uma conversa que começou com:
+        "{first_message}"
+        
+        O título deve ser:
+        - Conciso e claro
+        - Descrever o assunto principal
+        - Máximo 50 caracteres
+        - Sem aspas ou pontuação desnecessária
+        
+        Exemplos de bons títulos:
+        - "Análise de margem de segurança"
+        - "Dúvidas sobre valuation"
+        - "Comparação de múltiplos"
+        - "Conceitos fundamentais"
+        - "Explicação de múltiplos"
+        - "Fundamentos de investimento"
+        
+        Título:"""
+        
+        title_response = agent.chat(title_prompt)
+        
+        # Limpar e validar o título
+        title = title_response.strip()
+        if len(title) > 50:
+            title = title[:47] + "..."
+        
+        return title if title else "Nova conversa"
+        
+    except Exception as e:
+        print(f"Erro ao gerar título: {e}")
+        return "Nova conversa"
+
+def create_conversation_object(conversation_id: str, user_id: str, title: str) -> Conversation:
+    """Cria uma nova conversa."""
+    return Conversation(
+        conversation_id=conversation_id,
+        user_id=user_id,
+        title=title,
+        messages=[]
+    )
+
+def get_or_create_conversation(conversation_id: str, user_id: str, first_message: str = None) -> Conversation:
+    """Obtém uma conversa existente ou cria uma nova com título gerado pelo agente."""
+    if conversation_id not in conversations:
+        # Gerar título baseado na primeira mensagem
+        if first_message:
+            title = generate_conversation_title(first_message)
+        else:
+            title = "Nova conversa"
+        
+        conversations[conversation_id] = create_conversation_object(conversation_id, user_id, title)
+    return conversations[conversation_id]
 
 
 def create_message(sender: str, content: str) -> Message:
@@ -80,42 +149,44 @@ async def root():
             "Sistema de conversas persistentes"
         ],
         "endpoints": {
-            "chat": "/chat",
+            "chat": "POST /chat",
+            "get_conversation": "GET /conversations/{id}",
+            "delete_conversation": "DELETE /conversations/{id}",
+            "list_conversations": "GET /conversations",
+            "health": "GET /health",
             "docs": "/docs"
         }
     }
-
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat_with_agent(request: ChatRequest):
     """
     Endpoint principal para conversar com o agente.
+    Se conversation_id não for fornecido, usa a conversa "default".
     """
     try:
         # Criar mensagem do usuário
         user_message = create_message(request.sender, request.content)
         
-        # Obter histórico da conversa
-        conversation_id = "default"
-        conversation_history = conversations.get(conversation_id, [])
+        # Usar conversation_id fornecido ou "default"
+        conversation_id = request.conversation_id or generate_conversation_id()
+        
+        # Obter ou criar conversa usando o modelo Conversation com título gerado pelo agente
+        conversation = get_or_create_conversation(conversation_id, request.user_id, request.content)
         
         # Processar com o agente COM CONTEXTO
         agent_response = agent.chat(
             question=request.content,
-            conversation_history=conversation_history
+            conversation_history=conversation.messages
         )
         
         # Criar mensagem do bot
         bot_message = create_message("bot", agent_response)
         
-        # Criar ou atualizar conversa
-        if conversation_id not in conversations:
-            conversations[conversation_id] = []
-        
         # Adicionar mensagens à conversa
-        conversations[conversation_id].extend([user_message, bot_message])
+        conversation.messages.extend([user_message, bot_message])
         
-        return ChatResponse(messages=conversations[conversation_id])
+        return ChatResponse(messages=conversation.messages)
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro no agente: {str(e)}")
@@ -130,7 +201,8 @@ async def get_conversation(conversation_id: str):
     if conversation_id not in conversations:
         return ChatResponse(messages=[])
     
-    return ChatResponse(messages=conversations[conversation_id])
+    conversation = conversations[conversation_id]
+    return ChatResponse(messages=conversation.messages)
 
 
 @app.delete("/conversations/{conversation_id}")
@@ -149,8 +221,18 @@ async def list_conversations():
     """
     Lista todas as conversas disponíveis.
     """
+    conversation_list = []
+    for conv_id, conversation in conversations.items():
+        conversation_list.append({
+            "conversation_id": conversation.conversation_id,
+            "user_id": conversation.user_id,
+            "title": conversation.title,
+            "message_count": len(conversation.messages),
+            "last_message": conversation.messages[-1].timestamp if conversation.messages else None
+        })
+    
     return {
-        "conversations": list(conversations.keys()),
+        "conversations": conversation_list,
         "count": len(conversations)
     }
 
