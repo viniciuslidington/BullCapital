@@ -54,7 +54,7 @@ BR_PREDEFINED_SCREENER_QUERIES = {
         EquityQuery('eq', ['region', 'br']),
         EquityQuery('eq', ['exchange', 'SAO']),
         EquityQuery('gt', ['forward_dividend_yield', 5]),
-        EquityQuery('gt', ['intradaymarketcap', 1000000000])
+        EquityQuery('gt', ['intradaymarketcap', 2000000000])
     ]),
     "baixo_pe": EquityQuery('and', [
         EquityQuery('eq', ['region', 'br']),
