@@ -20,6 +20,8 @@ function App() {
         <ReactQueryDevtools initialIsOpen={false} />
         <ScrollToTop />
         <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
+          <div className="dark:bg-background/50 fixed top-0 z-[-2] h-screen w-screen bg-transparent bg-[radial-gradient(100%_50%_at_50%_0%,rgba(200,96,242,0.3)_0,rgba(142,81,255,0)_50%,rgba(142,81,255,0)_100%)] dark:bg-[radial-gradient(100%_50%_at_50%_0%,rgba(142,81,255,0.3)_0,rgba(142,81,255,0)_50%,rgba(142,81,255,0)_100%)]"></div>
+
           <div className="min-h-screen w-full flex-col">
             <Header />
             <div className="flex overflow-hidden">
