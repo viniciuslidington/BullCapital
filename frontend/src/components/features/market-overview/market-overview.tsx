@@ -61,7 +61,7 @@ export function MarketOverview() {
                       <ArrowUp
                         className={`h-4 w-4 shrink-0 stroke-3 ${isFetching ? "text-primary-foreground/60" : "text-primary-foreground"}`}
                       />
-                    ) : item.change === 0 ? (
+                    ) : parseFloat(item.change.toFixed(2)) === 0 ? (
                       <Minus
                         className={`h-4 w-4 shrink-0 stroke-3 ${isFetching ? "dark:text-primary-foreground/60 text-muted-foreground/60" : "dark:text-primary-foreground text-muted-foreground"}`}
                       />
