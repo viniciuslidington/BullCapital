@@ -1,6 +1,6 @@
 """
-API HTTP Server para o Agente Financeiro.
-Servidor FastAPI que expõe o agente como endpoints REST com sistema de chat.
+API HTTP Server para o Agente Financeiro COM CONTEXTO.
+Servidor FastAPI que expõe o agente como endpoints REST com sistema de chat contextual.
 """
 
 from fastapi import FastAPI, HTTPException
@@ -26,12 +26,10 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     messages: List[Message]
 
-class AnalyzeRequest(BaseModel):
-    sender: str = "user"
-    content: str
-    ticker: str
-
-class AnalyzeResponse(BaseModel):
+class Conversation(BaseModel):
+    conversation_id: str
+    user_id: str
+    title: str
     messages: List[Message]
 
 class HealthResponse(BaseModel):
@@ -77,9 +75,12 @@ async def root():
     return {
         "message": "Agente de Análise Financeira API",
         "version": "1.0.0",
+        "features": [
+            "Chat com histórico de conversas",
+            "Sistema de conversas persistentes"
+        ],
         "endpoints": {
             "chat": "/chat",
-            "analyze": "/analyze",
             "docs": "/docs"
         }
     }
@@ -89,20 +90,25 @@ async def root():
 async def chat_with_agent(request: ChatRequest):
     """
     Endpoint principal para conversar com o agente.
-    Similar ao ChatGPT - recebe uma pergunta e retorna uma resposta com histórico.
     """
     try:
         # Criar mensagem do usuário
         user_message = create_message(request.sender, request.content)
         
-        # Processar com o agente
-        agent_response = agent.chat(request.content)
+        # Obter histórico da conversa
+        conversation_id = "default"
+        conversation_history = conversations.get(conversation_id, [])
+        
+        # Processar com o agente COM CONTEXTO
+        agent_response = agent.chat(
+            question=request.content,
+            conversation_history=conversation_history
+        )
         
         # Criar mensagem do bot
         bot_message = create_message("bot", agent_response)
         
         # Criar ou atualizar conversa
-        conversation_id = "default"  # Em produção, usar ID único por usuário
         if conversation_id not in conversations:
             conversations[conversation_id] = []
         
@@ -114,38 +120,6 @@ async def chat_with_agent(request: ChatRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro no agente: {str(e)}")
 
-
-@app.post("/analyze", response_model=AnalyzeResponse)
-async def analyze_stock(request: AnalyzeRequest):
-    """
-    Endpoint específico para análise de ações.
-    Requer ticker na requisição.
-    """
-    if not request.ticker:
-        raise HTTPException(status_code=400, detail="Ticker é obrigatório para análise")
-    
-    try:
-        # Criar mensagem do usuário
-        user_message = create_message(request.sender, f"{request.content} (Ação: {request.ticker})")
-        
-        # Processar análise com o agente
-        agent_response = agent.analyze_stock(request.content, request.ticker)
-        
-        # Criar mensagem do bot
-        bot_message = create_message("bot", agent_response)
-        
-        # Criar ou atualizar conversa
-        conversation_id = f"analyze_{request.ticker}"
-        if conversation_id not in conversations:
-            conversations[conversation_id] = []
-        
-        # Adicionar mensagens à conversa
-        conversations[conversation_id].extend([user_message, bot_message])
-        
-        return AnalyzeResponse(messages=conversations[conversation_id])
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro na análise: {str(e)}")
 
 
 @app.get("/conversations/{conversation_id}", response_model=ChatResponse)
