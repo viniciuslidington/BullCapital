@@ -68,7 +68,7 @@ export function MarketChart({
   }, [timeRange, chartData]); // Adicionado useMemo para performance
 
   return (
-    <Card className="w-full pt-0">
+    <Card className="bg-card/60 w-full pt-0">
       <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
         <div className="grid flex-1 gap-1">
           <CardTitle>{title}</CardTitle>

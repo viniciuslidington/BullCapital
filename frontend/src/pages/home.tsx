@@ -16,13 +16,48 @@ export function Home() {
           com confiança
         </h1>
         <SearchBar />
-        <Button
-          variant="outline"
-          className="cursor-pointer rounded-3xl text-xs"
-        >
-          <ChartNoAxesCombined></ChartNoAxesCombined>
-          Ver Ranking de ativos
-        </Button>
+        <span className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            className="cursor-pointer rounded-3xl text-xs"
+          >
+            <ChartNoAxesCombined></ChartNoAxesCombined>
+            Ver Ranking de ativos
+          </Button>
+          <span className="border-border h-full border-r"></span>
+
+          <span className="flex items-center gap-2">
+            <p className="text-sm">Mais Buscados:</p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="cursor-pointer rounded-3xl text-xs"
+            >
+              Itausa
+            </Button>
+            <Button
+              variant="outline"
+              className="cursor-pointer rounded-3xl text-xs"
+              size="sm"
+            >
+              Teasa
+            </Button>
+            <Button
+              variant="outline"
+              className="cursor-pointer rounded-3xl text-xs"
+              size="sm"
+            >
+              Tesla
+            </Button>
+            <Button
+              variant="outline"
+              className="cursor-pointer rounded-3xl text-xs"
+              size="sm"
+            >
+              Apple
+            </Button>
+          </span>
+        </span>
       </div>
       <HighlightsOverview />
       <ChartTabs />
