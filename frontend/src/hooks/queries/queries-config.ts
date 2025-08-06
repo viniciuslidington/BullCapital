@@ -2,7 +2,7 @@ import { type QueryClientConfig } from "@tanstack/react-query";
 
 // Intervalos de atualização automática
 export const REFETCH_INTERVALS = {
-  MARKET_DATA: 30_000, // 30 segundos
+  MARKET_DATA: 60_000, // 30 segundos
   PERFORMANCE: 120_000, // 3 minutos
   NEWS: 300_000, // 5 minutos
   HEALTH: 30_000, // 30 segundos

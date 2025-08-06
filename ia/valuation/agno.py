@@ -3,6 +3,17 @@ from pathlib import Path
 from dotenv import load_dotenv 
 
 
+load_dotenv()
+# Ajustes de robustez
+os.environ.update(
+    {
+        "OPENAI_MAX_RETRIES": "10",       
+        "OPENAI_API_TIMEOUT": "60",      
+        "AGNO_TRUNCATE_CONTEXT": "head",  
+    }
+)
+
+
 import pdfplumber
 import yfinance as yf
 import numpy as np
