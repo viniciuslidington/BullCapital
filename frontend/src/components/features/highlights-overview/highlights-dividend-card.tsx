@@ -24,7 +24,7 @@ export const HighlightsDividendCard: React.FC<HighlightsCardProps> = ({
 }) => {
   const navigate = useNavigate();
   return (
-    <CarouselItem className="group bg-card text-card-foreground ml-5 w-[264px] max-w-sm flex-none rounded-xl border-1 pl-0 shadow-sm transition-all duration-200 ease-in-out hover:shadow-lg">
+    <CarouselItem className="group bg-card/60 text-card-foreground ml-5 w-[264px] max-w-sm flex-none rounded-xl border-1 pl-0 shadow-sm transition-all duration-200 ease-in-out hover:shadow-lg">
       <div className="flex flex-row items-center justify-between border-b-1 p-4 pb-5">
         <h3 className="text-muted-foreground group-hover:text-foreground font-medium transition-all duration-200 ease-in">
           {title}
