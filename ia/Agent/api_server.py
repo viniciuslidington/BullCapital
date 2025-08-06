@@ -5,40 +5,11 @@ Servidor FastAPI que expõe o agente como endpoints REST com sistema de chat con
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional, List
 from datetime import datetime
 import uvicorn
-
+from models import Message, ChatRequest, ChatResponse, Conversation, HealthResponse
 from financial_agent import agent
-
-
-# Modelos Pydantic para a API
-class Message(BaseModel):
-    sender: str  # "user" ou "bot"
-    content: str
-    timestamp: Optional[str] = None
-
-class ChatRequest(BaseModel):
-    sender: str = "user"
-    content: str
-    user_id: str 
-    conversation_id: Optional[str] = None
-
-class ChatResponse(BaseModel):
-    messages: List[Message]
-
-class Conversation(BaseModel):
-    conversation_id: str
-    user_id: str
-    title: str
-    messages: List[Message]
-
-class HealthResponse(BaseModel):
-    status: str
-    service: str
-    timestamp: str
-
+from typing import Optional
 
 # Criar aplicação FastAPI
 app = FastAPI(
@@ -152,7 +123,7 @@ async def root():
             "chat": "POST /chat",
             "get_conversation": "GET /conversations/{id}",
             "delete_conversation": "DELETE /conversations/{id}",
-            "list_conversations": "GET /conversations",
+            "list_conversations": "GET /conversations?user_id={user_id}",
             "health": "GET /health",
             "docs": "/docs"
         }
@@ -217,12 +188,20 @@ async def clear_conversation(conversation_id: str):
 
 
 @app.get("/conversations")
-async def list_conversations():
+async def list_conversations(user_id: Optional[str] = None):
     """
     Lista todas as conversas disponíveis.
+    
+    Args:
+        user_id (Optional[str]): Filtrar conversas por ID do usuário. Se não fornecido, retorna todas as conversas.
     """
     conversation_list = []
+    
     for conv_id, conversation in conversations.items():
+        # Filtrar por user_id se fornecido
+        if user_id is not None and conversation.user_id != user_id:
+            continue
+            
         conversation_list.append({
             "conversation_id": conversation.conversation_id,
             "user_id": conversation.user_id,
@@ -233,7 +212,8 @@ async def list_conversations():
     
     return {
         "conversations": conversation_list,
-        "count": len(conversations)
+        "count": len(conversation_list),
+        "filtered_by_user_id": user_id
     }
 
 
