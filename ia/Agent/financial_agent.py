@@ -1,6 +1,6 @@
 """
-Módulo do Agente Financeiro - Análise Fundamentalista com Agno Framework.
-Contém todas as ferramentas, agentes e equipe para análise de ações.
+Módulo do Agente Financeiro COM CONTEXTO - Análise Fundamentalista com Agno Framework.
+Versão que considera histórico de mensagens para respostas mais contextuais.
 """
 
 import os
@@ -34,8 +34,8 @@ from agno.tools.reasoning import ReasoningTools
 
 class FinancialAgent:
     """
-    Classe principal do Agente Financeiro.
-    Encapsula toda a lógica de análise fundamentalista.
+    Classe principal do Agente Financeiro COM CONTEXTO.
+    Encapsula toda a lógica de análise fundamentalista considerando histórico.
     """
     
     def __init__(self):
@@ -91,35 +91,88 @@ class FinancialAgent:
             show_members_responses=False,
         )
     
-    def chat(self, question: str) -> str:
+    def _build_context_prompt(self, messages: list, current_question: str) -> str:
         """
-        Processa uma pergunta geral com o agente.
+        Constrói um prompt com contexto baseado no histórico de mensagens.
+        
+        Args:
+            messages (list): Lista de mensagens anteriores
+            current_question (str): Pergunta atual
+            
+        Returns:
+            str: Prompt com contexto
+        """
+        if not messages:
+            return current_question
+        
+        # Construir contexto das últimas 10 mensagens (para não exceder limite de tokens)
+        recent_messages = messages[-10:]
+        
+        context_parts = []
+        for msg in recent_messages:
+            role = "Usuário" if msg.sender == "user" else "Assistente"
+            context_parts.append(f"{role}: {msg.content}")
+        
+        # Adicionar pergunta atual
+        context_parts.append(f"Usuário: {current_question}")
+        
+        # Construir prompt final
+        context = "\n".join(context_parts)
+        
+        prompt = f"""
+        Histórico da conversa:
+        {context}
+        
+        Instruções:
+        1. Considere o contexto da conversa anterior
+        2. Se a pergunta atual se refere a algo mencionado antes, use esse contexto
+        3. Se for uma pergunta de follow-up, responda de forma contextual
+        4. Mantenha a continuidade da conversa
+        5. Se for uma nova pergunta, responda normalmente
+        
+        Responda à pergunta atual considerando o contexto:
+        """
+        
+        return prompt
+    
+    def chat(self, question: str, conversation_history: list = None) -> str:
+        """
+        Processa uma pergunta com contexto do histórico.
         
         Args:
             question (str): Pergunta do usuário
+            conversation_history (list): Histórico de mensagens da conversa
             
         Returns:
             str: Resposta do agente
         """
         try:
-            response = self.equipe.run(question)
+            # Construir prompt com contexto
+            if conversation_history:
+                prompt = self._build_context_prompt(conversation_history, question)
+            else:
+                prompt = question
+            
+            response = self.equipe.run(prompt)
             return self._extract_response_content(response)
         except Exception as e:
             raise Exception(f"Erro no chat: {str(e)}")
     
-    def analyze_stock(self, question: str, ticker: str) -> str:
+    def analyze_stock(self, question: str, ticker: str, conversation_history: list = None) -> str:
         """
-        Analisa uma ação específica.
+        Analisa uma ação específica com contexto.
         
         Args:
             question (str): Pergunta do usuário
             ticker (str): Ticker da ação
+            conversation_history (list): Histórico de mensagens da conversa
             
         Returns:
             str: Análise completa da ação
         """
         try:
-            prompt = f"""
+            # Construir prompt base
+            base_prompt = f"""
             Analise a ação {ticker}:
             
             Pergunta do usuário: {question}
@@ -131,7 +184,14 @@ class FinancialAgent:
             4. Conclua recomendando comprar, manter ou vender.
             """
             
-            response = self.equipe.run(prompt)
+            # Adicionar contexto se houver histórico
+            if conversation_history:
+                context_prompt = self._build_context_prompt(conversation_history, base_prompt)
+                final_prompt = f"{context_prompt}\n\nAnálise específica: {base_prompt}"
+            else:
+                final_prompt = base_prompt
+            
+            response = self.equipe.run(final_prompt)
             return self._extract_response_content(response)
         except Exception as e:
             raise Exception(f"Erro na análise: {str(e)}")
@@ -158,7 +218,7 @@ def normalize_ticker(tk: str) -> str:
     return f"{tk}.SA" if "." not in tk and tk[-1].isdigit() else tk
 
 
-# Ferramentas (Tools)
+# Ferramentas (Tools) - Mesmas do arquivo original
 @tool(
     name="consultar_pdf_fundamentalista",
     description="Responde perguntas usando o PDF de análise fundamentalista e cita página.",
@@ -307,5 +367,5 @@ def calcular_multiplos(ticker: str) -> str:
     return df.to_markdown(index=False)
 
 
-# Instância global do agente
+# Instância global do agente com contexto
 agent = FinancialAgent() 
