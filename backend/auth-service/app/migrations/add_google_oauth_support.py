@@ -8,12 +8,6 @@ Execute este script após atualizar o modelo User para garantir que
 o banco de dados esteja em sincronia com o novo schema.
 """
 
-import sys
-import os
-
-# Adiciona o diretório app ao Python path para importar os módulos
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-
 from sqlalchemy import text
 from core.database import engine
 
