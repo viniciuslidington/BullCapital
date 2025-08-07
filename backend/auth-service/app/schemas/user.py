@@ -12,14 +12,51 @@ class UserBase(BaseModel):
     
     Attributes:
         nome_completo (str): Nome completo do usuário
-        cpf (str): CPF do usuário (será validado)
-        data_nascimento (date): Data de nascimento no formato YYYY-MM-DD
+        cpf (str, optional): CPF do usuário (será validado) - opcional para Google OAuth
+        data_nascimento (date, optional): Data de nascimento no formato YYYY-MM-DD - opcional para Google OAuth
         email (EmailStr): Email válido do usuário
     """
     nome_completo: str
+    cpf: Optional[str] = None
+    data_nascimento: Optional[date] = None
+    email: EmailStr
+    
+    @field_validator('cpf')
+    @classmethod
+    def validate_cpf_field(cls, v: Optional[str]) -> Optional[str]:
+        """
+        Valida o campo CPF usando o algoritmo oficial brasileiro.
+        
+        Args:
+            v (Optional[str]): CPF a ser validado ou None
+            
+        Returns:
+            Optional[str]: CPF limpo (apenas números) se válido ou None
+            
+        Raises:
+            ValueError: Se o CPF for fornecido mas inválido
+        """
+        if v is None:
+            return v
+        if not validate_cpf(v):
+            raise ValueError('CPF inválido')
+        return clean_cpf(v)
+
+class UserCreate(UserBase):
+    """
+    Schema para criação de novo usuário.
+    
+    Herda todos os campos de UserBase e adiciona o campo senha
+    necessário para o registro de um novo usuário.
+    
+    Attributes:
+        senha (str): Senha em texto plano (será hasheada antes de salvar)
+    """
+    senha: str
+    
+    # Sobrescreve os validadores para tornar CPF e data_nascimento obrigatórios no registro tradicional
     cpf: str
     data_nascimento: date
-    email: EmailStr
     
     @field_validator('cpf')
     @classmethod
@@ -39,18 +76,6 @@ class UserBase(BaseModel):
         if not validate_cpf(v):
             raise ValueError('CPF inválido')
         return clean_cpf(v)
-
-class UserCreate(UserBase):
-    """
-    Schema para criação de novo usuário.
-    
-    Herda todos os campos de UserBase e adiciona o campo senha
-    necessário para o registro de um novo usuário.
-    
-    Attributes:
-        senha (str): Senha em texto plano (será hasheada antes de salvar)
-    """
-    senha: str
 
 class UserLogin(BaseModel):
     """
@@ -76,10 +101,14 @@ class UserResponse(UserBase):
     
     Attributes:
         id (int): Identificador único do usuário
+        is_google_user (bool): Indica se o usuário foi criado via Google OAuth
+        profile_picture (str, optional): URL da foto do perfil
         created_at (datetime, optional): Data/hora de criação do registro
         updated_at (datetime, optional): Data/hora da última atualização
     """
     id: int
+    is_google_user: Optional[bool] = False
+    profile_picture: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     
@@ -142,3 +171,31 @@ class TokenResponse(BaseModel):
     token_type: str
     expires_in: int
     user: UserResponse
+
+class GoogleAuthRequest(BaseModel):
+    """
+    Schema para requisição de autenticação com Google.
+    
+    Attributes:
+        code (str): Código de autorização retornado pelo Google
+        redirect_uri (str): URI de redirecionamento usado na autenticação
+    """
+    code: str
+    redirect_uri: str
+
+class GoogleUserInfo(BaseModel):
+    """
+    Schema para informações do usuário retornadas pelo Google.
+    
+    Attributes:
+        id (str): ID único do usuário no Google
+        email (str): Email do usuário
+        name (str): Nome completo do usuário
+        picture (str, optional): URL da foto do perfil
+        verified_email (bool): Se o email foi verificado pelo Google
+    """
+    id: str
+    email: str
+    name: str
+    picture: Optional[str] = None
+    verified_email: bool = False

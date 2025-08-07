@@ -6,8 +6,9 @@ from typing import List
 from core.database import get_db
 from core.security import require_auth
 from core.config import settings
-from schemas.user import UserCreate, UserLogin, UserResponse, TokenResponse, UserUpdate
+from schemas.user import UserCreate, UserLogin, UserResponse, TokenResponse, UserUpdate, GoogleAuthRequest
 from services.auth_service import auth_service
+from services.google_oauth_service import google_oauth_service
 from crud.user import get_users, get_user_by_id, update_user, delete_user
 
 router = APIRouter()
@@ -304,3 +305,109 @@ def delete_user_endpoint(
         )
     
     return {"message": "Usuário deletado com sucesso"}
+
+@router.get("/google/auth-url", summary="Obter URL de autenticação do Google")
+def get_google_auth_url():
+    """
+    Retorna a URL para iniciar o processo de autenticação com Google OAuth.
+    
+    Esta URL deve ser usada para redirecionar o usuário para a página de login do Google.
+    Após o login, o usuário será redirecionado de volta com um código de autorização.
+    
+    Returns:
+        dict: Contém a URL de autenticação do Google
+        
+    Example:
+        ```
+        GET /api/v1/auth/google/auth-url
+        ```
+        
+        Response:
+        ```json
+        {
+            "auth_url": "https://accounts.google.com/oauth/authorize?..."
+        }
+        ```
+    """
+    base_url = "https://accounts.google.com/o/oauth2/auth"
+    params = {
+        "response_type": "code",
+        "client_id": settings.GOOGLE_CLIENT_ID,
+        "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+        "scope": "openid email profile",
+        "access_type": "offline",
+        "prompt": "consent"
+    }
+    
+    # Constrói a URL com os parâmetros
+    query_string = "&".join([f"{key}={value}" for key, value in params.items()])
+    auth_url = f"{base_url}?{query_string}"
+    
+    return {"auth_url": auth_url}
+
+@router.post("/google/callback", response_model=TokenResponse, summary="Callback do Google OAuth")
+def google_oauth_callback(auth_request: GoogleAuthRequest, db: Session = Depends(get_db)):
+    """
+    Processa o callback do Google OAuth e autentica o usuário.
+    
+    Este endpoint é chamado após o usuário ser redirecionado do Google
+    com um código de autorização. O código é trocado por um token de acesso
+    e as informações do usuário são obtidas para criar/autenticar o usuário.
+    
+    Args:
+        auth_request: Dados do callback contendo código e redirect_uri
+        db: Sessão do banco de dados
+        
+    Returns:
+        TokenResponse: Token JWT e dados do usuário autenticado
+        
+    Raises:
+        HTTPException: 400 se houver erro na autenticação com Google
+        HTTPException: 401 se a autenticação falhar
+        
+    Example:
+        ```
+        POST /api/v1/auth/google/callback
+        {
+            "code": "4/0AX4XfWi...",
+            "redirect_uri": "http://localhost:8001/api/v1/auth/google/callback"
+        }
+        ```
+    """
+    try:
+        # Autentica com Google OAuth
+        user = google_oauth_service.authenticate_with_google(
+            db, auth_request.code, auth_request.redirect_uri
+        )
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Falha na autenticação com Google",
+            )
+        
+        # Cria token JWT para o usuário
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = auth_service.create_access_token(
+            data={"sub": user.email}, expires_delta=access_token_expires
+        )
+        
+        return TokenResponse(
+            access_token=access_token,
+            token_type="bearer",
+            expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            user=UserResponse(
+                id=user.id,
+                nome_completo=user.nome_completo,
+                cpf=user.cpf,
+                data_nascimento=user.data_nascimento,
+                email=user.email,
+                created_at=user.created_at,
+                updated_at=user.updated_at
+            )
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Erro na autenticação com Google: {str(e)}"
+        )
