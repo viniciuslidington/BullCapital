@@ -11,7 +11,7 @@ export function Home() {
     <div className="flex h-auto w-full max-w-[1180px] flex-col gap-12 p-8 pb-16">
       <MarketOverview />
       <div className="flex flex-col items-center gap-12 pt-10 pb-16">
-        <h1 className="text-gradient bg-gradient-to-tr from-indigo-400 via-purple-500 to-indigo-600 text-center text-4xl font-semibold dark:from-slate-600 dark:via-slate-400 dark:to-slate-50">
+        <h1 className="text-gradient bg-gradient-to-tr from-indigo-300 via-purple-500 to-indigo-600 text-center text-4xl font-semibold dark:from-slate-600 dark:via-slate-400 dark:to-slate-50">
           Eleve seu nível como os grandes investidores <br /> e tome decisões
           com confiança
         </h1>
@@ -19,7 +19,7 @@ export function Home() {
         <span className="flex items-center gap-4">
           <Button
             variant="outline"
-            className="cursor-pointer rounded-3xl text-xs"
+            className="bg-card/60 cursor-pointer rounded-3xl text-xs"
           >
             <ChartNoAxesCombined></ChartNoAxesCombined>
             Ver Ranking de ativos
@@ -31,27 +31,27 @@ export function Home() {
             <Button
               variant="outline"
               size="sm"
-              className="cursor-pointer rounded-3xl text-xs"
+              className="bg-card/60 cursor-pointer rounded-3xl text-xs"
             >
               Itausa
             </Button>
             <Button
               variant="outline"
-              className="cursor-pointer rounded-3xl text-xs"
+              className="bg-card/60 cursor-pointer rounded-3xl text-xs"
               size="sm"
             >
               Teasa
             </Button>
             <Button
               variant="outline"
-              className="cursor-pointer rounded-3xl text-xs"
+              className="bg-card/60 cursor-pointer rounded-3xl text-xs"
               size="sm"
             >
               Tesla
             </Button>
             <Button
               variant="outline"
-              className="cursor-pointer rounded-3xl text-xs"
+              className="bg-card/60 cursor-pointer rounded-3xl text-xs"
               size="sm"
             >
               Apple

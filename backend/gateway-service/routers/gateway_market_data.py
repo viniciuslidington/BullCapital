@@ -80,7 +80,8 @@ async def get_ticker_history(symbol: str, period: str = "1mo", interval: str = "
                     "end": end,
                     "PrePost": PrePost,
                     "autoAdjust": autoAdjust
-                }
+                }, 
+                timeout=30
             )
             response.raise_for_status()
             return response.json()
@@ -162,10 +163,10 @@ async def search_tickers(
         try:
             response = await client.get(
                 f"{MARKET_DATA_SERVICE_URL}/api/v1/market-data/search",
-                params={"q": query, "limit": limit}
+                params={"q": query, "limit": limit}, timeout=30
             )
             response.raise_for_status()
-            return StockSearchResponse(**response.json())
+            return response.json()
         except httpx.HTTPStatusError as e:
             raise HTTPException(
                 status_code=e.response.status_code,
@@ -384,7 +385,8 @@ async def get_tickers_by_category(categoria: str, setor: Optional[str] = None, s
                 params["limit"] = limit
             response = await client.get(
                 f"{MARKET_DATA_SERVICE_URL}/api/v1/market-data/categorias/{categoria}",
-                params=params
+                params=params,
+                timeout=30
             )
             response.raise_for_status()
             return response.json()
@@ -463,7 +465,7 @@ async def get_market_overview(category: str):
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(
-                f"{MARKET_DATA_SERVICE_URL}/api/v1/market-data/market-overview/{category}"
+                f"{MARKET_DATA_SERVICE_URL}/api/v1/market-data/market-overview/{category}", timeout=30
             )
             response.raise_for_status()
             return response.json()
@@ -503,7 +505,8 @@ async def get_period_performance(
         try:
             response = await client.get(
                 f"{MARKET_DATA_SERVICE_URL}/api/v1/market-data/period-performance",
-                params={"tickers": tickers, "period": period}
+                params={"tickers": tickers, "period": period},
+                timeout=30
             )
             response.raise_for_status()
             return response.json()

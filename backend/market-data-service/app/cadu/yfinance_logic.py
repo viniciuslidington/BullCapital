@@ -321,7 +321,8 @@ def search_tickers_logic(q: str, limit: int):
         
         formatted_results = []
         for item in quotes:
-            logo = f"https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url={item.get('website')}" if item.get("website") else None
+            info = get_ticker_info_logic(str(item.get("symbol", "")))
+            logo = info["logo"]
             result = {
                 "symbol": str(item.get("symbol", "")), "name": str(item.get("longname", "") or item.get("shortname", "")),
                 "exchange": str(item.get("exchange", "")), "type": str(item.get("quoteType", "")),
