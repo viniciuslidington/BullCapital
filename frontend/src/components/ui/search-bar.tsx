@@ -24,6 +24,7 @@ export function SearchBar() {
     setSearch(inputValue as string);
     setOpen(true);
   };
+
   return (
     <Popover modal={false} open={open} onOpenChange={setOpen}>
       <PopoverContent

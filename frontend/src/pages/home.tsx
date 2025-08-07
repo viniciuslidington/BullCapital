@@ -5,6 +5,7 @@ import { ChartTabs } from "@/components/features/markets-chart/chart-tabs";
 import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/ui/search-bar";
 import { ChartNoAxesCombined } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export function Home() {
   return (
@@ -16,52 +17,64 @@ export function Home() {
           com confiança
         </h1>
         <SearchBar />
-        <span className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            className="bg-card/60 cursor-pointer rounded-3xl text-xs"
-          >
-            <ChartNoAxesCombined></ChartNoAxesCombined>
-            Ver Ranking de ativos
-          </Button>
-          <span className="border-border h-full border-r"></span>
-
-          <span className="flex items-center gap-2">
-            <p className="text-sm">Mais Buscados:</p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-card/60 cursor-pointer rounded-3xl text-xs"
-            >
-              Itausa
-            </Button>
-            <Button
-              variant="outline"
-              className="bg-card/60 cursor-pointer rounded-3xl text-xs"
-              size="sm"
-            >
-              Teasa
-            </Button>
-            <Button
-              variant="outline"
-              className="bg-card/60 cursor-pointer rounded-3xl text-xs"
-              size="sm"
-            >
-              Tesla
-            </Button>
-            <Button
-              variant="outline"
-              className="bg-card/60 cursor-pointer rounded-3xl text-xs"
-              size="sm"
-            >
-              Apple
-            </Button>
-          </span>
-        </span>
+        <NavSearch />
       </div>
       <HighlightsOverview />
       <ChartTabs />
       <AssetChart />
     </div>
+  );
+}
+
+function NavSearch() {
+  const navigate = useNavigate();
+  return (
+    <nav className="flex items-center gap-4">
+      <Button
+        variant="outline"
+        className="bg-card/60 cursor-pointer rounded-3xl text-xs"
+        onClick={() => navigate("/ranking")}
+      >
+        <ChartNoAxesCombined></ChartNoAxesCombined>
+        Ver Ranking de ativos
+      </Button>
+      <span className="border-border h-full border-r"></span>
+
+      <span className="flex items-center gap-2">
+        <p className="text-sm">Mais Buscados:</p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="bg-card/60 cursor-pointer rounded-3xl text-xs"
+          onClick={() => navigate("ITSA4.SA")}
+        >
+          Itausa
+        </Button>
+        <Button
+          variant="outline"
+          className="bg-card/60 cursor-pointer rounded-3xl text-xs"
+          size="sm"
+          onClick={() => navigate("TAEE11.SA")}
+        >
+          Teasa
+        </Button>
+        <Button
+          variant="outline"
+          className="bg-card/60 cursor-pointer rounded-3xl text-xs"
+          size="sm"
+          onClick={() => navigate("TSLA")}
+        >
+          Tesla
+        </Button>
+        <Button
+          variant="outline"
+          className="bg-card/60 cursor-pointer rounded-3xl text-xs"
+          size="sm"
+          onClick={() => navigate("AAPL")}
+        >
+          Apple
+        </Button>
+      </span>
+    </nav>
   );
 }
