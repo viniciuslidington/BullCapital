@@ -4,6 +4,7 @@ import React, { type MouseEventHandler } from "react";
 import { useNavigate, type NavigateFunction } from "react-router-dom";
 import { ListSkeleton } from "./listskeleton";
 import { CarouselItem } from "@/components/ui/carousel";
+import { Globe } from "lucide-react";
 
 interface HighlightsCardProps {
   title: string;
@@ -49,11 +50,15 @@ export const HighlightsDividendCard: React.FC<HighlightsCardProps> = ({
                   className="hover:bg-input active:bg-primary flex min-h-15 cursor-pointer items-center justify-between rounded-[8px] p-2 transition-all duration-200 ease-in-out"
                   onClick={() => navigate(item.symbol)}
                 >
-                  <img
-                    src={item.logo || undefined}
-                    alt="logo"
-                    className="h-8 w-8"
-                  />
+                  {item.logo ? (
+                    <img
+                      src={item.logo || undefined}
+                      alt="logo"
+                      className="h-8 w-8"
+                    />
+                  ) : (
+                    <Globe className="text-primary h-8 w-8" />
+                  )}
                   <div>
                     <p className="text-md font-semibold">
                       {item.symbol.replace(".SA", "")}
