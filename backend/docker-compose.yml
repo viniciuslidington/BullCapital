@@ -101,6 +101,25 @@ services:
       - market-data-service
       - market-download-service
 
+  ai-service:
+    build:
+      context: ./ai-service
+    container_name: ai-service
+    ports:
+      - "8001:8001"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - user=postgres
+      - password=postgres
+      - host=db
+      - port=5432
+      - dbname=bullcapital
+    restart: unless-stopped
+    command: >
+      sh -c "uvicorn app.api_server:app --host 0.0.0.0 --port 8001 --reload"
+    depends_on:
+      - db
+
 volumes:
   pgdata:
 
