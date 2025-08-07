@@ -18,6 +18,7 @@ Example:
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
+from datetime import datetime
 
 
 class HistoricalDataPoint(BaseModel):
@@ -321,3 +322,43 @@ class ErrorResponse(BaseModel):
     )
     timestamp: str = Field(..., description="Timestamp do erro")
     request_id: Optional[str] = Field(default=None, description="ID da requisição")
+
+class TickerInfoResponse(BaseModel):
+    """
+    Model for the detailed information of a single ticker.
+    """
+    symbol: str
+    name: str
+    sector: str
+    price: float = Field(0, description="Regular market price.")
+    change: float = Field(0, description="Regular market change percent.")
+    volume: int = Field(0, description="Regular market volume.")
+    market_cap: float = Field(0, description="Market capitalization.")
+    pe_ratio: float = Field(0, alias="pe_ratio")
+    dividend_yield: float = Field(0, alias="dividend_yield")
+    beta: float = Field(0, description="Beta value.")
+    fiftyTwoWeekChangePercent: float = Field(0, alias="fiftyTwoWeekChangePercent")
+    avg_volume_3m: int = Field(0, description="Average daily volume over 3 months.")
+    returnOnEquity: float = Field(0, alias="returnOnEquity")
+    book_value: float = Field(0, alias="book_value")
+    exchange: str
+    fullExchangeName: str
+    currency: str
+    website: str
+    logo: Optional[str] = None
+
+class TickerResult(BaseModel):
+    """
+    Model for the result of a single ticker operation, including success status.
+    """
+    success: bool
+    data: Optional[TickerInfoResponse] = None
+    error: Optional[str] = None
+
+class MultipleTickersResponse(BaseModel):
+    """
+    Main response model for the endpoint, containing results for all requested tickers.
+    """
+    symbols: List[str]
+    timestamp: datetime
+    results: Dict[str, TickerResult]
