@@ -1,11 +1,14 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { CategoriasType } from "@/types/assets";
 import {
+  Activity,
+  BadgeDollarSign,
   Banknote,
   Building,
   Building2,
   ChartNoAxesCombined,
   Coins,
+  DollarSign,
   Earth,
   Factory,
   Flame,
@@ -14,14 +17,15 @@ import {
   PackageSearch,
   Phone,
   PlugZap,
+  Repeat,
   ShieldCheck,
   ShoppingCart,
   Stethoscope,
+  TrendingDown,
+  TrendingUp,
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { categoriaData } from "@/data/categoria-data";
 import { PathLink } from "@/components/ui/path-link";
-import { QuestionMark } from "@/components/ui/question-mark";
 import {
   Table,
   TableBody,
@@ -48,13 +52,9 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useAddParams } from "@/hooks/utils/useaddparams";
-import type { Categorias, Setores } from "@/types/category";
+import type { Setores } from "@/types/category";
 
 export function Ranking() {
-  const [searchParams] = useSearchParams();
-  const categoria =
-    (searchParams.get("categoria") as Categorias) || "alta_do_dia";
-
   return (
     <div className="flex h-auto w-full max-w-[1180px] flex-col gap-8 p-8">
       <PathLink />
@@ -82,30 +82,30 @@ function RankingTabs() {
     >
       <TabsList className="gap-3 bg-transparent">
         <TabsTrigger
-          value="acoes"
-          className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground border-border bg-card hover:bg-muted data-[state=active]:border-primary cursor-pointer border p-4 shadow-sm transition-all duration-150"
+          value="alta_do_dia"
+          className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground border-border bg-card/60 hover:bg-muted data-[state=active]:border-primary cursor-pointer gap-2 border px-3 py-4 shadow-sm transition-all duration-150"
         >
-          <Coins /> Maiores Altas
+          <TrendingUp /> Maiores Altas
         </TabsTrigger>
         <TabsTrigger
-          value="fiis"
-          className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground border-border bg-card hover:bg-muted data-[state=active]:border-primary cursor-pointer border p-4 shadow-sm transition-all duration-150"
+          value="baixa_do_dia"
+          className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground border-border bg-card/60 hover:bg-muted data-[state=active]:border-primary cursor-pointer gap-2 border px-3 py-4 shadow-sm transition-all duration-150"
         >
-          <Building2 />
+          <TrendingDown />
           Maiores Baixas
         </TabsTrigger>
         <TabsTrigger
-          value="etfs"
-          className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground border-border bg-card hover:bg-muted data-[state=active]:border-primary cursor-pointer border p-4 shadow-sm transition-all duration-150"
+          value="mais_negociadas"
+          className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground border-border bg-card/60 hover:bg-muted data-[state=active]:border-primary cursor-pointer gap-2 border px-3 py-4 shadow-sm transition-all duration-150"
         >
-          <Layers />
+          <Repeat />
           Mais Negociadas
         </TabsTrigger>
         <TabsTrigger
-          value="bdrs"
-          className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground border-border bg-card hover:bg-muted data-[state=active]:border-primary cursor-pointer border p-4 shadow-sm transition-all duration-150"
+          value="valor_dividendos"
+          className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground border-border bg-card/60 hover:bg-muted data-[state=active]:border-primary cursor-pointer gap-2 border px-3 py-4 shadow-sm transition-all duration-150"
         >
-          <Earth />
+          <BadgeDollarSign />
           Maiores Dividendos
         </TabsTrigger>
       </TabsList>
