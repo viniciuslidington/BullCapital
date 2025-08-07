@@ -1,0 +1,60 @@
+from typing import Optional, List
+from pydantic import BaseModel
+
+from sqlalchemy import Column, Integer, String, Date, DateTime
+from sqlalchemy.sql import func
+from core.database import Base
+
+class User(Base):
+    """
+    Modelo de dados para representar um usuário no sistema.
+    
+    Esta classe define a estrutura da tabela 'users' no banco de dados,
+    contendo todas as informações necessárias para autenticação e perfil do usuário.
+    
+    Attributes:
+        id (int): Identificador único do usuário (chave primária)
+        nome_completo (str): Nome completo do usuário
+        cpf (str): CPF único do usuário (apenas números)
+        data_nascimento (date): Data de nascimento do usuário
+        email (str): Email único do usuário (usado para login)
+        senha (str): Senha hasheada do usuário
+        created_at (datetime): Data e hora de criação do registro
+        updated_at (datetime): Data e hora da última atualização do registro
+    """
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nome_completo = Column(String, nullable=False)
+    cpf = Column(String(11), unique=True, index=True, nullable=False)
+    data_nascimento = Column(Date, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    senha = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+# Modelos Pydantic para a API
+class Message(BaseModel):
+    sender: str  # "user" ou "bot"
+    content: str
+    timestamp: Optional[str] = None
+
+class ChatRequest(BaseModel):
+    sender: str = "user"
+    content: str
+    user_id: str 
+    conversation_id: Optional[str] = None
+
+class ChatResponse(BaseModel):
+    messages: List[Message]
+
+class Conversation(BaseModel):
+    conversation_id: str
+    user_id: str
+    title: str
+    messages: List[Message]
+
+class HealthResponse(BaseModel):
+    status: str
+    service: str
+    timestamp: str
