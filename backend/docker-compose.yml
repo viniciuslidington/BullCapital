@@ -28,33 +28,7 @@ services:
     depends_on:
       - db
 
-  data-storage-service:
-    build:
-      context: ./data-storage-service
-    container_name: data-storage-service
-    ports:
-      - "8004:8004"
-    environment:
-      - PYTHONUNBUFFERED=1
-    restart: unless-stopped
-    command: >
-      sh -c "uvicorn main:app --host 0.0.0.0 --port 8004 --reload"
-    depends_on:
-      - db
 
-  instrument-service:
-    build:
-      context: ./instrument-service
-    container_name: instrument-service
-    ports:
-      - "8005:8005"
-    environment:
-      - PYTHONUNBUFFERED=1
-    restart: unless-stopped
-    command: >
-      sh -c "uvicorn main:app --host 0.0.0.0 --port 8005 --reload"
-    depends_on:
-      - db
 
   market-data-service:
     build:
@@ -69,20 +43,6 @@ services:
       sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload"
 
 
-  market-download-service:
-    build:
-      context: ./market-download-service
-    container_name: market-download-service
-    ports:
-      - "8007:8007"
-    environment:
-      - PYTHONUNBUFFERED=1
-    restart: unless-stopped
-    command: >
-      sh -c "uvicorn main:app --host 0.0.0.0 --port 8007 --reload"
-    depends_on:
-      - db
-
   gateway-service:
     build:
       context: ./gateway-service
@@ -96,29 +56,7 @@ services:
       sh -c "uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
     depends_on:
       - auth-service
-      - data-storage-service
-      - instrument-service
       - market-data-service
-      - market-download-service
-
-  ai-service:
-    build:
-      context: ./ai-service
-    container_name: ai-service
-    ports:
-      - "8001:8001"
-    environment:
-      - PYTHONUNBUFFERED=1
-      - user=postgres
-      - password=postgres
-      - host=db
-      - port=5432
-      - dbname=bullcapital
-    restart: unless-stopped
-    command: >
-      sh -c "uvicorn app.api_server:app --host 0.0.0.0 --port 8001 --reload"
-    depends_on:
-      - db
 
 volumes:
   pgdata:
