@@ -323,9 +323,10 @@ def search_tickers_logic(q: str, limit: int):
         for item in quotes:
             info = get_ticker_info_logic(str(item.get("symbol", "")))
             logo = info["logo"]
+            exchange = info["fullExchangeName"]
             result = {
                 "symbol": str(item.get("symbol", "")), "name": str(item.get("longname", "") or item.get("shortname", "")),
-                "exchange": str(item.get("exchange", "")), "type": str(item.get("quoteType", "")),
+                "exchange": exchange, "type": str(item.get("quoteType", "")),
                 "score": float(item.get("score", 0) or 0), "sector": str(item.get("sector", "")),
                 "industry": str(item.get("industry", "")), "logo": logo
             }

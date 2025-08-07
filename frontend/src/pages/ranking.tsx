@@ -1,26 +1,8 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { CategoriasType } from "@/types/assets";
 import {
-  Activity,
   BadgeDollarSign,
-  Banknote,
-  Building,
-  Building2,
   ChartNoAxesCombined,
-  Coins,
-  DollarSign,
-  Earth,
-  Factory,
-  Flame,
-  Laptop,
-  Layers,
-  PackageSearch,
-  Phone,
-  PlugZap,
   Repeat,
-  ShieldCheck,
-  ShoppingCart,
-  Stethoscope,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
@@ -53,6 +35,7 @@ import {
 } from "@/components/ui/pagination";
 import { useAddParams } from "@/hooks/utils/useaddparams";
 import type { Setores } from "@/types/category";
+import { SECTOR_OPTIONS } from "@/data/sector-data";
 
 export function Ranking() {
   return (
@@ -118,65 +101,6 @@ function RankingTabs() {
 }
 
 function RankingFilterSelect() {
-  // Mapeamento entre setor e ícone (Lucide)
-  const SECTOR_OPTIONS = [
-    {
-      label: "Materiais Básicos",
-      value: "Basic Materials",
-      icon: <Factory className="mr-2 h-4 w-4" />,
-    },
-    {
-      label: "Serviços de Comunicação",
-      value: "Communication Services",
-      icon: <Phone className="mr-2 h-4 w-4" />,
-    },
-    {
-      label: "Consumo Cíclico",
-      value: "Consumer Cyclical",
-      icon: <ShoppingCart className="mr-2 h-4 w-4" />,
-    },
-    {
-      label: "Consumo Não Cíclico",
-      value: "Consumer Defensive",
-      icon: <ShieldCheck className="mr-2 h-4 w-4" />,
-    },
-    {
-      label: "Energia",
-      value: "Energy",
-      icon: <Flame className="mr-2 h-4 w-4" />,
-    },
-    {
-      label: "Serviços Financeiros",
-      value: "Financial Services",
-      icon: <Banknote className="mr-2 h-4 w-4" />,
-    },
-    {
-      label: "Saúde",
-      value: "Healthcare",
-      icon: <Stethoscope className="mr-2 h-4 w-4" />,
-    },
-    {
-      label: "Industriais",
-      value: "Industrials",
-      icon: <PackageSearch className="mr-2 h-4 w-4" />,
-    },
-    {
-      label: "Imobiliário",
-      value: "Real Estate",
-      icon: <Building className="mr-2 h-4 w-4" />,
-    },
-    {
-      label: "Tecnologia",
-      value: "Technology",
-      icon: <Laptop className="mr-2 h-4 w-4" />,
-    },
-    {
-      label: "Utilidade Pública",
-      value: "Utilities",
-      icon: <PlugZap className="mr-2 h-4 w-4" />,
-    },
-  ];
-
   const [searchParams] = useSearchParams();
   const addParams = useAddParams();
   const Setor = (searchParams.get("setor") as Setores) || "all";
