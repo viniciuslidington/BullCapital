@@ -28,7 +28,7 @@ export function SearchBar() {
   return (
     <Popover modal={false} open={open} onOpenChange={setOpen}>
       <PopoverContent
-        className="bg-card/60 !z-6 overflow-hidden rounded-xl p-0 backdrop-blur-lg"
+        className="bg-card/60 !z-6 overflow-hidden rounded-xl p-0 backdrop-blur-sm dark:backdrop-blur-lg"
         sideOffset={16}
       >
         <div className="border-b p-4">
@@ -37,7 +37,11 @@ export function SearchBar() {
         <ul className="flex flex-col gap-1 p-2">
           {isLoading ? (
             <span className="flex w-full justify-center py-5">
-              <DotSpinner size="40" speed="0.9" color="white" />
+              <DotSpinner
+                size="40"
+                speed="0.9"
+                color="var(--loading-spinner) "
+              />
             </span>
           ) : isError ? (
             <span className="text-destructive flex w-full items-center justify-center gap-2 py-5">
