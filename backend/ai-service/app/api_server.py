@@ -7,11 +7,11 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 import uvicorn
-from core.models import Message, ChatRequest, ChatResponse, Conversation, HealthResponse
-from agent.financial_agent import agent
+from app.core.models import Message, ChatRequest, ChatResponse, Conversation, HealthResponse
+from app.agent.financial_agent import agent
 from typing import Optional
-from core.database import engine
-from core.models import Base
+from app.core.database import engine
+from app.core.models import Base
 from contextlib import asynccontextmanager
 import logging
 
