@@ -17,7 +17,6 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from api.market_data import router as market_data_router
 from yfinance_endpoints import router as yfinance_router
 from cadu.frontend_api import router as frontend_router
 from core.config import settings
@@ -258,14 +257,10 @@ async def not_found_handler(request: Request, exc):
 
 
 # Incluir routers
-app.include_router(
-    market_data_router, prefix="/api/v1/market-data", tags=["Market Data"]
-)
 
-# Registrar todos os endpoints do yfinance
 app.include_router(yfinance_router, tags=["YFinance Complete API"])
 
-app.include_router(frontend_router, prefix="/api/v1/frontend", tags=["API YFinance Personalizada para o FrontEnd"])
+app.include_router(frontend_router, prefix="/api/v1/market-data", tags=["API YFinance Personalizada para o FrontEnd"])
 
 # Endpoints raiz
 @app.get(

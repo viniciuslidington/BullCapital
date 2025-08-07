@@ -58,17 +58,28 @@ const CATEGORIAS: {
 ];
 
 // Hook para múltiplas categorias com setor opcional
-export function useMultipleCategoryScreenings(setor?: Setores) {
+export function useMultipleCategoryScreenings(
+  setor?: Setores | "internacional",
+) {
   const queries = useQueries({
-    queries: CATEGORIAS.map(({ nome, options }) => ({
-      queryKey: ["category-screening", nome, { ...options, setor }],
-      queryFn: () =>
-        CategoriesService.getByCategory(nome, {
-          ...options,
-          setor,
-        }),
-      ...getQueryConfig("marketData"),
-    })),
+    queries: CATEGORIAS.map(({ nome, options }) => {
+      const nomeCategoria = setor === "internacional" ? "mercado_todo" : nome;
+      const setorCategoria = setor === "internacional" ? undefined : setor;
+
+      return {
+        queryKey: [
+          "category-screening",
+          nomeCategoria,
+          { ...options, setor: setorCategoria },
+        ],
+        queryFn: () =>
+          CategoriesService.getByCategory(nomeCategoria, {
+            ...options,
+            setor: setorCategoria,
+          }),
+        ...getQueryConfig("marketData"),
+      };
+    }),
   });
 
   const isLoading = queries.some((r) => r.isLoading);

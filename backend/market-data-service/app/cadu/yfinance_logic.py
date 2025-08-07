@@ -119,22 +119,6 @@ def safe_ticker_operation(symbol: str, operation):
         logger.debug(f"Criando objeto yf.Ticker para '{symbol}'")
         ticker = yf.Ticker(symbol.upper())
 
-        # --- Bloco de Validação Detalhado ---
-        try:
-            logger.debug(f"Tentando validar o ticker '{symbol}' com history(period='1d')")
-            history_df = ticker.history(period="1d")
-
-            if history_df.empty:
-                logger.warning(f"Validação falhou para '{symbol}': history() retornou um DataFrame vazio.")
-                raise ValueError(f"Não foi possível obter dados para o ticker '{symbol}'. Ele pode ser inválido ou não estar mais listado.")
-
-            logger.debug(f"Ticker '{symbol}' validado com sucesso. History retornou {len(history_df)} linha(s).")
-
-        except Exception as validation_error:
-            logger.error(f"Erro específico durante a validação de history() para '{symbol}': {validation_error}", exc_info=True)
-            raise ValueError(f"Falha na validação do ticker '{symbol}': {validation_error}")
-        # --- Fim do Bloco de Validação ---
-
         logger.debug(f"Executando a operação solicitada para o ticker '{symbol}'")
         result = operation(ticker)
 

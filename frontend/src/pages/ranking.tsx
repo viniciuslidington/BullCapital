@@ -1,11 +1,22 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { CategoriasType } from "@/types/assets";
 import {
+  Banknote,
+  Building,
   Building2,
   ChartNoAxesCombined,
   Coins,
   Earth,
+  Factory,
+  Flame,
+  Laptop,
   Layers,
+  PackageSearch,
+  Phone,
+  PlugZap,
+  ShieldCheck,
+  ShoppingCart,
+  Stethoscope,
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { categoriaData } from "@/data/categoria-data";
@@ -37,25 +48,18 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useAddParams } from "@/hooks/utils/useaddparams";
+import type { Categorias, Setores } from "@/types/category";
 
 export function Ranking() {
   const [searchParams] = useSearchParams();
   const categoria =
-    (searchParams.get("categoria") as CategoriasType) || "acoes";
+    (searchParams.get("categoria") as Categorias) || "alta_do_dia";
 
   return (
     <div className="flex h-auto w-full max-w-[1180px] flex-col gap-8 p-8">
       <PathLink />
       <h1 className="text-foreground/80 -mb-4 flex items-center gap-2 text-3xl font-semibold">
-        <ChartNoAxesCombined className="h-8 w-8" /> Ranking de{" "}
-        {categoriaData[categoria].shortTitle}
-        <span className="pt-1">
-          <QuestionMark
-            dataIndex={categoria}
-            dataType="categoryDescription"
-            delay={50}
-          />
-        </span>
+        <ChartNoAxesCombined className="h-8 w-8" /> Ranking de Ativos
       </h1>
       <div className="-mb-4 flex justify-between">
         <RankingTabs />
@@ -72,7 +76,7 @@ function RankingTabs() {
   const addParams = useAddParams();
   return (
     <Tabs
-      defaultValue={searchParams.get("categoria") || "acoes"}
+      defaultValue={searchParams.get("categoria") || "alta_do_dia"}
       className="w-full"
       onValueChange={(value) => addParams("categoria", value)}
     >
@@ -81,28 +85,28 @@ function RankingTabs() {
           value="acoes"
           className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground border-border bg-card hover:bg-muted data-[state=active]:border-primary cursor-pointer border p-4 shadow-sm transition-all duration-150"
         >
-          <Coins /> Ações
+          <Coins /> Maiores Altas
         </TabsTrigger>
         <TabsTrigger
           value="fiis"
           className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground border-border bg-card hover:bg-muted data-[state=active]:border-primary cursor-pointer border p-4 shadow-sm transition-all duration-150"
         >
           <Building2 />
-          FIIs
+          Maiores Baixas
         </TabsTrigger>
         <TabsTrigger
           value="etfs"
           className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground border-border bg-card hover:bg-muted data-[state=active]:border-primary cursor-pointer border p-4 shadow-sm transition-all duration-150"
         >
           <Layers />
-          ETFs
+          Mais Negociadas
         </TabsTrigger>
         <TabsTrigger
           value="bdrs"
           className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground border-border bg-card hover:bg-muted data-[state=active]:border-primary cursor-pointer border p-4 shadow-sm transition-all duration-150"
         >
           <Earth />
-          BDRs
+          Maiores Dividendos
         </TabsTrigger>
       </TabsList>
       <TabsContent value="account">
@@ -114,31 +118,91 @@ function RankingTabs() {
 }
 
 function RankingFilterSelect() {
+  // Mapeamento entre setor e ícone (Lucide)
+  const SECTOR_OPTIONS = [
+    {
+      label: "Materiais Básicos",
+      value: "Basic Materials",
+      icon: <Factory className="mr-2 h-4 w-4" />,
+    },
+    {
+      label: "Serviços de Comunicação",
+      value: "Communication Services",
+      icon: <Phone className="mr-2 h-4 w-4" />,
+    },
+    {
+      label: "Consumo Cíclico",
+      value: "Consumer Cyclical",
+      icon: <ShoppingCart className="mr-2 h-4 w-4" />,
+    },
+    {
+      label: "Consumo Não Cíclico",
+      value: "Consumer Defensive",
+      icon: <ShieldCheck className="mr-2 h-4 w-4" />,
+    },
+    {
+      label: "Energia",
+      value: "Energy",
+      icon: <Flame className="mr-2 h-4 w-4" />,
+    },
+    {
+      label: "Serviços Financeiros",
+      value: "Financial Services",
+      icon: <Banknote className="mr-2 h-4 w-4" />,
+    },
+    {
+      label: "Saúde",
+      value: "Healthcare",
+      icon: <Stethoscope className="mr-2 h-4 w-4" />,
+    },
+    {
+      label: "Industriais",
+      value: "Industrials",
+      icon: <PackageSearch className="mr-2 h-4 w-4" />,
+    },
+    {
+      label: "Imobiliário",
+      value: "Real Estate",
+      icon: <Building className="mr-2 h-4 w-4" />,
+    },
+    {
+      label: "Tecnologia",
+      value: "Technology",
+      icon: <Laptop className="mr-2 h-4 w-4" />,
+    },
+    {
+      label: "Utilidade Pública",
+      value: "Utilities",
+      icon: <PlugZap className="mr-2 h-4 w-4" />,
+    },
+  ];
+
   const [searchParams] = useSearchParams();
   const addParams = useAddParams();
-  const filtro = (searchParams.get("filtro") as CategoriasType) || "altas";
+  const Setor = (searchParams.get("setor") as Setores) || "all";
 
   return (
     <Select
-      value={filtro}
-      onValueChange={(value) => addParams("filtro", value)}
+      value={Setor}
+      onValueChange={(value) =>
+        value === "all" ? addParams("setor", null) : addParams("setor", value)
+      }
     >
-      <SelectTrigger className="bg-card w-[160px] rounded-lg sm:ml-auto sm:flex">
-        <SelectValue placeholder="Selecione Filtro" />
+      <SelectTrigger className="bg-card rounded-lg sm:ml-auto sm:flex">
+        <SelectValue placeholder="Selecione Setor" />
       </SelectTrigger>
       <SelectContent className="rounded-xl" align="end">
-        <SelectItem value="altas" className="rounded-lg">
-          Maiores Altas
-        </SelectItem>
-        <SelectItem value="baixas" className="rounded-lg">
-          Maiores Baixas
-        </SelectItem>
-        <SelectItem value="ativas" className="rounded-lg">
-          Mais Ativas
-        </SelectItem>
-        <SelectItem value="dividendos" className="rounded-lg">
-          Maiores Dividendos
-        </SelectItem>
+        <SelectItem value="all">Todos Setores</SelectItem>
+        {SECTOR_OPTIONS.map(({ value, label, icon }) => (
+          <SelectItem
+            key={value}
+            value={value}
+            className="flex items-center gap-2 rounded-lg"
+          >
+            {icon}
+            {label}
+          </SelectItem>
+        ))}
       </SelectContent>
     </Select>
   );
