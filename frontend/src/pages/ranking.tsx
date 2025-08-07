@@ -36,7 +36,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { useAddParams } from "@/hooks/useaddparams";
+import { useAddParams } from "@/hooks/utils/useaddparams";
 
 export function Ranking() {
   const [searchParams] = useSearchParams();

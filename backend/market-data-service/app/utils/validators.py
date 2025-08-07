@@ -374,3 +374,4 @@ def is_market_open(market: str = "BR") -> bool:
     else:
         # Assumir horário comercial padrão
         return 9 <= current_hour <= 17
+    
