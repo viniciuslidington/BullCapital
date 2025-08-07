@@ -371,7 +371,7 @@ Setores disponíveis:
 - Technology
 - Utilities
 """)
-async def get_tickers_by_category(categoria: str, setor: Optional[str] = None, sort: Optional[str] = None, asc: bool = False):
+async def get_tickers_by_category(categoria: str, setor: Optional[str] = None, sort: Optional[str] = None, asc: bool = False, limit: Optional[int] = 5):
     async with httpx.AsyncClient() as client:
         try:
             params = {"categoria": categoria}
@@ -380,6 +380,8 @@ async def get_tickers_by_category(categoria: str, setor: Optional[str] = None, s
             if sort:
                 params["sort"] = sort
                 params["asc"] = str(asc).lower()
+            if limit:
+                params["limit"] = limit
             response = await client.get(
                 f"{MARKET_DATA_SERVICE_URL}/api/v1/market-data/categorias/{categoria}",
                 params=params
