@@ -53,7 +53,9 @@ def consultar_pdf_fundamentalista(question: str) -> str:
         "Você é um analista fundamentalista. Use o contexto e cite página quando possível.\n\n"
         f"{ctx}\n\nPergunta: {question}\nResposta:"
     )
-    return llm.predict(prompt)
+    # Corrigir método depreciado predict para invoke
+    response = llm.invoke(prompt)
+    return response.content
 
 
 # Valuation (6 métodos)
