@@ -18,7 +18,7 @@ if __name__ == "__main__":
     - Reload: True (reinicia automaticamente quando arquivos são modificados)
     """
     uvicorn.run(
-        "api_server:app",
+        "app.api_server:app",
         host="0.0.0.0",
         port=8001,
         reload=True
