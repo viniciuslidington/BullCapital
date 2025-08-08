@@ -39,13 +39,13 @@ async def get_multiple_tickers_info(tickers: str):
     return response
 
 @router.get("/multi-history")
-async def get_multiple_tickers_history(tickers: str, period: str = "1mo", interval: str = "1d", start: str = "2020-01-01", end: str = "2025-01-01", PrePost: bool = False, autoAdjust: bool = True):
+async def get_multiple_tickers_history(tickers: str, period: str = "1mo", interval: str = "1d", start: Optional[str] = None, end: Optional[str] = None, PrePost: bool = False, autoAdjust: bool = True):
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(
                 f"{MARKET_DATA_SERVICE_URL}/api/v1/market-data/multi-history",
                 params={
-                    "tickers": tickers,
+                    "symbols": tickers,
                     "period": period,
                     "interval": interval,
                     "start": start,
