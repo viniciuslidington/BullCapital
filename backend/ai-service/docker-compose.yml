@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: ai_service_postgres
+    environment:
+      POSTGRES_DB: ai_service_db
+      POSTGRES_USER: ai_user
+      POSTGRES_PASSWORD: ai_password_2025
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - ai_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai_user -d ai_service_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Opcional: PgAdmin para administração do banco
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: ai_service_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@bullcapital.com
+      PGADMIN_DEFAULT_PASSWORD: ai123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - ai_network
+    restart: unless-stopped
+    depends_on:
+      - postgres
+
+
+  ai-service:
+    build:
+      context: .
+    container_name: ai-service
+    ports:
+      - "8001:8001"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+      - user=ai_user
+      - password=ai_password_2025
+      - host=postgres
+      - port=5432
+      - dbname=ai_service_db
+      - openai_api_key=${OPENAI_API_KEY}
+    restart: unless-stopped
+    command: python3 -m app.main
+    depends_on:
+      - postgres
+    networks:
+      - ai_network
+
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  ai_network:
+    driver: bridge
