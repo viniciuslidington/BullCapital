@@ -5,8 +5,11 @@ Servidor FastAPI que expõe o agente como endpoints REST com sistema de chat con
 
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 from datetime import datetime
 import uvicorn
+import json
 from app.core.models import (
     MessageRequest, 
     ChatRequest, 
@@ -29,6 +32,13 @@ import uuid
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Custom JSON encoder for UUID
+class UUIDEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, uuid.UUID):
+            return str(obj)
+        return super().default(obj)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -139,7 +149,7 @@ async def root():
         }
     }
 
-@app.post("/chat", response_model=ChatResponse)
+@app.post("/chat")
 async def chat_with_agent(request: ChatRequest, db: Session = Depends(get_db)):
     """
     Endpoint principal para conversar com o agente.
@@ -201,17 +211,19 @@ async def chat_with_agent(request: ChatRequest, db: Session = Depends(get_db)):
             Message.conversation_id == conversation.id
         ).order_by(Message.timestamp).all()
         
-        return ChatResponse(
-            conversation_id=conversation.id,
-            user_id=conversation.user_id,
-            messages=[
-                MessageRequest(
-                    sender=msg.sender,
-                    content=msg.content,
-                    timestamp=msg.timestamp.isoformat()
-                ) for msg in all_messages
+        response_data = {
+            "conversation_id": str(conversation.id),
+            "user_id": str(conversation.user_id),
+            "messages": [
+                {
+                    "sender": msg.sender,
+                    "content": msg.content,
+                    "timestamp": msg.timestamp.isoformat()
+                } for msg in all_messages
             ]
-        )
+        }
+        
+        return JSONResponse(content=response_data)
         
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -220,7 +232,7 @@ async def chat_with_agent(request: ChatRequest, db: Session = Depends(get_db)):
         logger.error(f"Erro no agente: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro no agente: {str(e)}")
 
-@app.get("/conversations/{conversation_id}", response_model=ChatResponse)
+@app.get("/conversations/{conversation_id}")
 async def get_conversation(conversation_id: uuid.UUID, db: Session = Depends(get_db)):
     """
     Recupera o histórico de uma conversa específica.
@@ -231,23 +243,29 @@ async def get_conversation(conversation_id: uuid.UUID, db: Session = Depends(get
         ).first()
         
         if not conversation:
-            return ChatResponse(conversation_id=conversation_id, user_id=None, messages=[])
+            return JSONResponse(content={
+                "conversation_id": str(conversation_id), 
+                "user_id": None, 
+                "messages": []
+            })
         
         messages = db.query(Message).filter(
             Message.conversation_id == conversation.id
         ).order_by(Message.timestamp).all()
         
-        return ChatResponse(
-            conversation_id=conversation.id,
-            user_id=conversation.user_id,
-            messages=[
-                MessageRequest(
-                    sender=msg.sender,
-                    content=msg.content,
-                    timestamp=msg.timestamp.isoformat()
-                ) for msg in messages
+        response_data = {
+            "conversation_id": str(conversation.id),
+            "user_id": str(conversation.user_id),
+            "messages": [
+                {
+                    "sender": msg.sender,
+                    "content": msg.content,
+                    "timestamp": msg.timestamp.isoformat()
+                } for msg in messages
             ]
-        )
+        }
+        
+        return JSONResponse(content=response_data)
     except Exception as e:
         logger.error(f"Erro ao obter conversa: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao obter conversa: {str(e)}")

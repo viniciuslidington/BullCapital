@@ -1,7 +1,8 @@
-version: '3.12' # Or 3.8, which is more common
+version: '3.12' # Or 3.8
 
 services:
-  db:
+  # --- Main Application Database --- #
+  main-db:
     image: postgres:14
     container_name: postgres-db
     restart: unless-stopped
@@ -10,18 +11,18 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: bullcapital
     ports:
-      - "5432:5432"
+      - "5432:5432" # Expose DB on standard port 5432
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
-      - dev-network # Assign to network
-    # Add healthcheck so auth-service can wait for it
+      - dev-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d bullcapital"]
       interval: 5s
       timeout: 5s
       retries: 5
 
+  # --- Authentication Service --- #
   auth-service:
     build:
       context: ./auth-service
@@ -30,34 +31,29 @@ services:
       - "8003:8003"
     environment:
       - PYTHONUNBUFFERED=1
-      # --- Database Connection Env Vars ---
+      # --- Database Connection Env Vars (connecting to main-db) ---
       - USER=postgres
       - PASSWORD=postgres
-      - HOST=db                     # Service name of the Postgres container
-      - PORT=5432                   # Standard Postgres port
+      - HOST=main-db           # Connect to the 'main-db' service
+      - PORT=5432              # Standard Postgres port
       - DBNAME=bullcapital
-      - USE_SSL=false               # Disable SSL for local Postgres connection
+      - USE_SSL=false          # Disable SSL for local Postgres connection
       # --- JWT & App Settings ---
-      # Replace 'your-super-secret-jwt-key-change-in-prod' with a strong secret key,
-      # especially for production.
       - SECRET_KEY=your-super-secret-jwt-key-change-in-prod
       - ALGORITHM=HS256
       - ACCESS_TOKEN_EXPIRE_MINUTES=30
       - DEBUG_SQL=false
-      # Ensure these origins match where your frontend is running
       - ALLOWED_ORIGINS=["http://localhost:3000","http://localhost:8000"]
     restart: unless-stopped
-    # Use the correct module path for your FastAPI app
     # Adjust 'app.app:app' if your main file or app instance is named differently
-    # Using 'sh -c' is fine, but direct command is often cleaner if no complex shell logic is needed.
-    command: uvicorn app:app --host 0.0.0.0 --port 8003 --reload
+    command: uvicorn app:app --host 0.0.0.0 --port 8003 --reload # Adjusted command
     depends_on:
-      db:
-        # Wait for the database to be ready (requires healthcheck on db service)
+      main-db:
         condition: service_healthy
     networks:
-      - dev-network # Assign to network
+      - dev-network
 
+  # --- Market Data Service --- #
   market-data-service:
     build:
       context: ./market-data-service
@@ -67,11 +63,18 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       # Add other necessary env vars for market-data-service if needed
+      # If market-data-service also uses the DB:
+      # - DB_HOST=main-db
+      # - DB_PORT=5432
+      # - DB_NAME=bullcapital
+      # - DB_USER=postgres
+      # - DB_PASS=postgres
     restart: unless-stopped
     command: uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload
     networks:
-      - dev-network # Assign to network
+      - dev-network
 
+  # --- API Gateway Service --- #
   gateway-service:
     build:
       context: ./gateway-service
@@ -80,20 +83,54 @@ services:
       - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
-      # Tell the gateway where the auth service is located within the Docker network
+      # Tell the gateway where the services are located within the Docker network
       - AUTH_SERVICE_URL=http://auth-service:8003
-      # Add other necessary env vars for gateway-service if needed (e.g., MARKET_DATA_SERVICE_URL)
+      # Add other service URLs as needed
+      # - MARKET_DATA_SERVICE_URL=http://market-data-service:8002
+      - AI_SERVICE_URL=http://ai-service:8001 # Add this for the AI service
     restart: unless-stopped
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
       - auth-service
       - market-data-service
+      - ai-service # Add dependency if gateway routes to it
     networks:
-      - dev-network # Assign to network
+      - dev-network
 
+  # --- AI Service --- #
+  ai-service:
+    build:
+      context: ./ai-service # Adjust path if needed
+    container_name: ai-service
+    ports:
+      - "8001:8001"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+      # --- Database Connection Env Vars (connecting to the SAME main-db) ---
+      - USER=postgres          # Use main DB user
+      - PASSWORD=postgres      # Use main DB password
+      - HOST=main-db           # Connect to the 'main-db' service
+      - PORT=5432              # Standard internal Postgres port
+      - DBNAME=bullcapital     # Use main DB name (Consider using a specific schema if needed)
+      # - USE_SSL=false        # Add if your ai-service also uses the SSL config from auth
+      # --- AI Service Specific Env Vars ---
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-"your-openai-api-key-here"} # Set this in your environment or .env file
+      # Add other AI service specific env vars here
+    restart: unless-stopped
+    # Adjust command based on how your AI service's entrypoint is defined
+    command: uvicorn app.api_server:app --host 0.0.0.0 --port 8001 --reload
+    depends_on:
+      main-db:
+        condition: service_healthy # Wait for the main DB
+    networks:
+      - dev-network # Assign to the shared network
+
+# --- Volumes --- #
 volumes:
-  pgdata:
+  pgdata: # Volume for the single database
 
+# --- Networks --- #
 networks:
   dev-network:
     driver: bridge
