@@ -8,7 +8,7 @@ from models.auth_models import UserCreate, UserLogin, UserResponse, TokenRespons
 router = APIRouter()
 
 
-AUTH_SERVICE_URL = "http://localhost:8003/api/v1/auth"
+AUTH_SERVICE_URL = "http://auth-service:8003/api/v1/auth"
 
 @router.post(
     "/register",

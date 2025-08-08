@@ -8,6 +8,7 @@ from core.security import require_auth
 from core.config import settings
 from schemas.user import UserCreate, UserLogin, UserResponse, UserUpdate
 from services.auth_service import auth_service
+from schemas.user import LoginResponse
 from services.google_oauth_service import google_oauth_service
 from crud.user import get_users, get_user_by_id, update_user, delete_user
 
@@ -110,7 +111,6 @@ def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
-
 @router.post("/login", summary="Fazer login")
 def login_user(login_data: UserLogin, response: Response, db: Session = Depends(get_db)):
     """
@@ -142,16 +142,26 @@ def login_user(login_data: UserLogin, response: Response, db: Session = Depends(
     """
     user = auth_service.authenticate_user(db, login_data)
     if not user:
+        # Raise 401 if authentication fails
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email ou senha incorretos",
         )
-    
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = auth_service.create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
+
+    # 2. Create the JWT access token using your existing service logic
+    access_token = auth_service.create_access_token(data={"sub": user.email})
+
+    # 3. ✅ Set the JWT in a secure HTTP-only cookie
+    response.set_cookie(
+        key="access_token",           # Cookie name
+        value=access_token,           # The JWT value
+        httponly=True,                # Prevents XSS attacks (inaccessible to JS)
+        secure=False,                 # Set to True in production (requires HTTPS)
+        samesite="Lax",               # Helps mitigate CSRF (Lax is a good default)
+        max_age=3600,                 # Cookie expiry in seconds (match token expiry)
+        path="/"                      # Cookie is sent to all paths on the domain
     )
-    
+
     # Define cookie seguro usando função helper
     cookie_info = set_auth_cookie(response, access_token, "email_password")
     
@@ -171,6 +181,7 @@ def login_user(login_data: UserLogin, response: Response, db: Session = Depends(
             "expires_at": (user.created_at + access_token_expires).isoformat() if hasattr(user, 'created_at') else None
         }
     }
+\
 
 @router.get("/profile", response_model=UserResponse, summary="Obter perfil")
 def get_user_profile(current_user = Depends(require_auth)):
