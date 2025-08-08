@@ -71,7 +71,7 @@ def clear_auth_cookie(response: Response):
         httponly=True,
         secure=settings.ENVIRONMENT == "production",
         samesite="lax",
-        domain="settings.COOKIE_DOMAIN if settings.ENVIRONMENT == "production" else None",
+        domain=settings.COOKIE_DOMAIN if settings.ENVIRONMENT == "production" else None,
         path="/",  # Mesmo path usado ao criar
     )
     
