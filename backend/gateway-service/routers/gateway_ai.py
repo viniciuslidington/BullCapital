@@ -63,6 +63,46 @@ async def get_conversation(conversation_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
+@router.get("/conversations")
+async def list_conversations(
+    user_id: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 100
+):
+    """
+    Lista todas as conversas disponíveis.
+    """
+    try:
+        async with httpx.AsyncClient() as client:
+            # Build query parameters
+            params = {
+                "skip": skip,
+                "limit": limit
+            }
+            if user_id is not None:
+                params["user_id"] = user_id
+            
+            # Forward request to AI service
+            ai_response = await client.get(
+                f"{AI_SERVICE_URL}/conversations",
+                params=params,
+                timeout=30.0
+            )
+            
+            if ai_response.status_code != 200:
+                raise HTTPException(
+                    status_code=ai_response.status_code,
+                    detail=f"AI service error: {ai_response.text}"
+                )
+            
+            return ai_response.json()
+        
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=503, detail=f"AI service unavailable: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
 
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
