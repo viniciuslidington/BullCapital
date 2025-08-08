@@ -38,7 +38,7 @@ class ConversationRequest(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     service: str
-    timestamp: str
+    timestamp: Optional[str] = None
 
     class Config:
         from_attributes = True  # Para compatibilidade com SQLAlchemy

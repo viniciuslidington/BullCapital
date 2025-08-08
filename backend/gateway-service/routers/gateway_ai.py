@@ -2,25 +2,32 @@ from fastapi import APIRouter, HTTPException, Query, Body
 from pydantic import BaseModel
 import httpx
 from typing import List, Optional
-from models.responses.ai_financial_response import ChatResponse, MessageRequest, HealthResponse
 from models.requests.ai_financial_request import ChatRequest, ConversationRequest
 
 router = APIRouter()
 
 
-AI_SERVICE_URL = "http://ai-service:8001/api/v1/ai"
+AI_SERVICE_URL = "http://ai-service:8001"
 
-@router.post("/chat", response_model=ChatResponse)
+@router.post("/chat")
 async def chat_with_agent(request: ChatRequest):
     """
     Endpoint principal para conversar com o agente.
     """
     try:
         async with httpx.AsyncClient() as client:
+            # Convert request to dict and handle UUIDs
+            request_data = request.dict()
+            # Convert UUIDs to strings for JSON serialization
+            if request_data.get("user_id"):
+                request_data["user_id"] = str(request_data["user_id"])
+            if request_data.get("conversation_id"):
+                request_data["conversation_id"] = str(request_data["conversation_id"])
+            
             # Forward request to AI service
             ai_response = await client.post(
                 f"{AI_SERVICE_URL}/chat",
-                json=request.dict(),
+                json=request_data,
                 timeout=30.0
             )
             
@@ -37,7 +44,7 @@ async def chat_with_agent(request: ChatRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
     
-@router.get("/conversations/{conversation_id}", response_model=ChatResponse)
+@router.get("/conversations/{conversation_id}")
 async def get_conversation(conversation_id: str):
     """
     Recupera o histórico de uma conversa específica.
@@ -104,7 +111,7 @@ async def list_conversations(
 
 
 
-@router.get("/health", response_model=HealthResponse)
+@router.get("/health")
 async def health_check():
     """Endpoint de health check."""
     try:
@@ -116,20 +123,23 @@ async def health_check():
             )
             
             if ai_response.status_code == 200:
-                return HealthResponse(
-                    status="healthy",
-                    service="AI Gateway",
-                    timestamp=ai_response.json().get("timestamp")
-                )
+                ai_data = ai_response.json()
+                return {
+                    "status": "healthy",
+                    "service": "AI Gateway",
+                    "timestamp": ai_data.get("timestamp", "")
+                }
             else:
-                return HealthResponse(
-                    status="unhealthy",
-                    service="AI Gateway", 
-                    timestamp=None
-                )
+                from datetime import datetime
+                return {
+                    "status": "unhealthy",
+                    "service": "AI Gateway", 
+                    "timestamp": datetime.now().isoformat()
+                }
     except Exception:
-        return HealthResponse(
-            status="unhealthy",
-            service="AI Gateway",
-            timestamp=None
-        ) 
+        from datetime import datetime
+        return {
+            "status": "unhealthy",
+            "service": "AI Gateway",
+            "timestamp": datetime.now().isoformat()
+        } 
