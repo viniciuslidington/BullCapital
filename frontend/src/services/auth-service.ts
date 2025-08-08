@@ -23,16 +23,13 @@ export const AuthService = {
   },
   Register: async (userData: RegisterPayload) => {
     const res = await axios.post(
-      `http://localhost:8003/api/v1/auth/register`,
+      `http://localhost:8000/auth/register`,
       userData,
     );
     return res.data;
   },
   Login: async (userData: LoginPayload) => {
-    const res = await axios.post(
-      `http://localhost:8003/api/v1/auth/login`,
-      userData,
-    );
+    const res = await axios.post(`http://localhost:8000/auth/login`, userData);
     return res.data;
   },
 };
