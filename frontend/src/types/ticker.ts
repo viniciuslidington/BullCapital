@@ -36,6 +36,17 @@ export interface TickerBasicInfoResponse {
   fullExchangeName: string;
   type: string;
   currency: string;
+  companyOfficers: {
+    maxAge: number;
+    name: string;
+    age?: number | undefined; // nem todos têm
+    title: string;
+    yearBorn?: number | undefined; // nem todos têm
+    fiscalYear: number;
+    totalPay?: number | undefined; // nem todos têm
+    exercisedValue: number;
+    unexercisedValue: number;
+  }[];
   logo: string | null;
   priceAndVariation: {
     currentPrice: number;
@@ -120,3 +131,15 @@ export interface TickerBasicInfoResponse {
     netIncomeToCommon: number;
   };
 }
+
+export type CompanyOfficers = {
+  maxAge: number;
+  name: string;
+  age?: number | undefined; // nem todos têm
+  title: string;
+  yearBorn?: number | undefined; // nem todos têm
+  fiscalYear: number;
+  totalPay?: number | undefined; // nem todos têm
+  exercisedValue: number;
+  unexercisedValue: number;
+};

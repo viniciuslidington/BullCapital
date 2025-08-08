@@ -6,16 +6,27 @@ import {
   formatNumber,
   formatPrice,
 } from "@/lib/utils";
-import { ArrowDown, ArrowUp, ChevronUp, Dot } from "lucide-react";
+import { AlertCircle, ArrowDown, ArrowUp, ChevronUp, Dot } from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TabsContent } from "@radix-ui/react-tabs";
 import { useLocation } from "react-router-dom";
-import type { TickerBasicInfoResponse } from "@/types/ticker";
+import type { CompanyOfficers, TickerBasicInfoResponse } from "@/types/ticker";
 import { useTickerInfo } from "@/hooks/queries/useticker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDataCard } from "@/hooks/utils/usedatacard";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { SECTOR_TRANSLATE } from "@/data/sector-data";
+import type { Setores } from "@/types/category";
 
 const response = {
   symbol: "AAPL",
@@ -624,6 +635,8 @@ export function Asset() {
   const { data, isError, isLoading, isFetching } = useTickerInfo(tickerSymbol);
   const fetchState = { isError, isLoading, isFetching };
 
+  const noSkeleton = !isError && !isLoading;
+
   const {
     marketData,
     valuation,
@@ -644,13 +657,13 @@ export function Asset() {
         tickerSymbol={tickerSymbol}
       />
       <div className="flex items-start gap-8">
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-1 flex-col gap-8">
           <MarketChart
             title={tickerSymbol}
             description="Variação de preço"
             chartData={chartData}
           />
-          <AssetTabs />
+          <AssetTabs ticker={tickerSymbol} />
         </div>
         <div className="flex flex-col gap-4">
           <MarketDataCard
@@ -667,44 +680,61 @@ export function Asset() {
             fetchState={fetchState}
             openByDefault
           />
-          <MarketDataCard
-            title={"Dividendos"}
-            itens={dividends}
-            currency={data?.currency ?? ""}
-            fetchState={fetchState}
-          />
-          <MarketDataCard
-            title={"Participação e Lucro"}
-            itens={shareholdingAndProfit}
-            currency={data?.currency ?? ""}
-            fetchState={fetchState}
-          />
-          <MarketDataCard
-            title={"Rentabilidade"}
-            itens={rentability}
-            currency={data?.currency ?? ""}
-            fetchState={fetchState}
-          />
-          <MarketDataCard
-            title={"Eficiência e Fluxo de Caixa"}
-            itens={eficiencyAndCashflow}
-            currency={data?.currency ?? ""}
-            fetchState={fetchState}
-          />
-          <MarketDataCard
-            title={"Débito e Solvência"}
-            itens={debtAndSolvency}
-            currency={data?.currency ?? ""}
-            fetchState={fetchState}
-          />
-          <MarketDataCard
-            title={"Risco e Opinião de Mercado"}
-            itens={analystData}
-            currency={data?.currency ?? ""}
-            fetchState={fetchState}
-          />
+          {noSkeleton && (
+            <MarketDataCard
+              title={"Dividendos"}
+              itens={dividends}
+              currency={data?.currency ?? ""}
+              fetchState={fetchState}
+            />
+          )}
+          {noSkeleton && (
+            <MarketDataCard
+              title={"Participação e Lucro"}
+              itens={shareholdingAndProfit}
+              currency={data?.currency ?? ""}
+              fetchState={fetchState}
+            />
+          )}
+          {noSkeleton && (
+            <MarketDataCard
+              title={"Rentabilidade"}
+              itens={rentability}
+              currency={data?.currency ?? ""}
+              fetchState={fetchState}
+            />
+          )}
+          {noSkeleton && (
+            <MarketDataCard
+              title={"Eficiência e Fluxo de Caixa"}
+              itens={eficiencyAndCashflow}
+              currency={data?.currency ?? ""}
+              fetchState={fetchState}
+            />
+          )}
+          {noSkeleton && (
+            <MarketDataCard
+              title={"Débito e Solvência"}
+              itens={debtAndSolvency}
+              currency={data?.currency ?? ""}
+              fetchState={fetchState}
+            />
+          )}
+          {noSkeleton && (
+            <MarketDataCard
+              title={"Risco e Opinião de Mercado"}
+              itens={analystData}
+              currency={data?.currency ?? ""}
+              fetchState={fetchState}
+            />
+          )}
         </div>
       </div>
+      {isError && (
+        <div className="text-destructive bg-card/60 absolute top-[calc(100vh/2)] left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-xl border p-6 shadow-lg backdrop-blur-lg">
+          <AlertCircle /> <p>Falha ao carregar "{tickerSymbol}"</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -823,7 +853,12 @@ function MarketDataCard({
     itens === undefined ||
     fetchState.isError
   )
-    return <Skeleton className="h-[450px] w-[300px] rounded-xl" />;
+    return (
+      <Skeleton
+        animation={!fetchState.isError}
+        className={`${fetchState.isError ? "blur-sm" : ""} h-[450px] w-[300px] rounded-xl`}
+      />
+    );
 
   const itensFiltrados = itens?.filter(
     ({ value, title }) =>
@@ -866,7 +901,52 @@ function MarketDataCard({
   );
 }
 
-function AssetTabs() {
+const infoRowsConfig = [
+  { label: "Nome", dataKey: "longName" },
+  {
+    label: "Sumário",
+    dataKey: "business_summary",
+    className: "whitespace-normal",
+  },
+  {
+    label: "Setor",
+    dataKey: "sector",
+    // 1. O formatter agora aceita 'unknown' e verifica o tipo internamente.
+    formatter: (value: unknown) => {
+      if (typeof value !== "string") return null;
+      return SECTOR_TRANSLATE[value as Setores];
+    },
+  },
+  { label: "Indústria", dataKey: "industry" },
+  { label: "Site", dataKey: "website" },
+  { label: "País", dataKey: "country" },
+  { label: "Bolsa", dataKey: "fullExchangeName" },
+  { label: "Num. Empregados", dataKey: "employees" },
+  {
+    label: "Maiores Acionistas",
+    dataKey: "companyOfficers",
+    // 2. O mesmo para o formatter de acionistas: aceita 'unknown' e verifica se é um array.
+    formatter: (value: unknown) => {
+      // Adicionamos uma verificação de tipo (type guard)
+      if (!Array.isArray(value)) {
+        return null; // Retorna nulo se não for um array, evitando o erro.
+      }
+
+      // Agora o TypeScript sabe que 'value' é um array e o código é seguro
+      return (value as CompanyOfficers[]).map((item) => (
+        <span key={item.name} className="flex items-center">
+          <Dot className="mr-1 h-4 w-4 shrink-0" /> {item.name}
+        </span>
+      ));
+    },
+  },
+];
+
+// O resto do seu componente AssetTabs permanece igual...
+export function AssetTabs({ ticker }: { ticker: string }) {
+  const { data, isLoading, isError } = useTickerInfo(ticker);
+  const isSkeleton = !data || isError || isLoading;
+
   return (
     <Tabs defaultValue="sobre" className="w-full gap-6">
       <TabsList className="border-border flex h-auto w-full justify-start rounded-none border-b-2 bg-transparent p-0">
@@ -889,30 +969,44 @@ function AssetTabs() {
           Histórico de Proventos
         </TabsTrigger>
       </TabsList>
-      <TabsContent value="sobre" className="flex flex-col gap-2">
-        <h3 className="text-foreground/80 text-lg font-semibold">
-          Sobre {response.company_name}
-        </h3>
-        <p className="text-muted-foreground whitespace-pre-line">
-          Apple é uma empresa multinacional norte-americana que tem o objetivo
-          de projetar e comercializar produtos eletrônicos de consumo, software
-          de computador e computadores pessoais. Os produtos de hardware mais
-          conhecidos da empresa incluem a linha de computadores Macintosh, iPod,
-          iPhone, iPad, Apple TV e o Apple Watch. Os softwares incluem o sistema
-          operacional macOS, o navegador de mídia iTunes, suíte de software
-          multimídia e criatividade iLife, suíte de software de produtividade
-          iWork, Aperture, um pacote de fotografia profissional, Final Cut
-          Studio, uma suíte de vídeo profissional, produtos de software, Logic
-          Studio, um conjunto de ferramentas de produção musical, navegador
-          Safari e o iOS, um sistema operacional móvel. Em agosto de 2010, a
-          empresa operava 301 lojas de varejo em dez países, e uma loja online
-          onde os produtos de hardware e software são vendidos. Para além das
-          Apple Store, a empresa possui as Apple Shops e as Apple Premium
-          Resellers. As primeiras são pequenas áreas exclusivas à marca,
-          devidamente sinalizadas e inseridas em operadores multimarca.
-        </p>
+
+      <TabsContent value="sobre" className={`${isError ? "blur-sm" : ""}`}>
+        {isSkeleton ? (
+          <Skeleton
+            animation={!isError}
+            className="h-[700px] w-full rounded-xl"
+          />
+        ) : (
+          <Table className="bg-card/60">
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-[180px]">Sobre</TableHead>
+                <TableHead></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {infoRowsConfig.map(
+                ({ label, dataKey, formatter, className }) => {
+                  const value = data?.[dataKey as keyof typeof data];
+                  if (!value || (Array.isArray(value) && value.length === 0)) {
+                    return null;
+                  }
+                  return (
+                    <TableRow key={label}>
+                      <TableCell className="flex font-medium">
+                        {label}
+                      </TableCell>
+                      <TableCell className={className}>
+                        {formatter ? formatter(value) : String(value)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                },
+              )}
+            </TableBody>
+          </Table>
+        )}
       </TabsContent>
-      <TabsContent value="password">Change your password here.</TabsContent>
     </Tabs>
   );
 }
