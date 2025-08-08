@@ -698,7 +698,7 @@ export function Asset() {
             fetchState={fetchState}
           />
           <MarketDataCard
-            title={"Débito e Solvência"}
+            title={"Risco e Opinião de Mercado"}
             itens={analystData}
             currency={data?.currency ?? ""}
             fetchState={fetchState}
