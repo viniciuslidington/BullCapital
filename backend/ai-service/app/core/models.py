@@ -119,6 +119,7 @@ class ChatRequest(BaseModel):
     conversation_id: Optional[uuid.UUID] = None
 
 class ChatResponse(BaseModel):
+    conversation_id: uuid.UUID
     messages: List[MessageRequest]
 
 class ConversationRequest(BaseModel):

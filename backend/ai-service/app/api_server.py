@@ -184,7 +184,7 @@ async def chat_with_agent(request: ChatRequest, db: Session = Depends(get_db)):
         # Processar com o agente
         agent_response = agent.chat(
             question=request.content,
-            conversation_history=messages_history  # Passar objetos Message completos
+            conversation_history=messages_history  # objetos completos
         )
         
         # Criar mensagem do bot
@@ -201,13 +201,16 @@ async def chat_with_agent(request: ChatRequest, db: Session = Depends(get_db)):
             Message.conversation_id == conversation.id
         ).order_by(Message.timestamp).all()
         
-        return ChatResponse(messages=[
-            MessageRequest(
-                sender=msg.sender,
-                content=msg.content,
-                timestamp=msg.timestamp.isoformat()
-            ) for msg in all_messages
-        ])
+        return ChatResponse(
+            conversation_id=conversation.id,
+            messages=[
+                MessageRequest(
+                    sender=msg.sender,
+                    content=msg.content,
+                    timestamp=msg.timestamp.isoformat()
+                ) for msg in all_messages
+            ]
+        )
         
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -227,19 +230,22 @@ async def get_conversation(conversation_id: uuid.UUID, db: Session = Depends(get
         ).first()
         
         if not conversation:
-            return ChatResponse(messages=[])
+            return ChatResponse(conversation_id=conversation_id, messages=[])
         
         messages = db.query(Message).filter(
             Message.conversation_id == conversation.id
         ).order_by(Message.timestamp).all()
         
-        return ChatResponse(messages=[
-            MessageRequest(
-                sender=msg.sender,
-                content=msg.content,
-                timestamp=msg.timestamp.isoformat()
-            ) for msg in messages
-        ])
+        return ChatResponse(
+            conversation_id=conversation.id,
+            messages=[
+                MessageRequest(
+                    sender=msg.sender,
+                    content=msg.content,
+                    timestamp=msg.timestamp.isoformat()
+                ) for msg in messages
+            ]
+        )
     except Exception as e:
         logger.error(f"Erro ao obter conversa: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao obter conversa: {str(e)}")
