@@ -36,7 +36,7 @@ empresa_para_ticker = {
 # Gera a lista de nomes conhecidos para o prompt
 nomes_validos = list(empresa_para_ticker.keys())
 
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+llm = ChatOpenAI(model="gpt-4o", temperature=0)
 
 
 def get_ticker(nome_empresa: str) -> str:
