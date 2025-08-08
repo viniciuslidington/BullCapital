@@ -18,6 +18,7 @@ export const STALE_TIME = {
   SEARCH: 300_000, // 5 minutos
   HISTORY: 86_400_000, // 24 horas
   COMPANY_INFO: 86_400_000, // 24 horas
+  USER_PROFILE: 900_000, // 15 minutos
 } as const;
 
 // Tempo máximo de cache
@@ -26,6 +27,7 @@ export const CACHE_TIME = {
   STATIC_DATA: 86_400_000, // 24 horas
   SEARCH: 600_000, // 10 minutos
   HISTORY: 604_800_000, // 7 dias
+  USER_PROFILE: 1_800_000, // 30 minutos
 } as const;
 
 // Configurações padrão para diferentes tipos de queries
@@ -77,6 +79,13 @@ export const QUERY_CONFIGS = {
     staleTime: 5000,
     gcTime: 10000,
     retry: 0,
+  },
+  userProfile: {
+    refetchInterval: false, // Os dados do perfil não mudam sozinhos
+    staleTime: STALE_TIME.USER_PROFILE,
+    gcTime: CACHE_TIME.USER_PROFILE,
+    refetchOnWindowFocus: true, // Importante para dados de sessão
+    retry: 2, // É um dado importante, vale a pena tentar de novo se falhar
   },
 } as const;
 
