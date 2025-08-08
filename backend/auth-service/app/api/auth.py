@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, Request
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from typing import List
@@ -178,7 +179,6 @@ def login_user(login_data: UserLogin, response: Response, db: Session = Depends(
         "cookie": cookie_info,
         "session": {
             "expires_in_minutes": settings.ACCESS_TOKEN_EXPIRE_MINUTES,
-            "expires_at": (user.created_at + access_token_expires).isoformat() if hasattr(user, 'created_at') else None
         }
     }
 \
@@ -213,7 +213,8 @@ def get_user_profile(current_user = Depends(require_auth)):
         data_nascimento=current_user.data_nascimento,
         email=current_user.email,
         created_at=current_user.created_at,
-        updated_at=current_user.updated_at
+        updated_at=current_user.updated_at,
+        profile_picture=current_user.profile_picture,
     )
 
 @router.put("/profile", response_model=UserResponse, summary="Atualizar perfil")
@@ -483,27 +484,20 @@ def google_oauth_callback(
         access_token = auth_service.create_access_token(
             data={"sub": user.email}, expires_delta=access_token_expires
         )
-        
+
+        # Cria a resposta de redirecionamento para o seu frontend
+        redirect_url = f"{settings.FRONTEND_URL}"
+        redirect_response = RedirectResponse(
+            url=redirect_url, 
+            status_code=status.HTTP_302_FOUND
+        )
+
         # Define cookie seguro usando função helper
-        cookie_info = set_auth_cookie(response, access_token, "google_oauth")
+        set_auth_cookie(response = redirect_response, access_token=access_token, auth_method="google_oauth")
+
         
-        return {
-            "message": "Autenticação com Google realizada com sucesso",
-            "user": UserResponse(
-                id=user.id,
-                nome_completo=user.nome_completo,
-                cpf=user.cpf,
-                data_nascimento=user.data_nascimento,
-                email=user.email,
-                created_at=user.created_at,
-                updated_at=user.updated_at
-            ),
-            "cookie": cookie_info,
-            "session": {
-                "expires_in_minutes": settings.ACCESS_TOKEN_EXPIRE_MINUTES,
-                "expires_at": (user.created_at + access_token_expires).isoformat() if hasattr(user, 'created_at') else None
-            }
-        }
+        
+        return redirect_response
         
     except Exception as e:
         raise HTTPException(
