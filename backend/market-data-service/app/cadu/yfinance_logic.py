@@ -249,12 +249,14 @@ def get_ticker_info_logic(symbol: str):
         
         summary = info.get("longBusinessSummary", "Resumo não disponível")
         translated_summary = GoogleTranslator(source='auto', target='pt').translate(summary)
+        industry = info.get("industry", "Resumo não disponível")
+        translated_industry = GoogleTranslator(source='auto', target='pt').translate(industry)
 
         return {
             "timestamp" : datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
-            "longName": info.get("longName"), "sector": info.get("sector"), "industry": info.get("industry"),
+            "longName": info.get("longName"), "sector": info.get("sector"), "industry": translated_industry,
             "employees": info.get("fullTimeEmployees"), "website": info.get("website"), "country": info.get("country"),
-            "business_summary": translated_summary, "fullExchangeName": info.get("fullExchangeName"),
+            "business_summary": translated_summary, "fullExchangeName": info.get("fullExchangeName"), "companyOfficers": info.get("companyOfficers"), 
             "type": info.get("quoteType"), "currency": info.get("currency"), "logo": logo,
             "priceAndVariation": {
                 "currentPrice": info.get("regularMarketPrice"), "previousClose": info.get("previousClose"), "regularMarketOpen": info.get("regularMarketOpen"),

@@ -7,7 +7,4 @@ export interface NewsItem {
   thumbnail?: string;
 }
 
-export interface NewsResponse {
-  symbol: string;
-  news: NewsItem[];
-}
+export type NewsResponse = NewsItem[];

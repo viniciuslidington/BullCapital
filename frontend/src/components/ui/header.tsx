@@ -18,6 +18,7 @@ import { Logo } from "./logo";
 import { useLogout, useUserProfile } from "@/hooks/queries/useauth";
 
 import { LoginModal } from "./loginmodal";
+import { ModeToggle } from "./mode-toggle";
 
 export function Header() {
   const { setTheme } = useTheme();
@@ -88,7 +89,10 @@ export function Header() {
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <LoginModal />
+          <span className="flex items-center gap-2">
+            <LoginModal />
+            <ModeToggle />
+          </span>
         )}
       </div>
     </header>
