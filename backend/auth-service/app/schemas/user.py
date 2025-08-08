@@ -3,6 +3,11 @@ from datetime import date, datetime
 from typing import Optional
 from utils.validators import validate_cpf, clean_cpf
 
+
+class LoginResponse(BaseModel):
+    message: str
+    email: str
+
 class UserBase(BaseModel):
     """
     Schema base para dados do usuário.

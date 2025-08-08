@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from typing import List
@@ -8,6 +8,7 @@ from core.security import require_auth
 from core.config import settings
 from schemas.user import UserCreate, UserLogin, UserResponse, TokenResponse, UserUpdate, GoogleAuthRequest
 from services.auth_service import auth_service
+from schemas.user import LoginResponse
 from services.google_oauth_service import google_oauth_service
 from crud.user import get_users, get_user_by_id, update_user, delete_user
 
@@ -41,58 +42,39 @@ def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
             detail=str(e)
         )
 
-@router.post("/login", response_model=TokenResponse, summary="Fazer login")
-def login_user(login_data: UserLogin, db: Session = Depends(get_db)):
-    """
-    Autentica um usuário e retorna um token JWT.
-    
-    Verifica as credenciais fornecidas (email e senha) e, se válidas,
-    retorna um token JWT que pode ser usado para acessar endpoints protegidos.
-    
-    Args:
-        login_data: Dados de login contendo email e senha
-        db: Sessão do banco de dados
-    
-    Returns:
-        TokenResponse: Objeto contendo o token JWT, tipo, tempo de expiração e dados do usuário
-        
-    Raises:
-        HTTPException: 401 se as credenciais forem inválidas
-        
-    Example:
-        ```
-        POST /api/v1/auth/login
-        {
-            "email": "usuario@exemplo.com",
-            "senha": "minhasenha123"
-        }
-        ```
-    """
-    user = auth_service.authenticate_user(db, login_data)
+@router.post("/login", response_model=LoginResponse, status_code=status.HTTP_200_OK)
+def login(
+    request: UserLogin, # Expect email/password in the request body
+    response: Response, # Inject Response object to set cookies
+    db: Session = Depends(get_db) # Inject database session
+):
+    # 1. Authenticate the user using your existing service logic
+    user = auth_service.authenticate_user(db, request)
     if not user:
+        # Raise 401 if authentication fails
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email ou senha incorretos",
-            headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = auth_service.create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
+
+    # 2. Create the JWT access token using your existing service logic
+    access_token = auth_service.create_access_token(data={"sub": user.email})
+
+    # 3. ✅ Set the JWT in a secure HTTP-only cookie
+    response.set_cookie(
+        key="access_token",           # Cookie name
+        value=access_token,           # The JWT value
+        httponly=True,                # Prevents XSS attacks (inaccessible to JS)
+        secure=False,                 # Set to True in production (requires HTTPS)
+        samesite="Lax",               # Helps mitigate CSRF (Lax is a good default)
+        max_age=3600,                 # Cookie expiry in seconds (match token expiry)
+        path="/"                      # Cookie is sent to all paths on the domain
     )
-    
-    return TokenResponse(
-        access_token=access_token,
-        token_type="bearer",
-        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,  # em segundos
-        user=UserResponse(
-            id=user.id,
-            nome_completo=user.nome_completo,
-            data_nascimento=user.data_nascimento,
-            email=user.email,
-            created_at=user.created_at,
-            updated_at=user.updated_at
-        )
+
+    # 4. ✅ Return a simple success message (token is in the cookie, not the body)
+    return LoginResponse(
+        message="Login realizado com sucesso",
+        email=user.email # Include non-sensitive info if needed
     )
 
 @router.get("/profile", response_model=UserResponse, summary="Obter perfil")
