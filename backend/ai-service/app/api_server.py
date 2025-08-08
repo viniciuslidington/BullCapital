@@ -203,6 +203,7 @@ async def chat_with_agent(request: ChatRequest, db: Session = Depends(get_db)):
         
         return ChatResponse(
             conversation_id=conversation.id,
+            user_id=conversation.user_id,
             messages=[
                 MessageRequest(
                     sender=msg.sender,
@@ -230,7 +231,7 @@ async def get_conversation(conversation_id: uuid.UUID, db: Session = Depends(get
         ).first()
         
         if not conversation:
-            return ChatResponse(conversation_id=conversation_id, messages=[])
+            return ChatResponse(conversation_id=conversation_id, user_id=None, messages=[])
         
         messages = db.query(Message).filter(
             Message.conversation_id == conversation.id
@@ -238,6 +239,7 @@ async def get_conversation(conversation_id: uuid.UUID, db: Session = Depends(get
         
         return ChatResponse(
             conversation_id=conversation.id,
+            user_id=conversation.user_id,
             messages=[
                 MessageRequest(
                     sender=msg.sender,
