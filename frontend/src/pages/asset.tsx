@@ -6,7 +6,7 @@ import {
   formatNumber,
   formatPrice,
 } from "@/lib/utils";
-import { ArrowDown, ArrowUp, Dot } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronUp, Dot } from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TabsContent } from "@radix-ui/react-tabs";
@@ -16,7 +16,6 @@ import { useTickerInfo } from "@/hooks/queries/useticker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDataCard } from "@/hooks/utils/usedatacard";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 
 const response = {
   symbol: "AAPL",
@@ -834,17 +833,18 @@ function MarketDataCard({
 
   return (
     <Card className="bg-card/60 w-[300px] flex-none gap-0 p-0">
-      <CardHeader className="flex items-center justify-between py-5">
+      <CardHeader className="flex items-center justify-between py-3">
         <CardTitle className="text-base">{title}</CardTitle>
-        <Button
-          variant="outline"
-          size="icon"
+        <ChevronUp
           onClick={() => setIsOpen(!isOpen)}
-        >
-          Open
-        </Button>
+          className={`${isOpen ? "" : "rotate-180"} size-6 cursor-pointer transition-transform duration-300 ease-out`}
+        />
       </CardHeader>
-      {isOpen && (
+      <div
+        className={`overflow-hidden transition-all delay-0 duration-500 ease-in-out ${
+          isOpen ? "max-h-[1000px]" : "max-h-0"
+        }`}
+      >
         <ul className="divide-border border-border flex flex-col divide-y border-t-1 p-5 text-xs">
           {itensFiltrados.map(({ title, value, unit }) => (
             <li
@@ -861,7 +861,7 @@ function MarketDataCard({
             </li>
           ))}
         </ul>
-      )}
+      </div>
     </Card>
   );
 }
