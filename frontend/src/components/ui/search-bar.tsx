@@ -100,12 +100,14 @@ function ResultLi({ item }: { item: SearchResult }) {
         <Globe className="text-primary h-8 w-8 shrink-0" />
       )}
       <div className="flex w-full flex-col gap-1">
-        <span className="flex justify-between">
-          <p className="text-md font-semibold">
+        <span className="flex items-center justify-between">
+          <p className="text-sm font-semibold">
             {item.symbol.replace(".SA", "")}
           </p>
 
-          <p>{item.exchange}</p>
+          <p className="text-xs">
+            {item.exchange} - {item.type}
+          </p>
         </span>
         <span className="flex max-w-[206px] items-center justify-between gap-4 overflow-hidden">
           <p className="text-muted-foreground min-w-0 flex-1 truncate text-xs">
