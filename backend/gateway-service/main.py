@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 import uvicorn
-from routers import gateway_market_data, gateway_auth
+from routers import gateway_market_data, gateway_auth, gateway_ai
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="API Gateway Service")
@@ -13,6 +13,7 @@ async def read_root():
 # O prefixo '/market-data' é a URL que os CLIENTES EXTERNOS verão
 app.include_router(gateway_market_data.router, prefix="/market-data", tags=["Market Data Gateway"])
 app.include_router(gateway_auth.router, prefix="/auth", tags=["Auth Gateway"])
+app.include_router(gateway_ai.router, prefix="/ai", tags=["AI Gateway"])
 
 app.add_middleware(
     CORSMiddleware,
