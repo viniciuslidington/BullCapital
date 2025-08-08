@@ -4,7 +4,7 @@ import { api } from "./api";
 export const SearchService = {
   search: async (query: string, limit = 10): Promise<SearchResponse> => {
     const res = await api.get("/search", {
-      params: { q: query, limit },
+      params: { query: query, limit },
     });
     return res.data;
   },

@@ -74,7 +74,7 @@ export function AssetChart() {
       <p className="text-muted-foreground dark:text-foreground flex h-9 items-center font-semibold">
         COMPARAR ATIVOS
       </p>
-      <Card className="pt-0">
+      <Card className="bg-card/60 pt-0">
         <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
           <div className="grid flex-1 gap-1">
             <IndexTitle

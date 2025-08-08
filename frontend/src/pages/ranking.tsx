@@ -1,16 +1,13 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { CategoriasType } from "@/types/assets";
 import {
-  Building2,
+  BadgeDollarSign,
   ChartNoAxesCombined,
-  Coins,
-  Earth,
-  Layers,
+  Repeat,
+  TrendingDown,
+  TrendingUp,
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { categoriaData } from "@/data/categoria-data";
 import { PathLink } from "@/components/ui/path-link";
-import { QuestionMark } from "@/components/ui/question-mark";
 import {
   Table,
   TableBody,
@@ -37,25 +34,15 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useAddParams } from "@/hooks/utils/useaddparams";
+import type { Setores } from "@/types/category";
+import { SECTOR_OPTIONS } from "@/data/sector-data";
 
 export function Ranking() {
-  const [searchParams] = useSearchParams();
-  const categoria =
-    (searchParams.get("categoria") as CategoriasType) || "acoes";
-
   return (
     <div className="flex h-auto w-full max-w-[1180px] flex-col gap-8 p-8">
       <PathLink />
-      <h1 className="text-foreground/80 flex items-center gap-2 text-3xl font-semibold">
-        <ChartNoAxesCombined className="h-8 w-8" /> Ranking de{" "}
-        {categoriaData[categoria].shortTitle}
-        <span className="pt-1">
-          <QuestionMark
-            dataIndex={categoria}
-            dataType="categoryDescription"
-            delay={50}
-          />
-        </span>
+      <h1 className="text-foreground/80 -mb-4 flex items-center gap-2 text-3xl font-semibold">
+        <ChartNoAxesCombined className="h-8 w-8" /> Ranking de Ativos
       </h1>
       <div className="-mb-4 flex justify-between">
         <RankingTabs />
@@ -72,37 +59,37 @@ function RankingTabs() {
   const addParams = useAddParams();
   return (
     <Tabs
-      defaultValue={searchParams.get("categoria") || "acoes"}
+      defaultValue={searchParams.get("categoria") || "alta_do_dia"}
       className="w-full"
       onValueChange={(value) => addParams("categoria", value)}
     >
       <TabsList className="gap-3 bg-transparent">
         <TabsTrigger
-          value="acoes"
-          className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground border-border bg-card hover:bg-muted data-[state=active]:border-primary cursor-pointer border p-4 shadow-sm transition-all duration-150"
+          value="alta_do_dia"
+          className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground border-border bg-card/60 hover:bg-muted data-[state=active]:border-primary cursor-pointer gap-2 border px-3 py-4 shadow-sm transition-all duration-150"
         >
-          <Coins /> Ações
+          <TrendingUp /> Maiores Altas
         </TabsTrigger>
         <TabsTrigger
-          value="fiis"
-          className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground border-border bg-card hover:bg-muted data-[state=active]:border-primary cursor-pointer border p-4 shadow-sm transition-all duration-150"
+          value="baixa_do_dia"
+          className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground border-border bg-card/60 hover:bg-muted data-[state=active]:border-primary cursor-pointer gap-2 border px-3 py-4 shadow-sm transition-all duration-150"
         >
-          <Building2 />
-          FIIs
+          <TrendingDown />
+          Maiores Baixas
         </TabsTrigger>
         <TabsTrigger
-          value="etfs"
-          className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground border-border bg-card hover:bg-muted data-[state=active]:border-primary cursor-pointer border p-4 shadow-sm transition-all duration-150"
+          value="mais_negociadas"
+          className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground border-border bg-card/60 hover:bg-muted data-[state=active]:border-primary cursor-pointer gap-2 border px-3 py-4 shadow-sm transition-all duration-150"
         >
-          <Layers />
-          ETFs
+          <Repeat />
+          Mais Negociadas
         </TabsTrigger>
         <TabsTrigger
-          value="bdrs"
-          className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground border-border bg-card hover:bg-muted data-[state=active]:border-primary cursor-pointer border p-4 shadow-sm transition-all duration-150"
+          value="valor_dividendos"
+          className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground border-border bg-card/60 hover:bg-muted data-[state=active]:border-primary cursor-pointer gap-2 border px-3 py-4 shadow-sm transition-all duration-150"
         >
-          <Earth />
-          BDRs
+          <BadgeDollarSign />
+          Maiores Dividendos
         </TabsTrigger>
       </TabsList>
       <TabsContent value="account">
@@ -116,29 +103,30 @@ function RankingTabs() {
 function RankingFilterSelect() {
   const [searchParams] = useSearchParams();
   const addParams = useAddParams();
-  const filtro = (searchParams.get("filtro") as CategoriasType) || "altas";
+  const Setor = (searchParams.get("setor") as Setores) || "all";
 
   return (
     <Select
-      value={filtro}
-      onValueChange={(value) => addParams("filtro", value)}
+      value={Setor}
+      onValueChange={(value) =>
+        value === "all" ? addParams("setor", null) : addParams("setor", value)
+      }
     >
-      <SelectTrigger className="bg-card w-[160px] rounded-lg sm:ml-auto sm:flex">
-        <SelectValue placeholder="Selecione Filtro" />
+      <SelectTrigger className="bg-card rounded-lg sm:ml-auto sm:flex">
+        <SelectValue placeholder="Selecione Setor" />
       </SelectTrigger>
       <SelectContent className="rounded-xl" align="end">
-        <SelectItem value="altas" className="rounded-lg">
-          Maiores Altas
-        </SelectItem>
-        <SelectItem value="baixas" className="rounded-lg">
-          Maiores Baixas
-        </SelectItem>
-        <SelectItem value="ativas" className="rounded-lg">
-          Mais Ativas
-        </SelectItem>
-        <SelectItem value="dividendos" className="rounded-lg">
-          Maiores Dividendos
-        </SelectItem>
+        <SelectItem value="all">Todos Setores</SelectItem>
+        {SECTOR_OPTIONS.map(({ value, label, icon }) => (
+          <SelectItem
+            key={value}
+            value={value}
+            className="flex items-center gap-2 rounded-lg"
+          >
+            {icon}
+            {label}
+          </SelectItem>
+        ))}
       </SelectContent>
     </Select>
   );
