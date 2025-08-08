@@ -119,7 +119,7 @@ services:
       # Add other AI service specific env vars here
     restart: unless-stopped
     # Adjust command based on how your AI service's entrypoint is defined
-    command: python3 -m app.main # Or uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+    command: uvicorn app.api_server:app --host 0.0.0.0 --port 8001 --reload
     depends_on:
       main-db:
         condition: service_healthy # Wait for the main DB

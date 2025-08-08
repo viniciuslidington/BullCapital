@@ -78,7 +78,7 @@ class FinancialAgent:
             role="6 métodos de valuation",
             model=OpenAIChat(id="gpt-4o", temperature=0.3),
             tools=[calcular_valuation],
-            instructions=[read_prompt("valuation_prompt.md")],
+            instructions=[read_prompt("valuation_prompt.txt")],
         )
 
         self.ag_mult = Agent(
@@ -86,7 +86,7 @@ class FinancialAgent:
             role="Calcula múltiplos",
             model=OpenAIChat(id="gpt-4o"),
             tools=[calcular_multiplos],
-            instructions=[read_prompt("multiplos_prompt.md")],
+            instructions=[read_prompt("multiplos_prompt.txt")],
         )
 
         self.ag_api_json = Agent(
