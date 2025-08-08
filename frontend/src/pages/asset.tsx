@@ -724,7 +724,7 @@ function HeaderAsset({
   };
 }) {
   const { isLoading, isError } = fetchState;
-  if (isLoading || response === null || isError)
+  if (isLoading || response === null || response === undefined || isError)
     return (
       <div
         className={`flex h-[72px] flex-col justify-between gap-3 ${isError ? "blur-sm" : ""}`}
@@ -750,7 +750,8 @@ function HeaderAsset({
           <p className="text-foreground/80 text-3xl font-medium">{`(${tickerSymbol})`}</p>
         </span>
         <p className="text-muted-foreground flex items-center pl-1 text-base">
-          {response.type ?? ""} <Dot />
+          {response.type ?? ""}
+          {response.currency !== "" && <Dot />}
           {response.currency ?? 0}
           <Dot />
           {response.fullExchangeName ?? ""}

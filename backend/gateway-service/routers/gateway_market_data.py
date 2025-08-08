@@ -126,7 +126,8 @@ async def get_ticker_info(symbol: str):
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(
-                f"{MARKET_DATA_SERVICE_URL}/api/v1/market-data/{symbol}/info"
+                f"{MARKET_DATA_SERVICE_URL}/api/v1/market-data/{symbol}/info",
+                timeout=30
             )
             response.raise_for_status()
             return response.json()
