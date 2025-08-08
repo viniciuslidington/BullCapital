@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 import yfinance as yf
 from yfinance import EquityQuery
@@ -118,22 +118,6 @@ def safe_ticker_operation(symbol: str, operation):
     try:
         logger.debug(f"Criando objeto yf.Ticker para '{symbol}'")
         ticker = yf.Ticker(symbol.upper())
-
-        # --- Bloco de Validação Detalhado ---
-        try:
-            logger.debug(f"Tentando validar o ticker '{symbol}' com history(period='1d')")
-            history_df = ticker.history(period="1d")
-
-            if history_df.empty:
-                logger.warning(f"Validação falhou para '{symbol}': history() retornou um DataFrame vazio.")
-                raise ValueError(f"Não foi possível obter dados para o ticker '{symbol}'. Ele pode ser inválido ou não estar mais listado.")
-
-            logger.debug(f"Ticker '{symbol}' validado com sucesso. History retornou {len(history_df)} linha(s).")
-
-        except Exception as validation_error:
-            logger.error(f"Erro específico durante a validação de history() para '{symbol}': {validation_error}", exc_info=True)
-            raise ValueError(f"Falha na validação do ticker '{symbol}': {validation_error}")
-        # --- Fim do Bloco de Validação ---
 
         logger.debug(f"Executando a operação solicitada para o ticker '{symbol}'")
         result = operation(ticker)
@@ -267,15 +251,16 @@ def get_ticker_info_logic(symbol: str):
         translated_summary = GoogleTranslator(source='auto', target='pt').translate(summary)
 
         return {
+            "timestamp" : datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
             "longName": info.get("longName"), "sector": info.get("sector"), "industry": info.get("industry"),
             "employees": info.get("fullTimeEmployees"), "website": info.get("website"), "country": info.get("country"),
             "business_summary": translated_summary, "fullExchangeName": info.get("fullExchangeName"),
             "type": info.get("quoteType"), "currency": info.get("currency"), "logo": logo,
             "priceAndVariation": {
-                "currentPrice": info.get("currentPrice"), "previousClose": info.get("previousClose"),
-                "dayLow": info.get("dayLow"), "dayHigh": info.get("dayHigh"), "fiftyTwoWeekLow": info.get("fiftyTwoWeekLow"),
-                "fiftyTwoWeekHigh": info.get("fiftyTwoWeekHigh"), "fiftyTwoWeekChangePercent": info.get("fiftyTwoWeekChangePercent"),
-                "regularMarketChangePercent": info.get("regularMarketChangePercent"), "fiftyDayAverage": info.get("fiftyDayAverage"),
+                "currentPrice": info.get("regularMarketPrice"), "previousClose": info.get("previousClose"), "regularMarketOpen": info.get("regularMarketOpen"),
+                "dayLow": info.get("dayLow"), "dayHigh": info.get("dayHigh"), "regularMarketDayRange": info.get("regularMarketDayRange"),
+                "fiftyTwoWeekRange": info.get("fiftyTwoWeekRange"), "fiftyTwoWeekChangePercent": info.get("fiftyTwoWeekChangePercent"),
+                "regularMarketChangePercent": info.get("regularMarketChangePercent"), "regularMarketChange":info.get("regularMarketChange"), "fiftyDayAverage": info.get("fiftyDayAverage"),
                 "twoHundredDayAverage": info.get("twoHundredDayAverage")
             },
             "volumeAndLiquidity": {
@@ -337,10 +322,12 @@ def search_tickers_logic(q: str, limit: int):
         
         formatted_results = []
         for item in quotes:
-            logo = f"https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url={item.get('website')}" if item.get("website") else None
+            info = get_ticker_info_logic(str(item.get("symbol", "")))
+            logo = info["logo"]
+            exchange = info["fullExchangeName"]
             result = {
                 "symbol": str(item.get("symbol", "")), "name": str(item.get("longname", "") or item.get("shortname", "")),
-                "exchange": str(item.get("exchange", "")), "type": str(item.get("quoteType", "")),
+                "exchange": exchange, "type": str(item.get("quoteType", "")),
                 "score": float(item.get("score", 0) or 0), "sector": str(item.get("sector", "")),
                 "industry": str(item.get("industry", "")), "logo": logo
             }

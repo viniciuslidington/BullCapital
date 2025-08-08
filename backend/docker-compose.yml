@@ -1,4 +1,4 @@
-version: '3.12'
+version: '3.12' # Or 3.8, which is more common
 
 services:
   db:
@@ -14,8 +14,13 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
-      - dev-network
-
+      - dev-network # Assign to network
+    # Add healthcheck so auth-service can wait for it
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d bullcapital"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   auth-service:
     build:
@@ -25,11 +30,33 @@ services:
       - "8003:8003"
     environment:
       - PYTHONUNBUFFERED=1
+      # --- Database Connection Env Vars ---
+      - USER=postgres
+      - PASSWORD=postgres
+      - HOST=db                     # Service name of the Postgres container
+      - PORT=5432                   # Standard Postgres port
+      - DBNAME=bullcapital
+      - USE_SSL=false               # Disable SSL for local Postgres connection
+      # --- JWT & App Settings ---
+      # Replace 'your-super-secret-jwt-key-change-in-prod' with a strong secret key,
+      # especially for production.
+      - SECRET_KEY=your-super-secret-jwt-key-change-in-prod
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - DEBUG_SQL=false
+      # Ensure these origins match where your frontend is running
+      - ALLOWED_ORIGINS=["http://localhost:3000","http://localhost:8000"]
     restart: unless-stopped
-    command: >
-      sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8003 --reload"
+    # Use the correct module path for your FastAPI app
+    # Adjust 'app.app:app' if your main file or app instance is named differently
+    # Using 'sh -c' is fine, but direct command is often cleaner if no complex shell logic is needed.
+    command: uvicorn app:app --host 0.0.0.0 --port 8003 --reload
     depends_on:
-      - db
+      db:
+        # Wait for the database to be ready (requires healthcheck on db service)
+        condition: service_healthy
+    networks:
+      - dev-network # Assign to network
 
   market-data-service:
     build:
@@ -39,33 +66,11 @@ services:
       - "8002:8002"
     environment:
       - PYTHONUNBUFFERED=1
+      # Add other necessary env vars for market-data-service if needed
     restart: unless-stopped
-    command: >
-      sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload"
-
-
-  ai-service:
-    build:
-      context: ./ai-service
-    container_name: ai-service
-    ports:
-      - "8001:8001"
-    environment:
-      - PYTHONUNBUFFERED=1
-      - PYTHONPATH=/app
-      - user=postgres
-      - password=postgres
-      - host=db
-      - port=5432
-      - dbname=bullcapital
-    restart: unless-stopped
-    command: python3 -m app.main
-    depends_on:
-      - db
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload
     networks:
-      - dev-network
-
-
+      - dev-network # Assign to network
 
   gateway-service:
     build:
@@ -75,26 +80,16 @@ services:
       - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
+      # Tell the gateway where the auth service is located within the Docker network
+      - AUTH_SERVICE_URL=http://auth-service:8003
+      # Add other necessary env vars for gateway-service if needed (e.g., MARKET_DATA_SERVICE_URL)
     restart: unless-stopped
-    command: >
-      sh -c "uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
       - auth-service
       - market-data-service
-
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: pgadmin
-    restart: unless-stopped
-    ports:
-      - "16543:80"
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@bullcapital.com
-      PGADMIN_DEFAULT_PASSWORD: admin123
-    depends_on:
-      - db
     networks:
-      - dev-network
+      - dev-network # Assign to network
 
 volumes:
   pgdata:

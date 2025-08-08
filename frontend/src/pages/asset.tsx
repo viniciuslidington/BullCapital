@@ -6,10 +6,16 @@ import {
   formatNumber,
   formatPrice,
 } from "@/lib/utils";
-import { ArrowDown, ArrowUp, Dot } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronUp, Dot } from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TabsContent } from "@radix-ui/react-tabs";
+import { useLocation } from "react-router-dom";
+import type { TickerBasicInfoResponse } from "@/types/ticker";
+import { useTickerInfo } from "@/hooks/queries/useticker";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useDataCard } from "@/hooks/utils/usedatacard";
+import { useState } from "react";
 
 const response = {
   symbol: "AAPL",
@@ -614,158 +620,248 @@ const chartData = [
 ];
 
 export function Asset() {
+  const tickerSymbol = useLocation().pathname.replace("/", "");
+  const { data, isError, isLoading, isFetching } = useTickerInfo(tickerSymbol);
+  const fetchState = { isError, isLoading, isFetching };
+
+  const {
+    marketData,
+    valuation,
+    rentability,
+    eficiencyAndCashflow,
+    debtAndSolvency,
+    dividends,
+    shareholdingAndProfit,
+    analystData,
+  } = useDataCard(tickerSymbol);
+
   return (
     <div className="flex h-auto w-full max-w-[1180px] flex-col gap-8 p-8">
       <PathLink />
-      <HeaderAsset />
+      <HeaderAsset
+        response={data as TickerBasicInfoResponse}
+        fetchState={fetchState}
+        tickerSymbol={tickerSymbol}
+      />
       <div className="flex items-start gap-8">
         <div className="flex flex-col gap-8">
           <MarketChart
-            title={response.symbol}
+            title={tickerSymbol}
             description="Variação de preço"
             chartData={chartData}
           />
           <AssetTabs />
         </div>
         <div className="flex flex-col gap-4">
-          <MarketDataCard /> <FundamentalsDataCard />
+          <MarketDataCard
+            title={"Dados de Mercado"}
+            itens={marketData}
+            currency={data?.currency ?? "USD"}
+            fetchState={fetchState}
+            openByDefault
+          />
+          <MarketDataCard
+            title={"Indicadores de Valuation"}
+            itens={valuation}
+            currency={data?.currency ?? "USD"}
+            fetchState={fetchState}
+            openByDefault
+          />
+          <MarketDataCard
+            title={"Dividendos"}
+            itens={dividends}
+            currency={data?.currency ?? ""}
+            fetchState={fetchState}
+          />
+          <MarketDataCard
+            title={"Participação e Lucro"}
+            itens={shareholdingAndProfit}
+            currency={data?.currency ?? ""}
+            fetchState={fetchState}
+          />
+          <MarketDataCard
+            title={"Rentabilidade"}
+            itens={rentability}
+            currency={data?.currency ?? ""}
+            fetchState={fetchState}
+          />
+          <MarketDataCard
+            title={"Eficiência e Fluxo de Caixa"}
+            itens={eficiencyAndCashflow}
+            currency={data?.currency ?? ""}
+            fetchState={fetchState}
+          />
+          <MarketDataCard
+            title={"Débito e Solvência"}
+            itens={debtAndSolvency}
+            currency={data?.currency ?? ""}
+            fetchState={fetchState}
+          />
+          <MarketDataCard
+            title={"Risco e Opinião de Mercado"}
+            itens={analystData}
+            currency={data?.currency ?? ""}
+            fetchState={fetchState}
+          />
         </div>
       </div>
     </div>
   );
 }
 
-function HeaderAsset() {
+function HeaderAsset({
+  response,
+  fetchState,
+  tickerSymbol,
+}: {
+  response: TickerBasicInfoResponse;
+  tickerSymbol: string;
+  fetchState: {
+    isLoading: boolean;
+    isFetching: boolean;
+    isError: boolean;
+  };
+}) {
+  const { isLoading, isError } = fetchState;
+  if (isLoading || response === null || response === undefined || isError)
+    return (
+      <div
+        className={`flex h-[72px] flex-col justify-between gap-3 ${isError ? "blur-sm" : ""}`}
+      >
+        <div className="flex justify-between">
+          <Skeleton animation={!isError} className="h-8 w-[320px]" />
+          <Skeleton animation={!isError} className="h-9 w-[345px]" />
+        </div>
+        <div className="flex justify-between">
+          <Skeleton animation={!isError} className="h-6 w-[180px]" />
+          <Skeleton animation={!isError} className="h-6 w-[170px]" />
+        </div>
+      </div>
+    );
+
   return (
-    <div className="flex justify-between">
-      <div className="flex flex-col gap-3">
-        <h1 className="text-foreground/80 text-3xl font-medium">{`${response.company_name} (${response.symbol})`}</h1>
+    <div className="flex max-w-full justify-between gap-10">
+      <div className="flex w-full min-w-0 flex-grow flex-col gap-3">
+        <span className="flex items-center gap-1">
+          <h1 className="text-foreground/80 truncate text-3xl font-medium">
+            {response.longName ?? ""}
+          </h1>{" "}
+          <p className="text-foreground/80 text-3xl font-medium">{`(${tickerSymbol})`}</p>
+        </span>
         <p className="text-muted-foreground flex items-center pl-1 text-base">
-          {"Ação"} <Dot />
-          {response.currency}
+          {response.type ?? ""}
+          {response.currency !== "" && <Dot />}
+          {response.currency ?? 0}
           <Dot />
-          {"NASDAQ"}
+          {response.fullExchangeName ?? ""}
         </p>
       </div>
-      <div className="flex flex-col items-end gap-2">
+      <div className="flex flex-shrink-0 flex-col items-end gap-2">
         <div className="flex gap-3">
-          <p className="text-foreground/80 text-4xl font-semibold">
-            {formatPrice(response.current_price, response.currency)}
+          <p
+            className={`text-foreground/80 text-4xl font-semibold ${fetchState.isFetching ? "opacity-80" : ""}`}
+          >
+            {formatPrice(
+              response.priceAndVariation.currentPrice ?? 0,
+              response.currency ?? 0,
+            )}
           </p>
           <p
-            className={`${response.change_percent > 0 ? "bg-green-card" : "bg-red-card"} text-primary-foreground flex items-center rounded-[8px] px-2 text-lg font-medium`}
+            className={`${(response.priceAndVariation.regularMarketChangePercent ?? 0) > 0 ? "bg-green-card" : "bg-red-card"} text-primary-foreground flex items-center rounded-[8px] px-2 text-lg font-medium ${fetchState.isFetching ? "opacity-80" : ""}`}
           >
-            {response.change_percent > 0 ? <ArrowUp /> : <ArrowDown />}
-            {response.change_percent}%
+            {(response.priceAndVariation.regularMarketChangePercent ?? 0) >
+            0 ? (
+              <ArrowUp />
+            ) : (
+              <ArrowDown />
+            )}
+            {response.priceAndVariation.regularMarketChangePercent.toFixed(2) ??
+              0}
+            %
           </p>
           <p
-            className={`${response.change_percent > 0 ? "text-green-card" : "text-red-card"} flex h-full items-center text-lg font-medium`}
+            className={`${(response.priceAndVariation.regularMarketChangePercent ?? 0) > 0 ? "text-green-card" : "text-red-card"} flex h-full items-center text-lg font-medium ${fetchState.isFetching ? "opacity-80" : ""}`}
           >
-            {formatChange(response.change, false)} Hoje
+            {formatChange(
+              response.priceAndVariation.regularMarketChange ?? 0,
+              false,
+            )}{" "}
+            Hoje
           </p>
         </div>
-        <p className="text-muted-foreground text-base">
-          {formatDate(response.last_updated)}
+        <p
+          className={`text-muted-foreground text-base ${fetchState.isFetching ? "opacity-80" : ""}`}
+        >
+          {formatDate(response.timestamp ?? "")}
         </p>
       </div>
     </div>
   );
 }
 
-function MarketDataCard() {
-  return (
-    <Card className="w-[300px] flex-none gap-0 p-0">
-      <CardHeader className="border-border flex items-center border-b-1 py-5">
-        <CardTitle className="text-base">Dados de Mercado</CardTitle>
-      </CardHeader>
-      <ul className="flex flex-col p-5 text-xs">
-        <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
-          Abertura{" "}
-          <span className="text-foreground text-xs font-medium">
-            {formatPrice(234.5, "USD")}
-          </span>
-        </li>
-        <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
-          Ultimo Fechamento
-          <span className="text-foreground text-xs font-medium">
-            {formatPrice(response.previous_close, "USD")}
-          </span>
-        </li>
-        <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
-          {"Variação de hoje(%)"}
-          <span
-            className={`${response.change_percent > 0 ? "text-green-card" : "text-red-card"} text-xs font-medium`}
-          >
-            {formatChange(response.change_percent)}
-          </span>
-        </li>
-        <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
-          Variações de hoje
-          <span className="text-foreground text-xs font-medium">
-            {`${formatPrice(231.8, "USD")} - ${formatPrice(239.5, "USD")}`}
-          </span>
-        </li>
-        <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
-          Variações do ano
-          <span className="text-foreground text-xs font-medium">
-            {`${formatPrice(response.fundamentals.fifty_two_week_low, "USD")} - ${formatPrice(response.fundamentals.fifty_two_week_high, "USD")}`}
-          </span>
-        </li>
-        <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
-          Volume
-          <span className="text-foreground text-xs font-medium">
-            {formatNumber(response.volume)}
-          </span>
-        </li>
-        <li className="text-muted-foreground flex items-center justify-between py-4">
-          Volume médio
-          <span className="text-foreground text-xs font-medium">
-            {formatNumber(response.avg_volume)}
-          </span>
-        </li>
-      </ul>
-    </Card>
-  );
-}
+function MarketDataCard({
+  itens,
+  currency,
+  fetchState,
+  title,
+  openByDefault = false,
+}: {
+  itens: { title: string; value: string | number | undefined; unit: string }[];
+  currency: string;
+  fetchState: {
+    isLoading: boolean;
+    isFetching: boolean;
+    isError: boolean;
+  };
+  title: string;
+  openByDefault?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(openByDefault);
+  if (
+    fetchState.isLoading ||
+    itens === null ||
+    itens === undefined ||
+    fetchState.isError
+  )
+    return <Skeleton className="h-[450px] w-[300px] rounded-xl" />;
 
-function FundamentalsDataCard() {
+  const itensFiltrados = itens?.filter(
+    ({ value, title }) =>
+      value !== null && (value !== 0 || title === "Variação de hoje(%)"),
+  );
+  if (itensFiltrados.length === 0) return;
+
   return (
-    <Card className="w-[300px] flex-none gap-0 p-0">
-      <CardHeader className="border-border flex items-center border-b-1 py-5">
-        <CardTitle className="text-base">Indicadores Fundamentalista</CardTitle>
+    <Card className="bg-card/60 w-[300px] flex-none gap-0 p-0">
+      <CardHeader className="flex items-center justify-between py-3">
+        <CardTitle className="text-base">{title}</CardTitle>
+        <ChevronUp
+          onClick={() => setIsOpen(!isOpen)}
+          className={`${isOpen ? "" : "rotate-180"} size-6 cursor-pointer transition-transform duration-300 ease-out`}
+        />
       </CardHeader>
-      <ul className="flex flex-col p-5 text-xs">
-        <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
-          Valor de Mercado{" "}
-          <span className="text-foreground text-xs font-medium">
-            {formatNumber(response.fundamentals.market_cap)}
-          </span>
-        </li>
-        <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
-          Dividend Yield
-          <span className="text-foreground text-xs font-medium">
-            {`${response.fundamentals.dividend_yield.toLocaleString("pt-BR")}%`}
-          </span>
-        </li>
-        <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
-          Índice P/L
-          <span className="text-foreground text-xs font-medium">
-            {`${response.fundamentals.pe_ratio.toLocaleString("pt-BR")}%`}
-          </span>
-        </li>
-        <li className="border-border text-muted-foreground flex items-center justify-between border-b py-4">
-          ROE
-          <span className="text-foreground text-xs font-medium">
-            {`${response.fundamentals.roe.toLocaleString("pt-BR")}%`}
-          </span>
-        </li>
-        <li className="text-muted-foreground flex items-center justify-between py-4">
-          Margem Líquida
-          <span className="text-foreground text-xs font-medium">
-            {formatNumber(response.fundamentals.market_cap)}
-          </span>
-        </li>
-      </ul>
+      <div
+        className={`overflow-hidden transition-all delay-0 duration-500 ease-in-out ${
+          isOpen ? "max-h-[1000px]" : "max-h-0"
+        }`}
+      >
+        <ul className="divide-border border-border flex flex-col divide-y border-t-1 p-5 text-xs">
+          {itensFiltrados.map(({ title, value, unit }) => (
+            <li
+              key={title}
+              className="text-muted-foreground flex items-center justify-between py-4"
+            >
+              {title}
+              <span className="text-foreground text-xs font-medium">
+                {unit === "currency" && formatPrice(value as number, currency)}
+                {unit === "largeNumber" && formatNumber(value as number)}
+                {unit === "percent" && formatChange(value as number)}
+                {unit === "string" && value}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
     </Card>
   );
 }

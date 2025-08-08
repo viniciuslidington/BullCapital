@@ -6,18 +6,18 @@ from typing import Dict, Any
 
 class StockDataResponse(BaseModel):
     symbol: str
-    company_name: str
-    current_price: float
-    previous_close: float
-    change: Optional[float] = None  # change é null no JSON, então Optional
-    change_percent: Optional[float] = None  # change_percent é null no JSON, então Optional
-    volume: int
-    avg_volume: Optional[int] = None # avg_volume é null no JSON, então Optional
-    currency: str
-    timezone: Optional[str] = None # timezone é null no JSON, então Optional
-    last_updated: str # Pode ser datetime.date ou datetime.datetime se você quiser parsear datas
-    sector: Optional[str] = None  # Setor da empresa
-    type: Optional[str] = None    # Tipo do ativo (Ação, BDR, Outro)
+    company_name: Optional[str] = None
+    current_price: Optional[float] = None
+    previous_close: Optional[float] = None
+    change: Optional[float] = None
+    change_percent: Optional[float] = None
+    volume: Optional[int] = None
+    avg_volume: Optional[int] = None
+    currency: Optional[str] = None
+    timezone: Optional[str] = None
+    last_updated: str
+    sector: Optional[str] = None
+    type: Optional[str] = None
 
 
 class SearchResult(BaseModel):
