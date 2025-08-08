@@ -1,5 +1,7 @@
-from sqlalchemy import Column, Integer, String, Date, DateTime, Boolean
+from sqlalchemy import Column, String, Date, DateTime, Boolean
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
+import uuid
 from core.database import Base
 
 class User(Base):
@@ -10,7 +12,7 @@ class User(Base):
     contendo todas as informações necessárias para autenticação e perfil do usuário.
     
     Attributes:
-        id (int): Identificador único do usuário (chave primária)
+        id (UUID): Identificador único do usuário (chave primária)
         nome_completo (str): Nome completo do usuário
         cpf (str): CPF único do usuário (apenas números) - opcional para Google OAuth
         data_nascimento (date): Data de nascimento do usuário - opcional para Google OAuth
@@ -24,7 +26,7 @@ class User(Base):
     """
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     nome_completo = Column(String, nullable=False)
     cpf = Column(String(11), unique=True, index=True, nullable=True)  # Opcional para Google OAuth
     data_nascimento = Column(Date, nullable=True)  # Opcional para Google OAuth
