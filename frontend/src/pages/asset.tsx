@@ -6,7 +6,14 @@ import {
   formatNumber,
   formatPrice,
 } from "@/lib/utils";
-import { AlertCircle, ArrowDown, ArrowUp, ChevronUp, Dot } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowDown,
+  ArrowUp,
+  ChevronUp,
+  Dot,
+  Newspaper,
+} from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TabsContent } from "@radix-ui/react-tabs";
@@ -15,11 +22,10 @@ import type { CompanyOfficers, TickerBasicInfoResponse } from "@/types/ticker";
 import { useTickerInfo } from "@/hooks/queries/useticker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDataCard } from "@/hooks/utils/usedatacard";
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -27,245 +33,8 @@ import {
 } from "@/components/ui/table";
 import { SECTOR_TRANSLATE } from "@/data/sector-data";
 import type { Setores } from "@/types/category";
-
-const response = {
-  symbol: "AAPL",
-  company_name: "Apple Inc.",
-  current_price: 214.41,
-  previous_close: 214.15,
-  change: 0.26,
-  change_percent: 0.12,
-  volume: 13295981,
-  avg_volume: 53119755,
-  currency: "USD",
-  timezone: null,
-  last_updated: "2025-07-24T14:49:18.804774",
-  fundamentals: {
-    market_cap: 3202235498496,
-    pe_ratio: 33.395638,
-    dividend_yield: 0.49,
-    eps: 6.42,
-    book_value: 4.471,
-    debt_to_equity: 146.994,
-    roe: 1.38015,
-    roa: 0.23809999,
-    sector: "Technology",
-    industry: "Consumer Electronics",
-    fifty_two_week_high: 260.1,
-    fifty_two_week_low: 169.21,
-  },
-  historical_data: [
-    {
-      date: "2025-06-24",
-      open: 202.59,
-      high: 203.44,
-      low: 200.2,
-      close: 200.3,
-      volume: 54064000,
-      adj_close: 200.3,
-    },
-    {
-      date: "2025-06-25",
-      open: 201.45,
-      high: 203.67,
-      low: 200.62,
-      close: 201.56,
-      volume: 39525700,
-      adj_close: 201.56,
-    },
-    {
-      date: "2025-06-26",
-      open: 201.43,
-      high: 202.64,
-      low: 199.46,
-      close: 201,
-      volume: 50799100,
-      adj_close: 201,
-    },
-    {
-      date: "2025-06-27",
-      open: 201.89,
-      high: 203.22,
-      low: 200,
-      close: 201.08,
-      volume: 73188600,
-      adj_close: 201.08,
-    },
-    {
-      date: "2025-06-30",
-      open: 202.01,
-      high: 207.39,
-      low: 199.26,
-      close: 205.17,
-      volume: 91912800,
-      adj_close: 205.17,
-    },
-    {
-      date: "2025-07-01",
-      open: 206.67,
-      high: 210.19,
-      low: 206.14,
-      close: 207.82,
-      volume: 78788900,
-      adj_close: 207.82,
-    },
-    {
-      date: "2025-07-02",
-      open: 208.91,
-      high: 213.34,
-      low: 208.14,
-      close: 212.44,
-      volume: 67941800,
-      adj_close: 212.44,
-    },
-    {
-      date: "2025-07-03",
-      open: 212.15,
-      high: 214.65,
-      low: 211.81,
-      close: 213.55,
-      volume: 34955800,
-      adj_close: 213.55,
-    },
-    {
-      date: "2025-07-07",
-      open: 212.68,
-      high: 216.23,
-      low: 208.8,
-      close: 209.95,
-      volume: 50229000,
-      adj_close: 209.95,
-    },
-    {
-      date: "2025-07-08",
-      open: 210.1,
-      high: 211.43,
-      low: 208.45,
-      close: 210.01,
-      volume: 42848900,
-      adj_close: 210.01,
-    },
-    {
-      date: "2025-07-09",
-      open: 209.53,
-      high: 211.33,
-      low: 207.22,
-      close: 211.14,
-      volume: 48749400,
-      adj_close: 211.14,
-    },
-    {
-      date: "2025-07-10",
-      open: 210.51,
-      high: 213.48,
-      low: 210.03,
-      close: 212.41,
-      volume: 44443600,
-      adj_close: 212.41,
-    },
-    {
-      date: "2025-07-11",
-      open: 210.57,
-      high: 212.13,
-      low: 209.86,
-      close: 211.16,
-      volume: 39765800,
-      adj_close: 211.16,
-    },
-    {
-      date: "2025-07-14",
-      open: 209.93,
-      high: 210.91,
-      low: 207.54,
-      close: 208.62,
-      volume: 38840100,
-      adj_close: 208.62,
-    },
-    {
-      date: "2025-07-15",
-      open: 209.22,
-      high: 211.89,
-      low: 208.92,
-      close: 209.11,
-      volume: 42296300,
-      adj_close: 209.11,
-    },
-    {
-      date: "2025-07-16",
-      open: 210.3,
-      high: 212.4,
-      low: 208.64,
-      close: 210.16,
-      volume: 47490500,
-      adj_close: 210.16,
-    },
-    {
-      date: "2025-07-17",
-      open: 210.57,
-      high: 211.8,
-      low: 209.59,
-      close: 210.02,
-      volume: 48068100,
-      adj_close: 210.02,
-    },
-    {
-      date: "2025-07-18",
-      open: 210.87,
-      high: 211.79,
-      low: 209.7,
-      close: 211.18,
-      volume: 48974600,
-      adj_close: 211.18,
-    },
-    {
-      date: "2025-07-21",
-      open: 212.1,
-      high: 215.78,
-      low: 211.63,
-      close: 212.48,
-      volume: 51377400,
-      adj_close: 212.48,
-    },
-    {
-      date: "2025-07-22",
-      open: 213.14,
-      high: 214.95,
-      low: 212.23,
-      close: 214.4,
-      volume: 46404100,
-      adj_close: 214.4,
-    },
-    {
-      date: "2025-07-23",
-      open: 215,
-      high: 215.15,
-      low: 212.41,
-      close: 214.15,
-      volume: 46913800,
-      adj_close: 214.15,
-    },
-    {
-      date: "2025-07-24",
-      open: 213.9,
-      high: 215.69,
-      low: 213.53,
-      close: 214.41,
-      volume: 13295981,
-      adj_close: 214.41,
-    },
-  ],
-  metadata: {
-    provider: "yahoo_finance",
-    data_delay: "unknown",
-    market_state: "REGULAR",
-    request_params: {
-      period: "1mo",
-      interval: "1d",
-      start_date: null,
-      end_date: null,
-    },
-  },
-};
+import { useNews } from "@/hooks/queries/usenews";
+import { useDividends } from "@/hooks/queries/usedividends";
 
 const chartData = [
   {
@@ -945,8 +714,13 @@ const infoRowsConfig = [
 // O resto do seu componente AssetTabs permanece igual...
 export function AssetTabs({ ticker }: { ticker: string }) {
   const { data, isLoading, isError } = useTickerInfo(ticker);
+  const {
+    data: news,
+    isLoading: newsLoading,
+    isError: newsError,
+  } = useNews(ticker);
+  const { data: dividends } = useDividends(ticker);
   const isSkeleton = !data || isError || isLoading;
-
   return (
     <Tabs defaultValue="sobre" className="w-full gap-6">
       <TabsList className="border-border flex h-auto w-full justify-start rounded-none border-b-2 bg-transparent p-0">
@@ -957,13 +731,13 @@ export function AssetTabs({ ticker }: { ticker: string }) {
           Sobre
         </TabsTrigger>
         <TabsTrigger
-          value="noticias"
+          value="news"
           className="text-muted-foreground hover:text-primary data-[state=active]:text-primary data-[state=active]:dark:text-primary data-[state=active]:dark:border-primary border-primary hover:dark:text-primary flex-none cursor-pointer rounded-none border-0 px-6 py-3 data-[state=active]:-mb-[2px] data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:dark:bg-transparent"
         >
           Notícias
         </TabsTrigger>
         <TabsTrigger
-          value="historico-proventos"
+          value="dividends"
           className="text-muted-foreground hover:text-primary data-[state=active]:text-primary data-[state=active]:dark:text-primary data-[state=active]:dark:border-primary border-primary hover:dark:text-primary flex-none cursor-pointer rounded-none border-0 px-5 py-3 data-[state=active]:-mb-[2px] data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:dark:bg-transparent"
         >
           Histórico de Proventos
@@ -1005,6 +779,60 @@ export function AssetTabs({ ticker }: { ticker: string }) {
               )}
             </TableBody>
           </Table>
+        )}
+      </TabsContent>
+      <TabsContent value="news" className={`${isError ? "blur-sm" : ""}`}>
+        {newsLoading ? (
+          <Skeleton
+            animation={!isError}
+            className="h-[700px] w-full rounded-xl"
+          />
+        ) : (
+          <div className="flex flex-col gap-4">
+            {news?.map((item) => (
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-card/60 text-card-foreground hover:bg-accent flex gap-4 rounded-xl border p-4 shadow-sm transition-colors"
+              >
+                {item.thumbnail ? (
+                  // Se a thumbnail existir, mostra a imagem
+                  <img
+                    src={item.thumbnail}
+                    alt={`Thumbnail para a notícia: ${item.title}`}
+                    className="bg-muted h-28 w-28 shrink-0 rounded-md object-cover"
+                  />
+                ) : (
+                  <div className="bg-muted flex h-28 w-28 shrink-0 items-center justify-center rounded-md">
+                    <Newspaper className="text-muted-foreground h-10 w-10" />
+                  </div>
+                )}
+
+                <div className="flex flex-col">
+                  <h3 className="line-clamp-2 leading-tight font-medium">
+                    {item.title}
+                  </h3>
+                  <p className="text-muted-foreground mt-1 line-clamp-3 text-sm">
+                    {item.summary}
+                  </p>
+                  <time className="text-muted-foreground mt-auto pt-2 text-xs">
+                    {formatDate(item.date)}
+                  </time>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
+      </TabsContent>
+      <TabsContent value="dividends" className={`${isError ? "blur-sm" : ""}`}>
+        {newsLoading ? (
+          <Skeleton
+            animation={!isError}
+            className="h-[700px] w-full rounded-xl"
+          />
+        ) : (
+          <div className="flex flex-col gap-4"></div>
         )}
       </TabsContent>
     </Tabs>
