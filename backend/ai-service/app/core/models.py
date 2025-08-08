@@ -106,28 +106,43 @@ class UserResponse(BaseModel):
     email: str
     created_at: str
     updated_at: Optional[str]
+    
+    class Config:
+        from_attributes = True  # Para compatibilidade com SQLAlchemy
 
 class MessageRequest(BaseModel):
     sender: str  # "user" ou "bot"
     content: str
     timestamp: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
 
 class ChatRequest(BaseModel):
     sender: str = "user"
     content: str
     user_id: uuid.UUID
     conversation_id: Optional[uuid.UUID] = None
+    
+    class Config:
+        from_attributes = True
 
 class ChatResponse(BaseModel):
     conversation_id: uuid.UUID
     user_id: Optional[uuid.UUID] = None
     messages: List[MessageRequest]
+    
+    class Config:
+        from_attributes = True
 
 class ConversationRequest(BaseModel):
     conversation_id: uuid.UUID
     user_id: uuid.UUID
     title: str
     messages: List[MessageRequest]
+    
+    class Config:
+        from_attributes = True
 
 class HealthResponse(BaseModel):
     status: str
