@@ -39,6 +39,7 @@ export function formatNumber(valor: number) {
 
 // Helper para formatar o preço como moeda (ex: $187.45)
 export const formatPrice = (price: number, currency: string) => {
+  if (currency === "") return price.toString();
   return price.toLocaleString("pt-BR", {
     style: "currency",
     currency: currency,
