@@ -20,7 +20,7 @@ export function Header() {
   const { setTheme } = useTheme();
 
   return (
-    <header className="bg-background border-border fixed top-0 z-10 flex h-20 w-full items-center justify-between border-b-1 px-5 shadow-md">
+    <header className="bg-background border-border fixed top-0 z-10 flex h-20 w-full items-center justify-between border-b-1 px-5 shadow-sm">
       <Logo />
       <div className="flex h-full items-center gap-4">
         <DropdownMenu modal={false}>

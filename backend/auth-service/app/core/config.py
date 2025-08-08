@@ -48,18 +48,31 @@ class Settings(BaseSettings):
         """
         Constrói e retorna a URL de conexão com o banco de dados PostgreSQL.
         
+        Para conexões locais (localhost), SSL não é obrigatório.
+        Para conexões remotas (produção), SSL será obrigatório.
+        
         Returns:
-            str: URL de conexão no formato PostgreSQL com SSL obrigatório
+            str: URL de conexão no formato PostgreSQL
         """
-        return f"postgresql+psycopg2://{self.user}:{self.password}@{self.host}:{self.port}/{self.dbname}?sslmode=require"
+        if self.host == "localhost" or self.host == "127.0.0.1":
+            # Conexão local - SSL não obrigatório
+            return f"postgresql+psycopg2://{self.user}:{self.password}@{self.host}:{self.port}/{self.dbname}"
+        else:
+            # Conexão remota - SSL obrigatório
+            return f"postgresql+psycopg2://{self.user}:{self.password}@{self.host}:{self.port}/{self.dbname}?sslmode=require"
     
     # JWT
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
+    # Google OAuth
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8003/api/v1/auth/google/callback"
+    
     # CORS
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000"]
+    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8003"]
     
     # Debug
     DEBUG_SQL: bool = False

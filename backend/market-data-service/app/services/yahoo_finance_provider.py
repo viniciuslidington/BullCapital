@@ -231,7 +231,7 @@ class YahooFinanceProvider(IMarketDataProvider, LoggerMixin):
                     is_valid=False,
                     exists=False,
                     validation_time=datetime.now().isoformat(),
-                    error_message=f"Ticker não encontrado ou inválido.",
+                    error_message="Ticker não encontrado ou inválido.",
                     suggestions=suggestions,
                 )
         except Exception as e:

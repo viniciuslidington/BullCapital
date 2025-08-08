@@ -1,81 +1,104 @@
-import { AssetBox } from "./asset-box";
+import { useMarketOverview } from "@/hooks/queries/usemarketoverview";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+} from "@/components/ui/carousel";
+import { useNavigate } from "react-router-dom";
+import { AlertCircleIcon, ArrowDown, ArrowUp, Minus } from "lucide-react";
+import { BoxSkeleton } from "./boxskeleton";
 
-const response = {
-  lastUpdated: "2025-07-18T14:43:00-03:00",
-  cards: [
-    {
-      ticker: "IBOV",
-      name: "Ibovespa",
-      type: "index",
-      value: 136362.5,
-      unit: "pts",
-      changePercent: -0.81,
-    },
-    {
-      ticker: "IFIX",
-      name: "IFIX",
-      type: "index",
-      value: 3420.1,
-      unit: "pts",
-      changePercent: 0.12,
-    },
-    {
-      ticker: "SMLL",
-      name: "SMLL",
-      type: "index",
-      value: 2250.75,
-      unit: "pts",
-      changePercent: -0.25,
-    },
-    {
-      ticker: "CDI",
-      name: "CDI 12m",
-      type: "fixed_income",
-      value: 12.14,
-      unit: "%",
-      changePercent: 1.09,
-    },
-    {
-      ticker: "SPX",
-      name: "S&P 500",
-      type: "index",
-      value: 5635.25,
-      unit: "pts",
-      changePercent: 0.27,
-    },
-    {
-      ticker: "^IXIC",
-      name: "Nasdaq",
-      type: "index",
-      value: 18250.15,
-      unit: "pts",
-      changePercent: 0.42,
-    },
-    {
-      ticker: "USDBRL",
-      name: "USD",
-      type: "currency",
-      value: 5.55,
-      unit: "R$",
-      changePercent: -0.18,
-    },
-  ],
+const priceColor = (numero: number, text: boolean) => {
+  let base = "";
+  if (numero > 0) {
+    base = "-green-card";
+  } else if (numero === 0 && text) {
+    return "text-muted-foreground";
+  } else if (numero === 0) {
+    base = "-muted";
+  } else {
+    base = "-red-card";
+  }
+  if (text) {
+    return `text${base}`;
+  } else {
+    return `bg${base}`;
+  }
 };
 
 export function MarketOverview() {
+  const {
+    data: response,
+    isLoading,
+    isFetching,
+    isError,
+  } = useMarketOverview("brasil");
+  const navigate = useNavigate();
+
+  const badResponse = (isError || response === undefined) && !isLoading;
+
   return (
-    <div className="flex flex-nowrap justify-between gap-5">
-      {response.cards.map((data) => (
-        <AssetBox
-          key={data.ticker}
-          ticker={data.ticker}
-          name={data.name}
-          value={data.value}
-          unit={data.unit}
-          changePercent={data.changePercent}
-          type={data.type}
-        />
-      ))}
-    </div>
+    <Carousel
+      opts={{ dragFree: true }}
+      className={`${badResponse && "pointer-events-none touch-none"}`}
+    >
+      <CarouselContent className={`select-none ${badResponse && "blur-[3px]"}`}>
+        {isLoading || badResponse || response?.data?.length === 0
+          ? Array.from({ length: 6 }).map((_, idx) => (
+              <BoxSkeleton isError={badResponse} key={idx} />
+            ))
+          : response?.data?.map((item) => (
+              <CarouselItem
+                className="border-border bg-card/60 ml-4 flex w-auto shrink-0 grow-0 basis-auto cursor-pointer rounded-[12px] border p-2 shadow-sm transition-all duration-200 ease-in-out hover:shadow-md"
+                onClick={() => navigate(item.symbol)}
+              >
+                <div className="flex justify-between gap-3">
+                  <div
+                    className={`${priceColor(parseFloat(item.change.toFixed(2)), false)} flex h-9 w-9 items-center justify-center gap-0.5 rounded-[8px] ${isFetching && "opacity-70"}`}
+                  >
+                    {item.change > 0 ? (
+                      <ArrowUp
+                        className={`h-4 w-4 shrink-0 stroke-3 ${isFetching ? "text-primary-foreground/60" : "text-primary-foreground"}`}
+                      />
+                    ) : parseFloat(item.change.toFixed(2)) === 0 ? (
+                      <Minus
+                        className={`h-4 w-4 shrink-0 stroke-3 ${isFetching ? "dark:text-primary-foreground/60 text-muted-foreground/60" : "dark:text-primary-foreground text-muted-foreground"}`}
+                      />
+                    ) : (
+                      <ArrowDown
+                        className={`h-4 w-4 shrink-0 stroke-3 ${isFetching ? "text-primary-foreground/60" : "text-primary-foreground"}`}
+                      />
+                    )}
+                  </div>
+                  <span className="flex flex-col justify-between">
+                    <p className="text-accent-foreground/85 max-w-22 overflow-hidden text-xs font-bold text-ellipsis whitespace-nowrap">
+                      {item.name}
+                    </p>
+                    <p
+                      className={`text-muted-foreground text-xs ${isFetching && "opacity-70"}`}
+                    >
+                      {item.price}
+                    </p>
+                  </span>
+                  <p
+                    className={`text-xs font-semibold ${priceColor(parseFloat(item.change.toFixed(2)), true)} ${isFetching && "opacity-70"}`}
+                  >
+                    {item.change.toFixed(2).replace("-", "")}%
+                  </p>
+                </div>
+              </CarouselItem>
+            ))}
+      </CarouselContent>
+      <CarouselNext className="disabled:!border-transparent disabled:!bg-transparent disabled:!text-transparent" />
+      {badResponse && (
+        <div className="slide-in-from-top fade-in animate-in bg-card absolute top-1/2 right-1/2 m-auto translate-x-1/2 -translate-y-1/2 rounded-lg border p-3 shadow-lg duration-500">
+          <p className="text-destructive flex items-center gap-2 text-sm font-medium">
+            <AlertCircleIcon className="h-4 w-4" />
+            Falha ao carregar itens
+          </p>
+        </div>
+      )}
+    </Carousel>
   );
 }

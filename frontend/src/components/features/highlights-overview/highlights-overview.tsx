@@ -2,264 +2,143 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HighlightsCard } from "./highlights-card";
 import { HighlightsDividendCard } from "./highlights-dividend-card";
 import { useState, type ReactNode } from "react";
-import type { CategoriasType } from "@/types/assets";
 import { useNavigate } from "react-router-dom";
 import { QuestionMark } from "@/components/ui/question-mark";
-
-const mockAcoesBR = {
-  emAlta: [
-    {
-      ticker: "PETR4",
-      nome: "Petrobras PN",
-      preco: 32.1,
-      changePercent: 4.21,
-      currency: "BRL",
-    },
-    {
-      ticker: "VALE3",
-      nome: "Vale S.A.",
-      preco: 74.8,
-      changePercent: 3.35,
-      currency: "BRL",
-    },
-    {
-      ticker: "BBAS3",
-      nome: "Banco do Brasil",
-      preco: 56.9,
-      changePercent: 2.18,
-      currency: "BRL",
-    },
-    {
-      ticker: "SUZB3",
-      nome: "Suzano S.A.",
-      preco: 53.4,
-      changePercent: 2.91,
-      currency: "BRL",
-    },
-    {
-      ticker: "JBSS3",
-      nome: "JBS S.A.",
-      preco: 23.7,
-      changePercent: 3.1,
-      currency: "BRL",
-    },
-  ],
-  emBaixa: [
-    {
-      ticker: "MGLU3",
-      nome: "Magazine Luiza",
-      preco: 2.31,
-      changePercent: -4.54,
-      currency: "BRL",
-    },
-    {
-      ticker: "LWSA3",
-      nome: "Locaweb",
-      preco: 5.22,
-      changePercent: -3.89,
-      currency: "BRL",
-    },
-    {
-      ticker: "CVCB3",
-      nome: "CVC Brasil",
-      preco: 3.4,
-      changePercent: -2.75,
-      currency: "BRL",
-    },
-    {
-      ticker: "AMER3",
-      nome: "Americanas S.A.",
-      preco: 0.95,
-      changePercent: -5.1,
-      currency: "BRL",
-    },
-    {
-      ticker: "VIIA3",
-      nome: "Via Varejo",
-      preco: 1.87,
-      changePercent: -3.12,
-      currency: "BRL",
-    },
-  ],
-  maisNegociados: [
-    {
-      ticker: "PETR4",
-      nome: "Petrobras PN",
-      preco: 32.1,
-      changePercent: 4.21,
-      currency: "BRL",
-    },
-    {
-      ticker: "VALE3",
-      nome: "Vale S.A.",
-      preco: 74.8,
-      changePercent: 3.35,
-      currency: "BRL",
-    },
-    {
-      ticker: "ITUB4",
-      nome: "Itaú Unibanco PN",
-      preco: 28.9,
-      changePercent: -1.87,
-      currency: "BRL",
-    },
-    {
-      ticker: "BBDC4",
-      nome: "Bradesco PN",
-      preco: 16.45,
-      changePercent: 0.52,
-      currency: "BRL",
-    },
-    {
-      ticker: "BBAS3",
-      nome: "Banco do Brasil",
-      preco: 56.9,
-      changePercent: 2.18,
-      currency: "BRL",
-    },
-  ],
-  maioresDividendos: [
-    {
-      ticker: "TAEE11",
-      nome: "Taesa Units",
-      dividendo: 4.58,
-      dy: 12.3,
-      currency: "BRL",
-      tipo: "Dividendo",
-      dataCom: "2024-12-10",
-      dataEx: "2024-12-11",
-      dataPagamento: "2024-12-15",
-    },
-    {
-      ticker: "EGIE3",
-      nome: "Engie Brasil",
-      dividendo: 3.25,
-      dy: 7.1,
-      currency: "BRL",
-      tipo: "JCP",
-      dataCom: "2024-11-25",
-      dataEx: "2024-11-26",
-      dataPagamento: "2024-11-30",
-    },
-    {
-      ticker: "TRPL4",
-      nome: "Transmissão Paulista PN",
-      dividendo: 2.85,
-      dy: 6.8,
-      currency: "BRL",
-      tipo: "Dividendo",
-      dataCom: "2024-12-05",
-      dataEx: "2024-12-06",
-      dataPagamento: "2024-12-10",
-    },
-    {
-      ticker: "CPLE6",
-      nome: "Copel PN B",
-      dividendo: 1.7,
-      dy: 5.2,
-      currency: "BRL",
-      tipo: "JCP",
-      dataCom: "2024-12-18",
-      dataEx: "2024-12-19",
-      dataPagamento: "2024-12-20",
-    },
-    {
-      ticker: "BBSE3",
-      nome: "BB Seguridade",
-      dividendo: 2.45,
-      dy: 6.9,
-      currency: "BRL",
-      tipo: "Dividendo",
-      dataCom: "2024-11-28",
-      dataEx: "2024-11-29",
-      dataPagamento: "2024-12-01",
-    },
-  ],
-};
+import type { Categorias, Setores } from "@/types/category";
+import { useMultipleCategoryScreenings } from "@/hooks/queries/usecategories";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselNext,
+} from "@/components/ui/carousel";
+import { AlertCircleIcon } from "lucide-react";
 
 export function HighlightsOverview() {
-  const [categoria, setCategoria] = useState<CategoriasType>("acoes");
+  const [setor, setSetor] = useState<
+    Setores | "brasil" | "internacional" | null
+  >(null);
+
+  const {
+    data: response,
+    isLoading,
+    isFetching,
+    isError,
+  } = useMultipleCategoryScreenings();
 
   const navigate = useNavigate();
-  const onSeeMore = (filtro: string) =>
-    navigate(`/ranking?categoria=${categoria}&filtro=${filtro}`);
+  const onSeeMore = (categoria: Categorias) => {
+    const nomeCategoria =
+      setor === "internacional" ? "mercado_todo" : categoria;
+    const setorCategoria =
+      setor === "internacional" || setor === "brasil" ? false : setor;
+    navigate(
+      `/ranking?${setorCategoria ? `setor=${setorCategoria}&` : ""}categoria=${nomeCategoria}`,
+    );
+  };
+
+  const fetchState = {
+    isLoading,
+    isFetching,
+    badResponse: (isError || response === undefined) && !isLoading,
+  };
 
   return (
     <div className="flex w-full flex-col gap-2">
       <Tabs
-        defaultValue="acoes"
-        className="w-full"
-        onValueChange={(value) => setCategoria(value as CategoriasType)}
+        defaultValue="brasil"
+        className="z-5 w-full"
+        onValueChange={(value) => setSetor(value as Setores)}
       >
         <TabsList className="gap-2 bg-transparent">
           <p className="text-muted-foreground dark:text-foreground mr-2 font-semibold">
             DESTAQUES
           </p>
           <TabsTrigger
-            value="acoes"
+            value="brasil"
             className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
           >
-            Ações
+            Brasil
           </TabsTrigger>
-          <Tooltip value="fiis">
-            <TabsTrigger
-              value="fiis"
-              className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
-            >
-              FIIs
-            </TabsTrigger>
-          </Tooltip>
-          <Tooltip value="etfs">
-            <TabsTrigger
-              value="etfs"
-              className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
-            >
-              ETFs
-            </TabsTrigger>
-          </Tooltip>
-          <Tooltip value="bdrs">
-            <TabsTrigger
-              value="bdrs"
-              className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
-            >
-              BDRs
-            </TabsTrigger>
-          </Tooltip>
+
+          <TabsTrigger
+            value="Technology"
+            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
+          >
+            Tecnologia
+          </TabsTrigger>
+          <TabsTrigger
+            value="Financial Services"
+            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
+          >
+            Serviços Financeiros
+          </TabsTrigger>
+          <TabsTrigger
+            value="Healthcare"
+            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
+          >
+            Saúde
+          </TabsTrigger>
+          <TabsTrigger
+            value="Energy"
+            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
+          >
+            Energia
+          </TabsTrigger>
+          <TabsTrigger
+            value="internacional"
+            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
+          >
+            Internacional
+          </TabsTrigger>
         </TabsList>
       </Tabs>
-      <div className="flex gap-5">
-        <HighlightsCard
-          title="Altas"
-          items={mockAcoesBR.emAlta}
-          onSeeMore={() => onSeeMore("altas")}
-        />
-        <HighlightsCard
-          title="Baixas"
-          items={mockAcoesBR.emBaixa}
-          onSeeMore={() => onSeeMore("baixas")}
-        />
-        <HighlightsCard
-          title="Mais Ativas"
-          items={mockAcoesBR.maisNegociados}
-          onSeeMore={() => onSeeMore("ativas")}
-        />
-        <HighlightsDividendCard
-          title="Dividendos"
-          items={mockAcoesBR.maioresDividendos}
-          onSeeMore={() => onSeeMore("dividendos")}
-        />
-      </div>
+      <Carousel
+        opts={{ dragFree: true }}
+        className={`${fetchState.badResponse && "pointer-events-none touch-none"}`}
+      >
+        <CarouselContent
+          className={`-ml-5 select-none ${fetchState.badResponse && "blur-[3px]"}`}
+        >
+          <HighlightsCard
+            title="Maiores Altas"
+            items={response?.alta_do_dia}
+            onSeeMore={() => onSeeMore("alta_do_dia")}
+            fetchState={fetchState}
+          />
+          <HighlightsCard
+            title="Maiores Baixas"
+            items={response?.baixa_do_dia}
+            onSeeMore={() => onSeeMore("baixa_do_dia")}
+            fetchState={fetchState}
+          />
+          <HighlightsCard
+            title="Mais Negociadas"
+            items={response?.mais_negociadas}
+            onSeeMore={() => onSeeMore("mais_negociadas")}
+            fetchState={fetchState}
+          />
+          <HighlightsDividendCard
+            title="Dividend Yield"
+            items={response?.valor_dividendos}
+            onSeeMore={() => onSeeMore("valor_dividendos")}
+            fetchState={fetchState}
+          />
+        </CarouselContent>
+        <CarouselNext className="disabled:!border-transparent disabled:!bg-transparent disabled:!text-transparent" />
+        {fetchState.badResponse && (
+          <div className="slide-in-from-top fade-in animate-in bg-card absolute top-1/2 right-1/2 m-auto translate-x-1/2 -translate-y-1/2 rounded-lg border p-3 shadow-lg duration-500">
+            <p className="text-destructive flex items-center gap-2 text-sm font-medium">
+              <AlertCircleIcon className="h-4 w-4" />
+              Falha ao carregar itens
+            </p>
+          </div>
+        )}
+      </Carousel>
     </div>
   );
 }
 
-function Tooltip({
-  children,
-  value,
-}: {
-  children: ReactNode;
-  value: CategoriasType;
-}) {
+function Tooltip({ children, value }: { children: ReactNode; value: Setores }) {
   return (
     <QuestionMark
       dataIndex={value}
