@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@tailwind utilities;
 
 @custom-variant dark (&:is(.dark *));
 
@@ -46,6 +47,7 @@
   --color-sidebar-ring: var(--sidebar-ring);
   --color-red-card: var(--red-card);
   --color-green-card: var(--green-card);
+  --color-loading-spinner: var(--loading-spinner);
 }
 
 :root {
@@ -89,6 +91,7 @@
   --sidebar-ring: oklch(0.606 0.25 292.717);
   --red-card: oklch(67.968% 0.17549 22.129);
   --green-card: oklch(80.525% 0.17829 143.553);
+  --loading-spinner: oklch(0.606 0.25 292.717);
 }
 
 .dark {
@@ -130,6 +133,7 @@
   --sidebar-ring: oklch(0.541 0.281 293.009);
   --red-card: #f02427;
   --green-card: #1b9810;
+  --loading-spinner: oklch(100% 0.00011 271.152);
 }
 
 @layer base {
@@ -144,4 +148,11 @@
 html body[data-scroll-locked] {
   overflow: visible !important;
   margin-right: 0 !important;
+}
+
+@layer utilities {
+  .text-gradient {
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
 }

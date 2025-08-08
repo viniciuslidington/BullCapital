@@ -4,7 +4,7 @@ import { HighlightsDividendCard } from "./highlights-dividend-card";
 import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { QuestionMark } from "@/components/ui/question-mark";
-import type { Setores } from "@/types/category";
+import type { Categorias, Setores } from "@/types/category";
 import { useMultipleCategoryScreenings } from "@/hooks/queries/usecategories";
 import {
   Carousel,
@@ -14,7 +14,9 @@ import {
 import { AlertCircleIcon } from "lucide-react";
 
 export function HighlightsOverview() {
-  const [setor, setSetor] = useState<Setores | null>(null);
+  const [setor, setSetor] = useState<
+    Setores | "brasil" | "internacional" | null
+  >(null);
 
   const {
     data: response,
@@ -24,8 +26,15 @@ export function HighlightsOverview() {
   } = useMultipleCategoryScreenings();
 
   const navigate = useNavigate();
-  const onSeeMore = (filtro: string) =>
-    navigate(`/ranking?setor=${setor}&filtro=${filtro}`);
+  const onSeeMore = (categoria: Categorias) => {
+    const nomeCategoria =
+      setor === "internacional" ? "mercado_todo" : categoria;
+    const setorCategoria =
+      setor === "internacional" || setor === "brasil" ? false : setor;
+    navigate(
+      `/ranking?${setorCategoria ? `setor=${setorCategoria}&` : ""}categoria=${nomeCategoria}`,
+    );
+  };
 
   const fetchState = {
     isLoading,
@@ -36,8 +45,8 @@ export function HighlightsOverview() {
   return (
     <div className="flex w-full flex-col gap-2">
       <Tabs
-        defaultValue="acoes"
-        className="w-full"
+        defaultValue="brasil"
+        className="z-5 w-full"
         onValueChange={(value) => setSetor(value as Setores)}
       >
         <TabsList className="gap-2 bg-transparent">
@@ -45,29 +54,41 @@ export function HighlightsOverview() {
             DESTAQUES
           </p>
           <TabsTrigger
-            value="acoes"
+            value="brasil"
             className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
           >
-            Ações
+            Brasil
           </TabsTrigger>
 
           <TabsTrigger
-            value="fiis"
+            value="Technology"
             className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
           >
-            FIIs
+            Tecnologia
           </TabsTrigger>
           <TabsTrigger
-            value="etfs"
+            value="Financial Services"
             className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
           >
-            ETFs
+            Serviços Financeiros
           </TabsTrigger>
           <TabsTrigger
-            value="bdrs"
+            value="Healthcare"
             className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
           >
-            BDRs
+            Saúde
+          </TabsTrigger>
+          <TabsTrigger
+            value="Energy"
+            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
+          >
+            Energia
+          </TabsTrigger>
+          <TabsTrigger
+            value="internacional"
+            className="data-[state=active]:bg-primary data-[state=active]:dark:bg-primary data-[state=active]:text-primary-foreground hover:text-primary dark:hover:text-primary cursor-pointer duration-200"
+          >
+            Internacional
           </TabsTrigger>
         </TabsList>
       </Tabs>
@@ -79,27 +100,27 @@ export function HighlightsOverview() {
           className={`-ml-5 select-none ${fetchState.badResponse && "blur-[3px]"}`}
         >
           <HighlightsCard
-            title="Altas"
+            title="Maiores Altas"
             items={response?.alta_do_dia}
-            onSeeMore={() => onSeeMore("altas")}
+            onSeeMore={() => onSeeMore("alta_do_dia")}
             fetchState={fetchState}
           />
           <HighlightsCard
-            title="Baixas"
+            title="Maiores Baixas"
             items={response?.baixa_do_dia}
-            onSeeMore={() => onSeeMore("baixas")}
+            onSeeMore={() => onSeeMore("baixa_do_dia")}
             fetchState={fetchState}
           />
           <HighlightsCard
-            title="Mais Ativas"
+            title="Mais Negociadas"
             items={response?.mais_negociadas}
-            onSeeMore={() => onSeeMore("ativas")}
+            onSeeMore={() => onSeeMore("mais_negociadas")}
             fetchState={fetchState}
           />
           <HighlightsDividendCard
             title="Dividend Yield"
             items={response?.valor_dividendos}
-            onSeeMore={() => onSeeMore("dividendos")}
+            onSeeMore={() => onSeeMore("valor_dividendos")}
             fetchState={fetchState}
           />
         </CarouselContent>
