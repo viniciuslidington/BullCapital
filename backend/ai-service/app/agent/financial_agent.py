@@ -6,6 +6,10 @@ Versão que considera histórico de mensagens para respostas mais contextuais.
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+import json
+import unicodedata
+import requests
+from datetime import datetime, timedelta
 
 # Carregar variáveis de ambiente
 load_dotenv()
@@ -30,6 +34,15 @@ from agno.models.openai import OpenAIChat
 from agno.team.team import Team
 from agno.tools import tool
 from agno.tools.reasoning import ReasoningTools
+
+# topo do arquivo (perto dos imports)
+from pathlib import Path
+
+PROMPTS_DIR = Path(__file__).resolve().parents[1] / "prompts"
+
+def read_prompt(filename: str) -> str:
+    path = PROMPTS_DIR / filename
+    return path.read_text(encoding="utf-8")
 
 
 class FinancialAgent:
@@ -63,8 +76,9 @@ class FinancialAgent:
         self.ag_val = Agent(
             name="Valuation",
             role="6 métodos de valuation",
-            model=OpenAIChat(id="gpt-4o"),
+            model=OpenAIChat(id="gpt-4o", temperature=0.3),
             tools=[calcular_valuation],
+            instructions=[read_prompt("valuation_prompt.txt")],
         )
 
         self.ag_mult = Agent(
@@ -72,6 +86,17 @@ class FinancialAgent:
             role="Calcula múltiplos",
             model=OpenAIChat(id="gpt-4o"),
             tools=[calcular_multiplos],
+            instructions=[read_prompt("multiplos_prompt.txt")],
+        )
+
+        self.ag_api_json = Agent(
+            name="API JSON Financeira",
+            role="Retornar somente dados em JSON",
+            model=OpenAIChat(id="gpt-4o-mini"),
+            tools=[calcular_valuation, calcular_multiplos, obter_json_financeiro],
+            instructions=[
+              "Quando o usuário pedir JSON para um ticker, chame `obter_json_financeiro` com o ticker.",
+               "Responda SOMENTE com JSON válido; sem comentários, sem markdown."],
         )
     
     def _setup_team(self):
@@ -80,7 +105,7 @@ class FinancialAgent:
             name="Equipe Financeira Completa",
             mode="coordinate",
             model=OpenAIChat(id="gpt-4o"),
-            members=[self.ag_rag, self.ag_val, self.ag_mult],
+            members=[self.ag_rag, self.ag_val, self.ag_mult, self.ag_api_json],
             tools=[ReasoningTools(add_instructions=True)],
             enable_agentic_context=False,
             instructions=[
@@ -261,6 +286,108 @@ def consultar_pdf_fundamentalista(question: str) -> str:
     response = llm.invoke(prompt)
     return response.content
 
+def _get_selic_anualizada() -> float | None:
+    """SELIC anual %, via BCB (série 11). Retorna None em erro."""
+    try:
+        url = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados/ultimos/1?formato=json"
+        r = requests.get(url, timeout=5)
+        r.raise_for_status()
+        data = r.json()
+        if not data:
+            return None
+        taxa_diaria = float(data[0]["valor"]) / 100.0
+        taxa_anual = (1 + taxa_diaria) ** 252 - 1
+        return round(taxa_anual * 100, 2)  # em %
+    except Exception:
+        return None
+
+def _get_ibov_retorno_12m() -> float | None:
+    """Retorno % 12m do Ibovespa (^BVSP). Retorna None em erro."""
+    try:
+        hoje = datetime.now()
+        ini = hoje - timedelta(days=365)
+        ibov = yf.Ticker("^BVSP")
+        hist = ibov.history(start=ini.strftime("%Y-%m-%d"), end=hoje.strftime("%Y-%m-%d"))
+        if hist.empty:
+            return None
+        p0 = float(hist["Close"].iloc[0])
+        p1 = float(hist["Close"].iloc[-1])
+        ret = (p1 / p0 - 1) * 100.0
+        return round(ret, 4)
+    except Exception:
+        return None
+
+def _get_beta(tk: str) -> float:
+    """Beta do yfinance com fallback 1.0."""
+    try:
+        return float(yf.Ticker(tk).info.get("beta") or 1.0)
+    except Exception:
+        return 1.0
+
+def _ke_capm(tk: str) -> float:
+    """
+    Ke em DECIMAL (ex: 0.12 = 12%).
+    rf: SELIC anual (%) -> decimal
+    rm: Ibov 12m (%) -> decimal
+    erp = rm - rf
+    Fallback: rf=4%, erp=6% se dados ausentes.
+    """
+    rf_pct = _get_selic_anualizada()
+    rm_pct = _get_ibov_retorno_12m()
+    beta = _get_beta(tk)
+
+    if rf_pct is not None and rm_pct is not None:
+        rf = rf_pct / 100.0
+        rm = rm_pct / 100.0
+        erp = max(rm - rf, 0.0)  # evita erp negativo em período ruim
+    else:
+        rf, erp = 0.04, 0.06
+
+    return rf + beta * erp
+
+# --- Novo helper: dividendo TTM robusto
+def _get_dividend_ttm(tk: str) -> float:
+    """
+    Retorna o dividendo TTM (12m). Tenta na ordem:
+    1) info['dividendRate']
+    2) dividendYield * regularMarketPrice
+    3) soma dos dividendos (historical .dividends) dos últimos 12m (ou últimos 4 lançamentos)
+    """
+    try:
+        t = yf.Ticker(tk)
+        info = t.info
+
+        div = info.get("dividendRate")
+        if div:
+            try:
+                v = float(div)
+                if v > 0:
+                    return v
+            except Exception:
+                pass
+
+        dy = info.get("dividendYield")
+        px = info.get("regularMarketPrice")
+        if dy is not None and px is not None:
+            try:
+                v = float(dy) * float(px)
+                if v > 0:
+                    return v
+            except Exception:
+                pass
+
+        dser = t.dividends
+        if dser is not None and len(dser) > 0:
+            cutoff = pd.Timestamp.today() - pd.DateOffset(years=1)
+            last_12m = dser[dser.index >= cutoff]
+            if last_12m.empty:
+                last_12m = dser.tail(4)
+            v = float(last_12m.sum())
+            if v > 0:
+                return v
+    except Exception:
+        pass
+    return 0.0
 
 @tool(
     name="calcular_valuation",
@@ -316,12 +443,19 @@ def calcular_valuation(ticker: str) -> str:
     peg = info.get("pegRatio")
     peg_price = peg * eps if peg and eps else None
 
-    # 6) CAPM
-    rf = 0.04
-    erp = 0.06
-    beta = info.get("beta") or 1
-    ke = rf + beta * erp
-    capm_price = div * (1 + g_d) / (ke - g_d) if div and ke > g_d else None
+    # 6) CAPM (Ke dinâmico + dividendo TTM robusto)
+    ke = _ke_capm(tk)  # decimal (ex: 0.12)
+    # g para CAPM: limitar e garantir < ke
+    g_raw = info.get("earningsQuarterlyGrowth", 0.05) or 0.05
+    g_d_capm = max(0.0, min(float(g_raw) * 0.6, 0.06))
+    if ke and ke > 0.02:
+        g_d_capm = min(g_d_capm, ke - 0.01)
+    div_ttm = _get_dividend_ttm(tk)
+    capm_price = (
+        div_ttm * (1 + g_d_capm) / (ke - g_d_capm)
+        if (div_ttm > 0 and ke and ke > g_d_capm)
+        else None
+    )
 
     df = pd.DataFrame(
         {
@@ -384,6 +518,170 @@ def calcular_multiplos(ticker: str) -> str:
     )
     return df.to_markdown(index=False)
 
+#  Helpers p/ parse de tabelas markdown em JSON 
+def _to_float(x):
+    if x is None:
+        return None
+    if isinstance(x, (int, float)):
+        return float(x)
+    x = str(x).strip().replace("%", "")
+    if x in ("N/A", "NA", "-", ""):
+        return None
+    try:
+        return float(x.replace(",", "."))  
+    except Exception:
+        return None
 
-# Instância global do agente com contexto
+def _slug_metodo(nome: str) -> str:
+    nome = (nome or "").strip().lower()
+    if nome.startswith("dcf"):
+        return "dcf_5y"
+    if nome.startswith("gordon"):
+        return "gordon"
+    if "ev/ebit" in nome:
+        return "ev_ebit_comparavel"
+    if nome.startswith("p/") or "p/l" in nome:
+        return "pl_comparavel"
+    if nome == "peg":
+        return "peg"
+    if "capm" in nome:
+        return "capm_dividendo"
+    if "média" in nome:
+        return "media"
+    return nome.replace(" ", "_")
+
+def _parse_valuation_markdown(md: str):
+    """
+    Espera 3 colunas: Método | Comentário | Preço Justo
+    e uma linha extra 'Média' no fim.
+    """
+    metodos = {}
+    media_precos = None
+    for raw in md.splitlines():
+        line = raw.strip()
+        if not line or set(line) <= set("|-: ") or line.lower().startswith("| método"):
+            continue
+        # quebra por '|'
+        parts = [p.strip() for p in line.split("|") if p.strip()]
+        if len(parts) < 3:
+            continue
+        metodo, comentario, preco = parts[0], parts[1], parts[2]
+        key = _slug_metodo(metodo)
+        if "média" in metodo.lower():
+            media_precos = _to_float(preco)
+        else:
+            metodos[key] = {
+                "preco_justo": _to_float(preco),
+                "comentario": comentario,
+            }
+    return {"metodos": metodos, "media_precos": media_precos}
+
+def _parse_multiplos_markdown(md: str):
+    """
+    Espera 2 colunas: Múltiplo | Valor
+    """
+    out = {}
+    for raw in md.splitlines():
+        line = raw.strip()
+        if not line or set(line) <= set("|-: ") or line.lower().startswith("| múltiplo"):
+            continue
+        parts = [p.strip() for p in line.split("|") if p.strip()]
+        if len(parts) < 2:
+            continue
+        nome, valor = parts[0], parts[1]
+        key = (
+            "pl" if "p/l" in nome.lower() else
+            "pvp" if "p/vp" in nome.lower() else
+            "ev_ebitda" if "ev/ebitda" in nome.lower() else
+            "ev_receita" if "ev/receita" in nome.lower() else
+            nome.lower().replace(" ", "_")
+        )
+        out[key] = _to_float(valor)
+    return out
+
+@tool(
+    name="capm_calcular",
+    description="Calcula Ke via CAPM (SELIC + Ibov 12m) e preço pelo modelo de Gordon com dividendo TTM; retorna JSON."
+)
+def capm_calcular(ticker: str) -> str:
+    try:
+        tk = normalize_ticker(ticker)
+        info = yf.Ticker(tk).info
+        ke = _ke_capm(tk)  # decimal
+        g_raw = info.get("earningsQuarterlyGrowth", 0.05) or 0.05
+        g_d = max(0.0, min(float(g_raw) * 0.6, 0.06))
+        if ke and ke > 0.02:
+            g_d = min(g_d, ke - 0.01)
+        div_ttm = _get_dividend_ttm(tk)
+        price = (
+            div_ttm * (1 + g_d) / (ke - g_d)
+            if (div_ttm > 0 and ke and ke > g_d)
+            else None
+        )
+        return json.dumps(
+            {
+                "ticker": ticker.upper(),
+                "ke_pct": round(ke * 100, 2) if ke else None,
+                "dividend_ttm": round(div_ttm, 4) if div_ttm is not None else None,
+                "g_dividendo": round(g_d, 4),
+                "capm_price": round(price, 2) if price else None,
+            },
+            ensure_ascii=False,
+        )
+    except Exception as e:
+        return json.dumps({"ticker": ticker.upper(), "error": str(e)}, ensure_ascii=False)
+
+# Tool que consolida Valuation + Múltiplos em JSON puro 
+@tool(
+    name="obter_json_financeiro",
+    description=(
+        "Retorna SOMENTE JSON com os resultados do valuation (6 métodos + média) "
+        "e dos múltiplos para um ticker."
+    ),
+)
+def obter_json_financeiro(ticker: str) -> str:
+    """
+    Chama as tools já existentes (calcular_valuation, calcular_multiplos),
+    parseia as tabelas markdown e devolve um JSON (string) consolidado.
+    """
+    try:
+        tk = normalize_ticker(ticker)
+        # Usa as tools existentes (retornam markdown)
+        md_val = calcular_valuation.entrypoint(ticker=tk)
+        md_mult = calcular_multiplos.entrypoint(ticker=tk)
+
+        valuation = _parse_valuation_markdown(md_val)
+        multiplos = _parse_multiplos_markdown(md_mult)
+
+        payload = {
+            "ticker": ticker.upper(),
+            "valuation": valuation,
+            "multiplos": multiplos,
+        }
+        return json.dumps(payload, ensure_ascii=False)
+    except Exception as e:
+        # Sempre retorne JSON válido 
+        return json.dumps({"ticker": ticker.upper(), "error": str(e)}, ensure_ascii=False)
+
+
 agent = FinancialAgent() 
+
+# CASO QUEIRAM TESTAR, descomentem o bloco abaixo
+
+# ---- CLI multi-modo: python -m app.agent.financial_agent PETR4 [--tables|--capm]
+# if __name__ == "__main__":
+#     import sys, json
+#     # uso: python -m app.agent.financial_agent PETR4 [--tables|--capm]
+#     args = [a for a in sys.argv[1:] if not a.startswith("--")]
+#     flags = {a for a in sys.argv[1:] if a.startswith("--")}
+#     tk = args[0] if args else "PETR4"
+
+#     if "--tables" in flags:
+#         print(calcular_multiplos.entrypoint(ticker=tk))
+#         print(calcular_valuation.entrypoint(ticker=tk))
+#         raw = obter_json_financeiro.entrypoint(ticker=tk)
+#         print(json.dumps(json.loads(raw), ensure_ascii=False, indent=2))
+#     elif "--capm" in flags:
+#         print(capm_calcular.entrypoint(ticker=tk))
+#     else:
+#         print(obter_json_financeiro.entrypoint(ticker=tk))
