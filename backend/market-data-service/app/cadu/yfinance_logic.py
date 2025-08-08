@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 import yfinance as yf
 from yfinance import EquityQuery
@@ -251,15 +251,16 @@ def get_ticker_info_logic(symbol: str):
         translated_summary = GoogleTranslator(source='auto', target='pt').translate(summary)
 
         return {
+            "timestamp" : datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
             "longName": info.get("longName"), "sector": info.get("sector"), "industry": info.get("industry"),
             "employees": info.get("fullTimeEmployees"), "website": info.get("website"), "country": info.get("country"),
             "business_summary": translated_summary, "fullExchangeName": info.get("fullExchangeName"),
             "type": info.get("quoteType"), "currency": info.get("currency"), "logo": logo,
             "priceAndVariation": {
-                "currentPrice": info.get("currentPrice"), "previousClose": info.get("previousClose"),
-                "dayLow": info.get("dayLow"), "dayHigh": info.get("dayHigh"), "fiftyTwoWeekLow": info.get("fiftyTwoWeekLow"),
-                "fiftyTwoWeekHigh": info.get("fiftyTwoWeekHigh"), "fiftyTwoWeekChangePercent": info.get("fiftyTwoWeekChangePercent"),
-                "regularMarketChangePercent": info.get("regularMarketChangePercent"), "fiftyDayAverage": info.get("fiftyDayAverage"),
+                "currentPrice": info.get("regularMarketPrice"), "previousClose": info.get("previousClose"), "regularMarketOpen": info.get("regularMarketOpen"),
+                "dayLow": info.get("dayLow"), "dayHigh": info.get("dayHigh"), "regularMarketDayRange": info.get("regularMarketDayRange"),
+                "fiftyTwoWeekRange": info.get("fiftyTwoWeekRange"), "fiftyTwoWeekChangePercent": info.get("fiftyTwoWeekChangePercent"),
+                "regularMarketChangePercent": info.get("regularMarketChangePercent"), "regularMarketChange":info.get("regularMarketChange"), "fiftyDayAverage": info.get("fiftyDayAverage"),
                 "twoHundredDayAverage": info.get("twoHundredDayAverage")
             },
             "volumeAndLiquidity": {
