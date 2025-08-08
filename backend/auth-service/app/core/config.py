@@ -71,8 +71,24 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = ""
     GOOGLE_REDIRECT_URI: str = "http://localhost:8003/api/v1/auth/google/callback"
     
+    # Cookie settings
+    ENVIRONMENT: str = "development"
+    FRONTEND_URL: str = "http://localhost:3000"
+    COOKIE_DOMAIN: str = "localhost"
+    
     # CORS
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8003"]
+    ALLOWED_ORIGINS: List[str] = [
+        "http://localhost:3000", 
+        "http://localhost:8003",
+        "http://localhost:8000",
+        "http://localhost:8080",  # Servidor HTML local
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8000",
+        "http://127.0.0.1:8003",
+        "http://127.0.0.1:8080",  # Servidor HTML local
+        "null",  # Para arquivos HTML locais (file://)
+        "*"  # Para desenvolvimento - remover em produção
+    ]
     
     # Debug
     DEBUG_SQL: bool = False

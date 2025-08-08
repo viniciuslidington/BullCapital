@@ -1,44 +1,91 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
+from jose import JWTError, jwt
+from typing import Optional
 
 from core.database import get_db
 from core.models import User
-from services.auth_service import auth_service
+from core.config import settings
+from crud.user import get_user_by_email
 
-# Esquema de segurança HTTP Bearer para autenticação via token JWT
-security = HTTPBearer()
+# Esquema de segurança HTTP Bearer para compatibilidade com tokens
+security = HTTPBearer(auto_error=False)
+
+def get_token_from_cookie_or_header(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
+) -> Optional[str]:
+    """
+    Extrai token do cookie ou header Authorization.
+    Prioriza cookie para maior segurança.
+    """
+    # Primeiro tenta obter do cookie
+    token = request.cookies.get("access_token")
+    
+    # Se não tem cookie, tenta do header Authorization
+    if not token and credentials:
+        token = credentials.credentials
+    
+    return token
+
+def get_current_user_from_token(token: str, db: Session) -> Optional[User]:
+    """
+    Valida token JWT e retorna o usuário correspondente.
+    """
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            return None
+    except JWTError:
+        return None
+    
+    user = get_user_by_email(db, email)
+    return user
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    request: Request,
     db: Session = Depends(get_db),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
 ) -> User:
     """
     Dependência para obter o usuário autenticado atual.
     
-    Valida o token JWT fornecido no cabeçalho Authorization e retorna
-    o usuário correspondente. Levanta exceção HTTP 401 se o token
-    for inválido ou expirado.
+    Suporta autenticação via cookie (preferencial) ou header Authorization.
+    Valida o token JWT e retorna o usuário correspondente.
     
     Args:
-        credentials: Credenciais de autorização HTTP Bearer
+        request: Objeto Request do FastAPI para acessar cookies
         db: Sessão do banco de dados
+        credentials: Credenciais de autorização HTTP Bearer (opcional)
         
     Returns:
         User: Objeto do usuário autenticado
         
     Raises:
-        HTTPException: 401 se o token for inválido ou usuário não encontrado
+        HTTPException: 401 se não houver token ou for inválido
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Token inválido ou expirado",
+        detail="Token de acesso requerido",
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    user = auth_service.get_current_user(db, credentials.credentials)
-    if user is None:
+    # Obtém token do cookie ou header
+    token = get_token_from_cookie_or_header(request, credentials)
+    
+    if not token:
         raise credentials_exception
+    
+    # Valida token e obtém usuário
+    user = get_current_user_from_token(token, db)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido ou usuário não encontrado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
     return user
 
