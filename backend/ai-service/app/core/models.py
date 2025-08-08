@@ -1,7 +1,8 @@
 from typing import Optional, List
 from pydantic import BaseModel
-
-from sqlalchemy import Column, Integer, String, Date, DateTime, Text, ForeignKey
+import uuid
+from sqlalchemy import Column, String, Date, DateTime, Text, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -15,7 +16,7 @@ class User(Base):
     contendo todas as informações necessárias para autenticação e perfil do usuário.
     
     Attributes:
-        id (int): Identificador único do usuário (chave primária)
+        id (UUID): Identificador único do usuário (chave primária)
         nome_completo (str): Nome completo do usuário
         cpf (str): CPF único do usuário (apenas números)
         data_nascimento (date): Data de nascimento do usuário
@@ -26,7 +27,7 @@ class User(Base):
     """
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     nome_completo = Column(String, nullable=False)
     cpf = Column(String(11), unique=True, index=True, nullable=False)
     data_nascimento = Column(Date, nullable=False)
@@ -46,18 +47,16 @@ class Conversation(Base):
     contendo todas as informações necessárias para gerenciar conversas do AI.
     
     Attributes:
-        id (int): Identificador único da conversa (chave primária)
-        conversation_id (str): ID único da conversa
-        user_id (int): ID do usuário (Foreign Key)
+        id (UUID): Identificador único da conversa (chave primária)
+        user_id (UUID): ID do usuário (Foreign Key)
         title (str): Título da conversa
         created_at (datetime): Data e hora de criação do registro
         updated_at (datetime): Data e hora da última atualização do registro
     """
     __tablename__ = "conversations"
 
-    id = Column(Integer, primary_key=True, index=True)
-    conversation_id = Column(String, unique=True, index=True, nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     title = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -74,16 +73,16 @@ class Message(Base):
     contendo todas as informações necessárias para gerenciar mensagens do AI.
     
     Attributes:
-        id (int): Identificador único da mensagem (chave primária)
-        conversation_id (int): ID da conversa (Foreign Key)
+        id (UUID): Identificador único da mensagem (chave primária)
+        conversation_id (UUID): ID da conversa (Foreign Key)
         sender (str): Remetente da mensagem ("user" ou "bot")
         content (str): Conteúdo da mensagem
         timestamp (datetime): Data e hora da mensagem
     """
     __tablename__ = "messages"
 
-    id = Column(Integer, primary_key=True, index=True)
-    conversation_id = Column(Integer, ForeignKey("conversations.id"), nullable=False)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    conversation_id = Column(UUID(as_uuid=True), ForeignKey("conversations.id"), nullable=False)
     sender = Column(String, nullable=False)  # "user" ou "bot"
     content = Column(Text, nullable=False)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
@@ -100,13 +99,13 @@ class UserRequest(BaseModel):
     senha: str
 
 class UserResponse(BaseModel):
-    id: int
+    id: uuid.UUID
     nome_completo: str
     cpf: str
     data_nascimento: str
     email: str
     created_at: str
-    updated_at: str
+    updated_at: Optional[str]
 
 class MessageRequest(BaseModel):
     sender: str  # "user" ou "bot"
@@ -116,15 +115,15 @@ class MessageRequest(BaseModel):
 class ChatRequest(BaseModel):
     sender: str = "user"
     content: str
-    user_id: str 
-    conversation_id: Optional[str] = None
+    user_id: uuid.UUID
+    conversation_id: Optional[uuid.UUID] = None
 
 class ChatResponse(BaseModel):
     messages: List[MessageRequest]
 
 class ConversationRequest(BaseModel):
-    conversation_id: str
-    user_id: str
+    conversation_id: uuid.UUID
+    user_id: uuid.UUID
     title: str
     messages: List[MessageRequest]
 
@@ -132,3 +131,6 @@ class HealthResponse(BaseModel):
     status: str
     service: str
     timestamp: str
+
+    class Config:
+        from_attributes = True  # Para compatibilidade com SQLAlchemy
