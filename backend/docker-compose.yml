@@ -91,6 +91,34 @@ services:
     networks:
       - dev-network # Assign to network
 
+
+  ai-service:
+    build:
+      context: ./ai-service
+    container_name: ai-service
+    ports:
+      - "8001:8001"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+      # --- Database Connection Env Vars ---
+      - USER=postgres
+      - PASSWORD=postgres
+      - HOST=db                     # Service name of the Postgres container
+      - PORT=5432                   # Standard Postgres port
+      - DBNAME=bullcapital
+      - USE_SSL=false               # Disable SSL for local Postgres connection
+      # --- OpenAI API Key ---
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    restart: unless-stopped
+    command: python3 -m app.main
+    depends_on:
+      db:
+        # Wait for the database to be ready (requires healthcheck on db service)
+        condition: service_healthy
+    networks:
+      - dev-network # Assign to network
+
 volumes:
   pgdata:
 
