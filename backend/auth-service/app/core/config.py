@@ -43,7 +43,8 @@ class Settings(BaseSettings):
     host: str
     port: str
     dbname: str
-    use_ssl: bool = False  # Default to True for security (e.g., production)
+    # Em produção considere definir use_ssl=True (ex.: serviços gerenciados). Mantido False para facilitar desenvolvimento local/Docker.
+    use_ssl: bool = False
 
     @property
     def DATABASE_URL(self) -> str:
@@ -68,20 +69,17 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
-    # CORS
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000","http://localhost:5173", "http://localhost:8000"] # Default values
-
     # Debug
-    DEBUG_SQL: bool = False # Default to False
+    DEBUG_SQL: bool = False  # Logar SQLAlchemy (custo de performance; use com cautela)
 
-    # Configuração para carregar variáveis de ambiente
+    # Configuração para carregar variáveis de ambiente (mantida única; duplicata removida abaixo)
     model_config = {
-        "env_file": ".env", # Carrega variáveis de um arquivo .env
+        "env_file": ".env",
         "env_file_encoding": "utf-8",
-        "case_sensitive": False # Torna os nomes das variáveis de ambiente insensíveis a maiúsculas/minúsculas
+        "case_sensitive": False
     }
 
-    
+    # --- Integrações externas ---
     # Google OAuth
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
@@ -93,7 +91,7 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:5173"
     COOKIE_DOMAIN: Union[str, None] = "localhost"
     
-    # CORS
+    # --- CORS ---
     ALLOWED_ORIGINS: List[str] = [
         "http://localhost:3000", 
         "http://localhost:5173",
@@ -103,18 +101,6 @@ class Settings(BaseSettings):
         "null",  # Para arquivos HTML locais (file://)
         "*"  # Para desenvolvimento - remover em produção
     ]
-    
-    # Debug
-    DEBUG_SQL: bool = False
-    
-    model_config = {
-        "env_file": ".env",
-        "env_file_encoding": "utf-8",
-        "case_sensitive": False
-    }
-
-
-
-
+    # (Duplicatas removidas: DEBUG_SQL e model_config)
 
 settings = Settings()

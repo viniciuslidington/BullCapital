@@ -1,12 +1,13 @@
 services:
+  # --- Banco de Dados PostgreSQL ---
   db:
     image: postgres:14
-    container_name: postgres-db
+    container_name: postgres-db-auth
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: bullcapital
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_password_2025
+      POSTGRES_DB: auth_service_db
     ports:
       - "5432:5432"
     volumes:
@@ -14,90 +15,71 @@ services:
     networks:
       - dev-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d bullcapital"]
+      test: ["CMD-SHELL", "pg_isready -U auth_user -d auth_service_db"]
       interval: 5s
       timeout: 5s
       retries: 5
       start_period: 15s
 
+  # --- IDE Web para inspeção do banco ---
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: pgadmin
+    restart: unless-stopped
+    environment:
+      # Usar domínio válido para evitar erro de validação
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: 'True'
+    ports:
+      - "5050:80"  # Acesse http://localhost:5050
+    depends_on:
+      - db
+    networks:
+      - dev-network
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+
+  # --- Serviço de Autenticação (FastAPI) ---
   auth-service:
     build:
-      context: ./auth-service
-    container_name: auth-service
+      context: .  # Dockerfile já está na raiz deste serviço
+    container_name: auth-service-dev
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PYTHONUNBUFFERED: 1
+      USER: auth_user
+      PASSWORD: auth_password_2025
+      HOST: db
+      PORT: 5432
+      DBNAME: auth_service_db
+      USE_SSL: 'false'
+      SECRET_KEY: your-super-secret-jwt-key-change-in-prod
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      DEBUG_SQL: 'false'
+      ALLOWED_ORIGINS: '["http://localhost:3000","http://localhost:8000","http://localhost:5173","http://localhost:8003","http://localhost:8002","http://localhost:8001"]'
+      FRONTEND_URL: http://localhost:5173
+      ENVIRONMENT: development
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8003/api/v1/auth/google/callback}
     ports:
       - "8003:8003"
-    environment:
-      - PYTHONUNBUFFERED=1
-      # --- Database Connection Env Vars ---
-      - USER=postgres
-      - PASSWORD=postgres
-      - HOST=db
-      - PORT=5432
-      - DBNAME=bullcapital
-      - USE_SSL=false
-      # --- JWT & App Settings ---
-      - SECRET_KEY=your-super-secret-jwt-key-change-in-prod
-      - ALGORITHM=HS256
-      - ACCESS_TOKEN_EXPIRE_MINUTES=30
-      - DEBUG_SQL=false
-      - ALLOWED_ORIGINS=["http://localhost:3000","http://localhost:8000"]
-    restart: unless-stopped
-    command: uvicorn app:app --host 0.0.0.0 --port 8003 --reload
+    volumes:
+      - ./app:/app/app
     depends_on:
       db:
         condition: service_healthy
     networks:
       - dev-network
-
-  market-data-service:
-    build:
-      context: ./market-data-service
-    container_name: market-data-service
-    ports:
-      - "8002:8002"
-    environment:
-      - PYTHONUNBUFFERED=1
-    restart: unless-stopped
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload
-    networks:
-      - dev-network
-
-  ai-service:
-    build:
-      context: ./ai-service
-    container_name: ai-service
-    ports:
-      - "8010:8010"
-    environment:
-      - PYTHONUNBUFFERED=1
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-    restart: unless-stopped
-    command: uvicorn app.api_agent:app --host 0.0.0.0 --port 8010 --reload
-    networks:
-      - dev-network
-
-  gateway-service:
-    build:
-      context: ./gateway-service
-    container_name: gateway-service
-    ports:
-      - "8000:8000"
-    environment:
-      - PYTHONUNBUFFERED=1
-      - AUTH_SERVICE_URL=http://auth-service:8003
-      - MARKET_DATA_SERVICE_URL=http://market-data-service:8002
-      - AI_SERVICE_URL=http://ai-service:8010
-    restart: unless-stopped
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-    depends_on:
-      - auth-service
-      - market-data-service
-      - ai-service
-    networks:
-      - dev-network
+    command: uvicorn app:app --host 0.0.0.0 --port 8003 --reload
 
 volumes:
   pgdata:
+  pgadmin-data:
 
 networks:
   dev-network:
