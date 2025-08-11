@@ -2,7 +2,7 @@ import { createContext, useContext, useState } from "react";
 import { SidebarHeader } from "./sidebarheader";
 import { SidebarFooter } from "./sidebarfooter";
 import { MessagesScroll } from "./messagesScroll";
-import { useAIChat } from "@/hooks/useAIChat";
+import { useAIChat } from "@/hooks/queries/useaichat";
 import type { ChatMessage } from "@/types/ai";
 
 type ValueContextType = {
@@ -10,11 +10,7 @@ type ValueContextType = {
   toggleFixed: () => void;
   messages: ChatMessage[];
   isLoading: boolean;
-  error: string | null;
-  sendMessage: (message: string) => Promise<void>;
-  clearMessages: () => void;
-  analyzeStock: (ticker: string, question?: string) => Promise<void>;
-  getFinanceData: (ticker: string) => Promise<void>;
+  sendMessage: (question: string, userId?: string | undefined) => void;
 };
 
 export const SidebarContext = createContext<ValueContextType | null>(null);
@@ -23,15 +19,7 @@ export function Sidebar() {
   const [isFixed, setIsFixed] = useState(false);
   const toggleFixed = () => setIsFixed(!isFixed);
 
-  const {
-    messages,
-    isLoading,
-    error,
-    sendMessage,
-    clearMessages,
-    analyzeStock,
-    getFinanceData,
-  } = useAIChat();
+  const { messages, isLoading, sendMessage } = useAIChat();
 
   return (
     <SidebarContext.Provider
@@ -40,11 +28,7 @@ export function Sidebar() {
         toggleFixed,
         messages,
         isLoading,
-        error,
         sendMessage,
-        clearMessages,
-        analyzeStock,
-        getFinanceData,
       }}
     >
       <div
