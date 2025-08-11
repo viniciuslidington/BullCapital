@@ -8,21 +8,21 @@ export function SidebarFooter() {
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const { isFixed, messages, sendMessage, isLoading, getFinanceData } = useSidebar();
+  const { isFixed, messages, sendMessage, isLoading } = useSidebar();
 
   const suggestions = [
-    { text: "Como está o mercado hoje?", action: "message" },
-    { text: "Melhores Dividendos", action: "message" },
-    { text: "Analisar PETR4", action: "finance", ticker: "PETR4" },
-    { text: "Analisar VALE3", action: "finance", ticker: "VALE3" },
-    { text: "Setores em alta hoje", action: "message" },
+    { text: "Como está o mercado hoje?" },
+    { text: "Melhores Dividendos" },
+    { text: "Analisar PETR4" },
+    { text: "Analisar VALE3" },
+    { text: "Setores em alta hoje" },
   ];
 
   async function handleSubmit() {
     if (input === "" || isLoading) return;
     const message = input;
     setInput("");
-    await sendMessage(message);
+    sendMessage(message);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -61,11 +61,7 @@ export function SidebarFooter() {
             size="sm"
             className="bg-input cursor-pointer rounded-xl"
             onClick={() => {
-              if (s.action === "finance" && s.ticker) {
-                getFinanceData(s.ticker);
-              } else {
-                setInput(s.text);
-              }
+              setInput(s.text);
             }}
             key={index}
           >

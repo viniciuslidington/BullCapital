@@ -1,4 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import aiLogo from "@/assets/ai-logo.png";
 
 type MessageProps = {
   children: string;
@@ -7,23 +8,25 @@ type MessageProps = {
 
 export function Message({ children, tipo = "user" }: MessageProps) {
   const isUser = tipo === "user";
-  
+
   return (
-    <div className={`flex w-full items-end gap-2 ${isUser ? "justify-end" : "justify-start"}`}>
+    <div
+      className={`flex w-full items-end gap-2 ${isUser ? "justify-end" : "justify-start"}`}
+    >
       {!isUser && (
         <Avatar className="order-1">
-          <AvatarImage src="/ai-logo.png" />
+          <AvatarImage src={aiLogo} />
           <AvatarFallback>AI</AvatarFallback>
         </Avatar>
       )}
-      <div 
+      <div
         className={`max-w-[80%] rounded-[12px] p-3 ${
-          isUser 
-            ? "bg-primary text-primary-foreground rounded-br-none order-2" 
-            : "bg-muted text-foreground rounded-bl-none order-2"
+          isUser
+            ? "bg-primary text-primary-foreground order-2 rounded-br-none"
+            : "bg-muted text-foreground order-2 rounded-bl-none"
         }`}
       >
-        <p className="whitespace-pre-wrap text-sm">{children}</p>
+        <p className="text-sm whitespace-pre-wrap">{children}</p>
       </div>
       {isUser && (
         <Avatar className="order-3">
