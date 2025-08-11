@@ -2,13 +2,10 @@
 
 import json
 import os
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-
-# Configurar chave OpenAI
-os.environ["OPENAI_API_KEY"] = "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"
-
 from app.agent.financial_agent import (
     obter_json_financeiro,
     calcular_valuation,
@@ -16,6 +13,9 @@ from app.agent.financial_agent import (
     capm_calcular,
     agent
 )
+load_dotenv(override=True)  # Carregar variáveis de ambiente do arquivo .env
+# Configurar chave OpenAI
+os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 
 app = FastAPI(title="BullCapital AI Service", version="1.0.0")
 
