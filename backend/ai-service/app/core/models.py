@@ -1,7 +1,7 @@
 from typing import Optional, List
 from pydantic import BaseModel
 import uuid
-from sqlalchemy import Column, String, Date, DateTime, Text, ForeignKey
+from sqlalchemy import Column, String, Date, DateTime, Text, ForeignKey, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -34,16 +34,18 @@ class Conversation(Base):
     
     Attributes:
         id (UUID): Identificador único da conversa (chave primária)
-        user_id (UUID): ID do usuário (Foreign Key)
+        user_id (UUID): ID do usuário (Foreign Key, opcional para conversas temporárias)
         title (str): Título da conversa
+        temporario (bool): Indica se a conversa é temporária (sem usuário)
         created_at (datetime): Data e hora de criação do registro
         updated_at (datetime): Data e hora da última atualização do registro
     """
     __tablename__ = "conversations"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     title = Column(String, nullable=False)
+    temporario = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -91,18 +93,20 @@ class MessageRequest(BaseModel):
 class ChatRequest(BaseModel):
     sender: str = "user"
     content: str
-    user_id: uuid.UUID
+    user_id: Optional[uuid.UUID] = None  # Agora é opcional
     conversation_id: Optional[uuid.UUID] = None
 
 class ChatResponse(BaseModel):
     conversation_id: uuid.UUID
     user_id: Optional[uuid.UUID] = None
+    temporario: bool  # Adicionado campo temporario
     messages: List[MessageRequest]
 
 class ConversationRequest(BaseModel):
     conversation_id: uuid.UUID
-    user_id: uuid.UUID
+    user_id: Optional[uuid.UUID] = None  # Agora é opcional
     title: str
+    temporario: bool  # Adicionado campo temporario
     messages: List[MessageRequest]
 
 class HealthResponse(BaseModel):
