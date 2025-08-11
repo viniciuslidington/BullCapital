@@ -1,9 +1,10 @@
 from sqlalchemy.orm import Session
 from typing import Optional, List
+from uuid import UUID
 from core.models import User
 from schemas.user import UserCreate, UserUpdate
 
-def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
+def get_user_by_id(db: Session, user_id: UUID) -> Optional[User]:
     """
     Busca um usuário específico pelo seu ID.
     
@@ -83,7 +84,7 @@ def create_user(db: Session, user: UserCreate, hashed_password: str) -> User:
     db.refresh(db_user)
     return db_user
 
-def update_user(db: Session, user_id: int, user_update: UserUpdate) -> Optional[User]:
+def update_user(db: Session, user_id: UUID, user_update: UserUpdate) -> Optional[User]:
     """
     Atualiza dados de um usuário existente.
     
@@ -113,7 +114,7 @@ def update_user(db: Session, user_id: int, user_update: UserUpdate) -> Optional[
     db.refresh(db_user)
     return db_user
 
-def delete_user(db: Session, user_id: int) -> bool:
+def delete_user(db: Session, user_id: UUID) -> bool:
     """
     Remove um usuário do banco de dados.
     

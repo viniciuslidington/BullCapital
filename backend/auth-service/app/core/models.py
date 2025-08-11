@@ -1,4 +1,6 @@
-from sqlalchemy import Column, Integer, String, Date, DateTime, Boolean
+from sqlalchemy import Column, String, Date, DateTime, Boolean
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
 from sqlalchemy.sql import func
 from core.database import Base
 
@@ -24,7 +26,8 @@ class User(Base):
     """
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
+    # UUID nativo (PostgreSQL). Gera v4 automaticamente.
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
     nome_completo = Column(String, nullable=False)
     cpf = Column(String(11), unique=True, index=True, nullable=True)  # Opcional para Google OAuth
     data_nascimento = Column(Date, nullable=True)  # Opcional para Google OAuth

@@ -3,6 +3,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from typing import List
+from uuid import UUID
 
 from core.database import get_db
 from core.security import require_auth
@@ -311,9 +312,9 @@ def list_users(
         for user in users
     ]
 
-@router.get("/users/{user_id}", response_model=UserResponse, summary="Obter usuário por ID")
+@router.get("/users/{user_id}", response_model=UserResponse, summary="Obter usuário por ID (UUID)")
 def get_user(
-    user_id: int,
+    user_id: UUID,
     db: Session = Depends(get_db),
     current_user = Depends(require_auth)  # Protegido por autenticação
 ):
@@ -357,9 +358,9 @@ def get_user(
         updated_at=user.updated_at
     )
 
-@router.delete("/users/{user_id}", summary="Deletar usuário")
+@router.delete("/users/{user_id}", summary="Deletar usuário (UUID)")
 def delete_user_endpoint(
-    user_id: int,
+    user_id: UUID,
     db: Session = Depends(get_db),
     current_user = Depends(require_auth)  # Protegido por autenticação
 ):

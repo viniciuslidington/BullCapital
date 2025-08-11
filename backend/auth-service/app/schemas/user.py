@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr, field_validator
 from datetime import date, datetime
 from typing import Optional
+from uuid import UUID
 from utils.validators import validate_cpf, clean_cpf
 
 
@@ -111,7 +112,7 @@ class UserResponse(UserBase):
         created_at (datetime, optional): Data/hora de criação do registro
         updated_at (datetime, optional): Data/hora da última atualização
     """
-    id: int
+    id: UUID
     is_google_user: Optional[bool] = False
     profile_picture: Optional[str] = None
     created_at: Optional[datetime] = None
