@@ -145,10 +145,14 @@ async def chat_with_agent(request: ChatRequest, db: Session = Depends(get_db)):
     Endpoint principal para conversar com o agente.
     """
     try:
-        # Verificar se o usuário existe
+        # Verificar se o usuário existe, se não existir, criar
         user = db.query(User).filter(User.id == request.user_id).first()
         if not user:
-            raise HTTPException(status_code=404, detail="Usuário não encontrado")
+            logger.info(f"Criando novo usuário com ID: {request.user_id}")
+            user = User(id=request.user_id)
+            db.add(user)
+            db.commit()
+            db.refresh(user)
         
         # Buscar ou criar conversa
         conversation = None
