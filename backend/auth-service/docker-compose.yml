@@ -1,0 +1,104 @@
+services:
+  db:
+    image: postgres:14
+    container_name: postgres-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: bullcapital
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - dev-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d bullcapital"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  auth-service:
+    build:
+      context: ./auth-service
+    container_name: auth-service
+    ports:
+      - "8003:8003"
+    environment:
+      - PYTHONUNBUFFERED=1
+      # --- Database Connection Env Vars ---
+      - USER=postgres
+      - PASSWORD=postgres
+      - HOST=db
+      - PORT=5432
+      - DBNAME=bullcapital
+      - USE_SSL=false
+      # --- JWT & App Settings ---
+      - SECRET_KEY=your-super-secret-jwt-key-change-in-prod
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - DEBUG_SQL=false
+      - ALLOWED_ORIGINS=["http://localhost:3000","http://localhost:8000"]
+    restart: unless-stopped
+    command: uvicorn app:app --host 0.0.0.0 --port 8003 --reload
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - dev-network
+
+  market-data-service:
+    build:
+      context: ./market-data-service
+    container_name: market-data-service
+    ports:
+      - "8002:8002"
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload
+    networks:
+      - dev-network
+
+  ai-service:
+    build:
+      context: ./ai-service
+    container_name: ai-service
+    ports:
+      - "8010:8010"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    restart: unless-stopped
+    command: uvicorn app.api_agent:app --host 0.0.0.0 --port 8010 --reload
+    networks:
+      - dev-network
+
+  gateway-service:
+    build:
+      context: ./gateway-service
+    container_name: gateway-service
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - AUTH_SERVICE_URL=http://auth-service:8003
+      - MARKET_DATA_SERVICE_URL=http://market-data-service:8002
+      - AI_SERVICE_URL=http://ai-service:8010
+    restart: unless-stopped
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      - auth-service
+      - market-data-service
+      - ai-service
+    networks:
+      - dev-network
+
+volumes:
+  pgdata:
+
+networks:
+  dev-network:
+    driver: bridge
