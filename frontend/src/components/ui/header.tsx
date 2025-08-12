@@ -40,7 +40,9 @@ export function Header() {
                   <AvatarImage src={data.profile_picture ?? ""} />
                   <AvatarFallback>{data.nome_completo ?? ""}</AvatarFallback>
                 </Avatar>
-                {data.nome_completo ?? ""}
+                <p className="trucate max-w-[124px]">
+                  {data.nome_completo ?? ""}
+                </p>
                 <ChevronDown className="ml-auto" />
               </Button>
             </DropdownMenuTrigger>
