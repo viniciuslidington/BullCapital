@@ -1,4 +1,4 @@
-
+version: '3.8'
 
 services:
   db:
@@ -21,6 +21,28 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # Banco de dados específico para o ai-service
+  ai-postgres:
+    image: postgres:15
+    container_name: ai_service_postgres
+    environment:
+      POSTGRES_DB: ai_service_db
+      POSTGRES_USER: ai_user
+      POSTGRES_PASSWORD: ai_password_2025
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5433:5432"
+    volumes:
+      - ai_postgres_data:/var/lib/postgresql/data
+    networks:
+      - dev-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai_user -d ai_service_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   auth-service:
     build:
@@ -80,12 +102,21 @@ services:
       - "8001:8001"
     environment:
       - PYTHONUNBUFFERED=1
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PYTHONPATH=/app
+      - user=ai_user
+      - password=ai_password_2025
+      - host=ai-postgres
+      - port=5432
+      - dbname=ai_service_db
+      - openai_api_key=${OPENAI_API_KEY}
     restart: unless-stopped
-    command: uvicorn app.api_agent:app --host 0.0.0.0 --port 8001 --reload
+    command: python3 -m app.main
+    depends_on:
+      ai-postgres:
+        condition: service_healthy
     networks:
       - dev-network
-
+  
   gateway-service:
     build:
       context: ./gateway-service
@@ -119,8 +150,29 @@ services:
     networks:
       - dev-network
 
+  # PgAdmin unificado para ambos os bancos de dados
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: bullcapital_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@bullcapital.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - dev-network
+    restart: unless-stopped
+    depends_on:
+      - db
+      - ai-postgres
+
 volumes:
   pgdata:
+  ai_postgres_data:
+  pgadmin_data:
 
 networks:
   dev-network:
