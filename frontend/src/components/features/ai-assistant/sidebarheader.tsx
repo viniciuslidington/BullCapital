@@ -31,7 +31,7 @@ export function SidebarHeader() {
           className={`flex flex-col transition-all duration-200 ease-in-out ${isFixed ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-hover:delay-200"}`}
         >
           <h3 className="text-foreground font-semibold">Assistente IA</h3>
-          {healthData?.ok ? (
+          {healthData?.status === "healty" ? (
             <p className="text-green-600"> Online</p>
           ) : (
             <p className="text-destructive"> Offline</p>

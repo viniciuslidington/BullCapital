@@ -15,7 +15,7 @@ type ValueContextType = {
   clearChat: () => void;
   aiHealth: UseQueryResult<
     {
-      ok: boolean;
+      status: string;
       service: string;
     },
     Error

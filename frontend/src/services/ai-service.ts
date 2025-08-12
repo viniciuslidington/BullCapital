@@ -20,7 +20,7 @@ export const AIService = {
     return res.data;
   },
 
-  health: async (): Promise<{ ok: boolean; service: string }> => {
+  health: async (): Promise<{ status: string; service: string }> => {
     const response = await api.get(`/health`);
     return response.data;
   },
