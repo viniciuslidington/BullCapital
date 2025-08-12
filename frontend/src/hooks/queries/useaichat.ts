@@ -1,27 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AIService } from "@/services/ai-service";
-import type { ChatMessage } from "@/types/ai";
+import type { ChatMessage, ChatRequest, ChatResponse } from "@/types/ai";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
-
-interface ChatResponse {
-  conversationId: string;
-}
-
-interface SendMessageVars {
-  question: string;
-  userId?: string;
-}
+import { useSearchParams } from "react-router-dom";
 
 // Para tipar o contexto da mutação e ter um rollback seguro
 interface MutationContext {
   previousMessages?: ChatMessage[];
 }
 
-export function useAIChat(initialConversationId: string | null = null) {
+export function useAIChat() {
   const queryClient = useQueryClient();
-  const [conversationId, setConversationId] = useState<string | null>(
-    initialConversationId,
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [conversationId, setConversationId] = useState<string | undefined>(
+    searchParams.get("chat") || undefined,
   );
 
   const queryKey = ["conversation", conversationId];
@@ -37,11 +30,14 @@ export function useAIChat(initialConversationId: string | null = null) {
   const { mutate, isPending: isSendingMessage } = useMutation<
     ChatResponse,
     Error,
-    SendMessageVars,
+    ChatRequest,
     MutationContext // Adicionamos o tipo do contexto aqui
   >({
-    mutationFn: ({ question, userId }) =>
-      AIService.chat(question, conversationId, userId),
+    mutationFn: ({ question }) =>
+      AIService.chat({
+        question: question,
+        conversation_id: conversationId,
+      }),
 
     onMutate: async ({ question }) => {
       // Cancela qualquer refetch pendente para não sobrescrever nossa atualização otimista.
@@ -53,11 +49,9 @@ export function useAIChat(initialConversationId: string | null = null) {
 
       // Cria a nova mensagem do usuário com um ID temporário.
       const newUserMessage: ChatMessage = {
-        id: `temp-${Date.now()}`, // ID temporário
         role: "user",
         content: question,
-        // Adicione outros campos necessários para a exibição, como timestamp
-        createdAt: new Date().toISOString(),
+        timestamp: new Date().toISOString(),
       };
 
       // Atualiza o cache otimisticamente com a nova mensagem.
@@ -83,9 +77,10 @@ export function useAIChat(initialConversationId: string | null = null) {
     },
 
     onSettled: (data) => {
-      const finalConversationId = data?.conversationId || conversationId;
-      if (data?.conversationId && !conversationId) {
-        setConversationId(data.conversationId);
+      const finalConversationId = data?.conversation_id || conversationId;
+      if (data?.conversation_id && !conversationId) {
+        setConversationId(data.conversation_id);
+        setSearchParams({ chat: data.conversation_id });
       }
 
       queryClient.invalidateQueries({
@@ -94,20 +89,28 @@ export function useAIChat(initialConversationId: string | null = null) {
     },
   });
 
-  const sendMessage = (question: string, userId?: string) => {
+  const sendMessage = (question: string) => {
     if (question.trim()) {
-      mutate({ question, userId });
+      mutate({ question, conversation_id: conversationId });
     }
   };
 
   const clearChat = useCallback(() => {
-    setConversationId(null);
+    setConversationId(undefined);
     // Removemos a query do cache para garantir que não haja dados antigos se uma nova conversa começar.
     queryClient.removeQueries({ queryKey: ["conversation"] });
-  }, [queryClient]);
+    setSearchParams();
+  }, [queryClient, setSearchParams]);
 
   // O estado de loading geral é uma combinação do carregamento inicial do histórico e do envio de uma nova mensagem.
   const isLoading = isFetchingHistory || isSendingMessage;
+
+  const aiHealth = useQuery({
+    queryKey: ["aiHealth"],
+    queryFn: AIService.health,
+    refetchInterval: 30000, // a cada 30s
+    retry: false,
+  });
 
   return {
     messages,
@@ -115,5 +118,6 @@ export function useAIChat(initialConversationId: string | null = null) {
     conversationId,
     sendMessage,
     clearChat,
+    aiHealth,
   };
 }

@@ -21,6 +21,7 @@ export function SidebarFooter() {
   async function handleSubmit() {
     if (input === "" || isLoading) return;
     const message = input;
+    console.log(message);
     setInput("");
     sendMessage(message);
   }
@@ -43,7 +44,7 @@ export function SidebarFooter() {
 
   return (
     <div
-      className={`absolute bottom-0 flex flex-col gap-3 p-4 transition-all duration-300 ease-in-out ${isFixed ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-hover:delay-200"}`}
+      className={`absolute bottom-0 flex flex-col gap-3 px-4 transition-all duration-300 ease-in-out ${isFixed ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-hover:delay-200"}`}
       onMouseLeave={() => {
         if (document.activeElement === textareaRef.current) {
           if (textareaRef.current) {
@@ -69,36 +70,37 @@ export function SidebarFooter() {
           </Button>
         ))}
       </div>
-
-      <div className="bg-input flex flex-col items-end gap-2 rounded-md p-3">
-        <textarea
-          placeholder="Digite sua pergunta sobre investimentos"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          className="placeholder:text-muted-foreground min-w-[415px] resize-none overflow-y-auto text-sm focus:outline-none"
-          style={{ lineHeight: "24px", maxHeight: `${6 * 24}px` }}
-          rows={1}
-          maxLength={1000}
-          ref={textareaRef}
-          onKeyDown={handleKeyDown}
-        />
-        <Button
-          size="icon"
-          onClick={() => handleSubmit()}
-          className="cursor-pointer"
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-          ) : (
-            <Send />
-          )}
-        </Button>
+      <div className="bg-background flex flex-col gap-3 pb-4">
+        <div className="bg-input flex flex-col items-end gap-2 rounded-md p-3">
+          <textarea
+            placeholder="Digite sua pergunta sobre investimentos"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            className="placeholder:text-muted-foreground min-w-[415px] resize-none overflow-y-auto text-sm focus:outline-none"
+            style={{ lineHeight: "24px", maxHeight: `${6 * 24}px` }}
+            rows={1}
+            maxLength={1000}
+            ref={textareaRef}
+            onKeyDown={handleKeyDown}
+          />
+          <Button
+            size="icon"
+            onClick={() => handleSubmit()}
+            className="cursor-pointer"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            ) : (
+              <Send />
+            )}
+          </Button>
+        </div>
+        <p className="text-muted-foreground w-[440px] text-[12px]">
+          Esta é uma ferramenta de apoio e pode apresentar imprecisões. Avalie
+          as respostas antes de decidir.
+        </p>
       </div>
-      <p className="text-muted-foreground w-[440px] text-[12px]">
-        Esta é uma ferramenta de apoio e pode apresentar imprecisões. Avalie as
-        respostas antes de decidir.
-      </p>
     </div>
   );
 }
