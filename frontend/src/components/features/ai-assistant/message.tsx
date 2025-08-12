@@ -1,5 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import aiLogo from "@/assets/ai-logo.png";
+import { useUserProfile } from "@/hooks/queries/useauth";
+import { User } from "lucide-react";
 
 type MessageProps = {
   children: string;
@@ -8,7 +10,8 @@ type MessageProps = {
 
 export function Message({ children, tipo = "user" }: MessageProps) {
   const isUser = tipo === "user";
-
+  const { data } = useUserProfile();
+  console.log(data);
   return (
     <div
       className={`flex w-full items-end gap-2 ${isUser ? "justify-end" : "justify-start"}`}
@@ -28,11 +31,15 @@ export function Message({ children, tipo = "user" }: MessageProps) {
       >
         <p className="text-sm whitespace-pre-wrap">{children}</p>
       </div>
-      {isUser && (
+      {isUser && data?.profile_picture ? (
         <Avatar className="order-3">
-          <AvatarImage src="https://github.com/shadcn.png" />
+          <AvatarImage src={data.profile_picture} />
           <AvatarFallback>CN</AvatarFallback>
         </Avatar>
+      ) : (
+        isUser && (
+          <User className="bg-input text-muted-foreground order-3 size-8 rounded-full p-1" />
+        )
       )}
     </div>
   );

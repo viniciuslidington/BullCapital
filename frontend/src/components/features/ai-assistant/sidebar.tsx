@@ -4,6 +4,7 @@ import { SidebarFooter } from "./sidebarfooter";
 import { MessagesScroll } from "./messagesScroll";
 import { useAIChat } from "@/hooks/queries/useaichat";
 import type { ChatMessage } from "@/types/ai";
+import type { UseQueryResult } from "@tanstack/react-query";
 
 type ValueContextType = {
   isFixed: boolean;
@@ -11,6 +12,14 @@ type ValueContextType = {
   messages: ChatMessage[];
   isLoading: boolean;
   sendMessage: (question: string, userId?: string | undefined) => void;
+  clearChat: () => void;
+  aiHealth: UseQueryResult<
+    {
+      ok: boolean;
+      service: string;
+    },
+    Error
+  >;
 };
 
 export const SidebarContext = createContext<ValueContextType | null>(null);
@@ -19,7 +28,7 @@ export function Sidebar() {
   const [isFixed, setIsFixed] = useState(false);
   const toggleFixed = () => setIsFixed(!isFixed);
 
-  const { messages, isLoading, sendMessage } = useAIChat();
+  const { messages, isLoading, sendMessage, clearChat, aiHealth } = useAIChat();
 
   return (
     <SidebarContext.Provider
@@ -29,6 +38,8 @@ export function Sidebar() {
         messages,
         isLoading,
         sendMessage,
+        clearChat,
+        aiHealth,
       }}
     >
       <div
