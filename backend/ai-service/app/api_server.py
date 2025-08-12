@@ -145,10 +145,16 @@ async def chat_with_agent(request: ChatRequest, db: Session = Depends(get_db)):
     Endpoint principal para conversar com o agente.
     """
     try:
-        # Verificar se o usuário existe
-        user = db.query(User).filter(User.id == request.user_id).first()
-        if not user:
-            raise HTTPException(status_code=404, detail="Usuário não encontrado")
+        # Verificar se o usuário existe, se não existir, criar
+        user = None
+        if request.user_id:
+            user = db.query(User).filter(User.id == request.user_id).first()
+            if not user:
+                logger.info(f"Criando novo usuário com ID: {request.user_id}")
+                user = User(id=request.user_id)
+                db.add(user)
+                db.commit()
+                db.refresh(user)
         
         # Buscar ou criar conversa
         conversation = None
@@ -161,8 +167,9 @@ async def chat_with_agent(request: ChatRequest, db: Session = Depends(get_db)):
             # Criar nova conversa
             title = generate_conversation_title(request.content)
             conversation = Conversation(
-                user_id=user.id,
-                title=title
+                user_id=user.id if user else None,
+                title=title,
+                temporario=user is None  # True se não houver usuário
             )
             db.add(conversation)
             db.commit()
@@ -204,6 +211,7 @@ async def chat_with_agent(request: ChatRequest, db: Session = Depends(get_db)):
         return ChatResponse(
             conversation_id=conversation.id,
             user_id=conversation.user_id,
+            temporario=conversation.temporario,
             messages=[
                 MessageRequest(
                     sender=msg.sender,
@@ -231,7 +239,12 @@ async def get_conversation(conversation_id: uuid.UUID, db: Session = Depends(get
         ).first()
         
         if not conversation:
-            return ChatResponse(conversation_id=conversation_id, user_id=None, messages=[])
+            return ChatResponse(
+                conversation_id=conversation_id, 
+                user_id=None, 
+                temporario=True,
+                messages=[]
+            )
         
         messages = db.query(Message).filter(
             Message.conversation_id == conversation.id
@@ -240,6 +253,7 @@ async def get_conversation(conversation_id: uuid.UUID, db: Session = Depends(get
         return ChatResponse(
             conversation_id=conversation.id,
             user_id=conversation.user_id,
+            temporario=conversation.temporario,
             messages=[
                 MessageRequest(
                     sender=msg.sender,
@@ -309,6 +323,7 @@ async def list_conversations(
                 "id": conv.id,
                 "user_id": conv.user_id,
                 "title": conv.title,
+                "temporario": conv.temporario,
                 "message_count": message_count,
                 "last_message": last_message.timestamp.isoformat() if last_message else None,
                 "created_at": conv.created_at.isoformat()

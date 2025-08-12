@@ -30,17 +30,15 @@ export function Header() {
       <div className="flex h-full items-center gap-4">
         {data ? (
           <DropdownMenu modal={false}>
-            <DropdownMenuTrigger>
-              <Button
-                variant="ghost"
-                size="default"
-                className="cursor-pointer py-6"
-              >
+            <DropdownMenuTrigger className="cursor-pointer">
+              <Button variant="ghost" size="default" className="py-6">
                 <Avatar className="h-9 w-9">
                   <AvatarImage src={data.profile_picture ?? ""} />
                   <AvatarFallback>{data.nome_completo ?? ""}</AvatarFallback>
                 </Avatar>
-                {data.nome_completo ?? ""}
+                <p className="max-w-[124px] truncate">
+                  {data.nome_completo ?? ""}
+                </p>
                 <ChevronDown className="ml-auto" />
               </Button>
             </DropdownMenuTrigger>
@@ -50,7 +48,9 @@ export function Header() {
                   <AvatarImage src={data.profile_picture ?? ""} />
                   <AvatarFallback>{data.nome_completo ?? ""}</AvatarFallback>
                 </Avatar>
-                {data.nome_completo ?? ""}
+                <p className="max-w-[124px] truncate">
+                  {data.nome_completo ?? ""}
+                </p>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
 

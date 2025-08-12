@@ -65,7 +65,7 @@ export function LoginModal() {
               </div>
               <Button
                 variant="outline"
-                className="w-full"
+                className="w-full cursor-pointer"
                 onClick={() => performGoogleLogin()}
                 disabled={isGooglePending}
               >
@@ -77,8 +77,18 @@ export function LoginModal() {
             <TabsContent value="register">
               <DialogHeader>
                 <DialogTitle>Crie sua conta</DialogTitle>
+                <Button
+                  variant="outline"
+                  className="my-2 w-full cursor-pointer"
+                  onClick={() => performGoogleLogin()}
+                  disabled={isGooglePending}
+                >
+                  <GoogleIcon className="mr-2 h-4 w-4" />
+                  {isGooglePending ? "A redirecionar..." : "Entrar com Google"}
+                </Button>
+
                 <DialogDescription>
-                  Preencha os campos abaixo para criar sua conta.
+                  Ou preencha os campos abaixo para criar sua conta.
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4">

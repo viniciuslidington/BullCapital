@@ -41,7 +41,11 @@ export function LoginForm() {
         />
       </div>
       <DialogFooter className="pt-5">
-        <Button type="submit" className="w-full" disabled={isPending}>
+        <Button
+          type="submit"
+          className="w-full cursor-pointer"
+          disabled={isPending}
+        >
           {isPending ? "A entrar..." : "Entrar"}
         </Button>
       </DialogFooter>
