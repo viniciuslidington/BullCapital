@@ -282,7 +282,7 @@ def normalize_ticker(tk: str) -> str:
 )
 def consultar_pdf_fundamentalista(question: str) -> str:
     """Consulta o PDF de análise fundamentalista."""
-    pdf_path = Path(__file__).resolve().parents[1] / "indicadores_fundamentalistas (1).pdf"
+    pdf_path = Path(__file__).resolve().parent / "indicadores_fundamentalistas (1).pdf"
     with pdfplumber.open(pdf_path) as pdf:
         texto = "\n".join(page.extract_text() or "" for page in pdf.pages)
 
