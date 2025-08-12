@@ -1,22 +1,16 @@
-"""
-Ponto de entrada principal para o serviço de autenticação.
+"""Ponto de entrada principal para o AI Service.
 
-Este módulo inicia o servidor FastAPI usando Uvicorn quando executado diretamente.
-Configurado para escutar em todas as interfaces de rede na porta 8000 com
-recarregamento automático habilitado para desenvolvimento.
+Expõe o objeto ``app`` importando de ``app.api_server`` para que o comando
+``uvicorn app.main:app`` (usado no docker-compose) funcione corretamente.
+
+Se executado diretamente (python -m app.main), inicia o servidor de
+desenvolvimento com reload.
 """
 
+from app.api_server import app  # noqa: F401 (re-export)
 import uvicorn
 
 if __name__ == "__main__":
-    """
-    Inicia o servidor de desenvolvimento do FastAPI.
-    
-    Configurações:
-    - Host: 0.0.0.0 (aceita conexões de qualquer IP)
-    - Porta: 8000
-    - Reload: True (reinicia automaticamente quando arquivos são modificados)
-    """
     uvicorn.run(
         "app.api_server:app",
         host="0.0.0.0",

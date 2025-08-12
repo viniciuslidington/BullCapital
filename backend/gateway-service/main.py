@@ -5,9 +5,15 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="API Gateway Service")
 
-app.get("/")
+# Endpoint raiz (corrigido decorator) e simples resposta
+@app.get("/")
 async def read_root():
-    return {"message": "Welcome to the API Gateway Service"}
+    return {"message": "API Gateway OK"}
+
+# Endpoint de health separado para permitir evolução futura (ex: checar dependências)
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
 
 # Inclui o router de Market Data do Gateway
 # O prefixo '/market-data' é a URL que os CLIENTES EXTERNOS verão
