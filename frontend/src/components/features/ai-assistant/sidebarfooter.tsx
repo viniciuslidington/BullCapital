@@ -8,7 +8,14 @@ export function SidebarFooter() {
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const { isFixed, messages, sendMessage, isLoading } = useSidebar();
+  const {
+    isFixed,
+    messages,
+    sendMessage,
+    isLoading,
+    isOpenConvoList,
+    isFetchingHistory,
+  } = useSidebar();
 
   const suggestions = [
     { text: "Como está o mercado hoje?" },
@@ -21,7 +28,6 @@ export function SidebarFooter() {
   async function handleSubmit() {
     if (input === "" || isLoading) return;
     const message = input;
-    console.log(message);
     setInput("");
     sendMessage(message);
   }
@@ -54,7 +60,7 @@ export function SidebarFooter() {
       }}
     >
       <div
-        className={`flex max-w-full flex-wrap gap-2 transition-all duration-300 ease-in-out ${messages.length === 0 && input === "" ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        className={`flex max-w-full flex-wrap gap-2 transition-all delay-200 duration-300 ease-in-out ${messages.length === 0 && input === "" && !isOpenConvoList && !isFetchingHistory ? "opacity-100" : "pointer-events-none opacity-0"}`}
       >
         {suggestions.map((s, index) => (
           <Button

@@ -1,11 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AIService } from "@/services/ai-service";
-import type { ChatMessage, ChatRequest, ChatResponse } from "@/types/ai";
-import { useCallback, useState } from "react";
+import {
+  type ConversationListResponse,
+  type ChatMessage,
+  type ChatRequest,
+  type ChatResponse,
+} from "@/types/ai";
+import { useCallback } from "react";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
+import { useUserProfile } from "./useauth";
 
-// Para tipar o contexto da mutação e ter um rollback seguro
+// Tipagem para o contexto da mutação, usado no rollback em caso de erro.
 interface MutationContext {
   previousMessages?: ChatMessage[];
 }
@@ -13,111 +19,134 @@ interface MutationContext {
 export function useAIChat() {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [conversationId, setConversationId] = useState<string | undefined>(
-    searchParams.get("chat") || undefined,
-  );
+  const { data: userData } = useUserProfile();
 
+  // A URL é a única fonte da verdade para o ID da conversa.
+  // Não usamos mais useState + useEffect para evitar problemas de sincronia.
+  const conversationId = searchParams.get("chat") || null;
   const queryKey = ["conversation", conversationId];
 
-  const { data: messages = [], isLoading: isFetchingHistory } = useQuery<
-    ChatMessage[]
-  >({
-    queryKey,
-    queryFn: () => AIService.getMessages(conversationId!),
-    enabled: !!conversationId,
-  });
+  // Query para buscar as mensagens da conversa ativa.
+  const { data: chatResponse, isLoading: isFetchingHistory } =
+    useQuery<ChatResponse>({
+      queryKey,
+      queryFn: () => AIService.getMessages(conversationId!),
+      enabled: !!conversationId, // Só executa se houver um conversationId.
+    });
 
+  // Mutação para enviar uma nova mensagem.
   const { mutate, isPending: isSendingMessage } = useMutation<
     ChatResponse,
     Error,
     ChatRequest,
-    MutationContext // Adicionamos o tipo do contexto aqui
+    MutationContext
   >({
-    mutationFn: ({ question }) =>
-      AIService.chat({
-        question: question,
-        conversation_id: conversationId,
-      }),
+    mutationFn: (message) => AIService.chat(message),
 
-    onMutate: async ({ question }) => {
-      // Cancela qualquer refetch pendente para não sobrescrever nossa atualização otimista.
+    onMutate: async ({ content }) => {
+      // Cancela queries pendentes para não sobrescrever a atualização otimista.
       await queryClient.cancelQueries({ queryKey });
 
-      // Salva o estado anterior do cache, caso precisemos reverter.
-      const previousMessages =
-        queryClient.getQueryData<ChatMessage[]>(queryKey);
+      const previousChatResponse =
+        queryClient.getQueryData<ChatResponse>(queryKey);
 
-      // Cria a nova mensagem do usuário com um ID temporário.
       const newUserMessage: ChatMessage = {
-        role: "user",
-        content: question,
+        sender: "user",
+        content: content,
         timestamp: new Date().toISOString(),
       };
 
-      // Atualiza o cache otimisticamente com a nova mensagem.
-      queryClient.setQueryData<ChatMessage[]>(queryKey, (old = []) => [
-        ...old,
-        newUserMessage,
-      ]);
+      // Atualiza o cache otimisticamente.
+      queryClient.setQueryData<ChatResponse>(queryKey, (oldData) => {
+        if (!oldData) {
+          return {
+            conversation_id: "temp-id",
+            messages: [newUserMessage],
+            user_id: userData?.id || null,
+            temporario: true,
+          };
+        }
+        return {
+          ...oldData,
+          messages: [...oldData.messages, newUserMessage],
+        };
+      });
 
-      // Retorna o estado anterior no contexto para o 'onError'.
-      return { previousMessages };
+      return { previousMessages: previousChatResponse?.messages };
     },
 
     onError: (err, variables, context) => {
-      console.error("Erro na mutação, revertendo atualização otimista:", err);
-      // Se a mutação falhar, usa o contexto do onMutate para reverter ao estado anterior.
+      // Em caso de erro, reverte a atualização otimista.
       if (context?.previousMessages) {
-        queryClient.setQueryData(queryKey, context.previousMessages);
+        queryClient.setQueryData<ChatResponse>(queryKey, (old) => ({
+          ...old!,
+          messages: context.previousMessages!,
+        }));
       }
-      console.error("Falha ao enviar mensagem:", err);
-      toast.error("Falha ao enviar mensagem", {
-        description: "Verifique sua conexão e tente novamente.",
-      });
+      toast.error("Falha ao enviar mensagem.");
+      console.error("Mutation error:", err);
     },
 
     onSettled: (data) => {
       const finalConversationId = data?.conversation_id || conversationId;
+
+      // Se a API retornou um novo ID (primeira mensagem), atualiza a URL.
       if (data?.conversation_id && !conversationId) {
-        setConversationId(data.conversation_id);
         setSearchParams({ chat: data.conversation_id });
       }
 
+      // Invalida a query da conversa para buscar os dados finais do servidor.
       queryClient.invalidateQueries({
         queryKey: ["conversation", finalConversationId],
       });
+      // Invalida a lista de conversas para exibir o novo chat na sidebar.
+      queryClient.invalidateQueries({ queryKey: ["conversation", "list"] });
     },
   });
 
-  const sendMessage = (question: string) => {
-    if (question.trim()) {
-      mutate({ question, conversation_id: conversationId });
+  const sendMessage = (content: string) => {
+    if (content.trim() && userData?.id) {
+      mutate({
+        content,
+        conversation_id: conversationId,
+        sender: "user",
+        user_id: userData.id,
+      });
     }
   };
 
   const clearChat = useCallback(() => {
-    setConversationId(undefined);
-    // Removemos a query do cache para garantir que não haja dados antigos se uma nova conversa começar.
-    queryClient.removeQueries({ queryKey: ["conversation"] });
-    setSearchParams();
-  }, [queryClient, setSearchParams]);
+    // Para limpar o chat, apenas removemos o parâmetro da URL.
+    setSearchParams({});
+    queryClient.removeQueries({ queryKey: ["conversation", conversationId] });
+  }, [queryClient, setSearchParams, conversationId]);
 
-  // O estado de loading geral é uma combinação do carregamento inicial do histórico e do envio de uma nova mensagem.
   const isLoading = isFetchingHistory || isSendingMessage;
 
-  const aiHealth = useQuery({
+  // Query para buscar a lista de todas as conversas do usuário.
+  const { data: conversationList } = useQuery<ConversationListResponse>({
+    queryKey: ["conversation", "list"],
+    queryFn: () => AIService.getConversations(userData?.id),
+    enabled: !!userData?.id,
+  });
+
+  // Query para verificar a saúde da API da IA.
+  const { data: aiHealth } = useQuery({
     queryKey: ["aiHealth"],
     queryFn: AIService.health,
-    refetchInterval: 30000, // a cada 30s
+    refetchInterval: 30000,
+    refetchOnWindowFocus: false,
     retry: false,
   });
 
   return {
-    messages,
+    chatResponse,
     isLoading,
     conversationId,
     sendMessage,
     clearChat,
-    aiHealth,
+    aiStatus: aiHealth?.status,
+    conversationList,
+    isFetchingHistory,
   };
 }

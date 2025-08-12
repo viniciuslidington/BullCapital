@@ -5,13 +5,12 @@ import { User } from "lucide-react";
 
 type MessageProps = {
   children: string;
-  tipo?: "user" | "ai";
+  tipo?: "user" | "bot";
 };
 
 export function Message({ children, tipo = "user" }: MessageProps) {
   const isUser = tipo === "user";
   const { data } = useUserProfile();
-  console.log(data);
   return (
     <div
       className={`flex w-full items-end gap-2 ${isUser ? "justify-end" : "justify-start"}`}
@@ -23,7 +22,7 @@ export function Message({ children, tipo = "user" }: MessageProps) {
         </Avatar>
       )}
       <div
-        className={`max-w-[80%] rounded-[12px] p-3 ${
+        className={`max-w-[80%] overflow-hidden rounded-[12px] p-3 ${
           isUser
             ? "bg-primary text-primary-foreground order-2 rounded-br-none"
             : "bg-muted text-foreground order-2 rounded-bl-none"
