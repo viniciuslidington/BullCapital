@@ -142,15 +142,33 @@ services:
     depends_on:
       auth-service:
         condition: service_healthy
-      market-data-service:
-        condition: service_started
-      ai-service:
-        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8000/ || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 5
+    networks:
+      - dev-network
+    restart: unless-stopped
+
+  # Frontend (Vite Dev Server)
+  frontend:
+    build:
+      context: ./frontend
+    container_name: frontend
+    environment:
+      NODE_ENV: development
+      VITE_API_URL: http://localhost:8000
+    working_dir: /app
+    command: npm run dev -- --host 0.0.0.0 --port 5173
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      gateway-service:
+        condition: service_started
     networks:
       - dev-network
     restart: unless-stopped
